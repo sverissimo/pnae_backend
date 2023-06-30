@@ -1,0 +1,25 @@
+version: '3.9'
+services:
+  nest-app:
+    container_name: nest-app
+    build: .
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+    volumes:
+      - ./:/home/node/app
+
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    ports:
+      - '5432:5432'
+    volumes:
+      - /home/sverissimo/databases/merenda_data/:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: pass
+
+volumes:
+  pg_data:
+    external: true

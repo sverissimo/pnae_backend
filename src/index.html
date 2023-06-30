@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Formulário de Visita</title>
+</head>
+<body>
+    <form action="http://localhost:3000/visitas" method="post" enctype="multipart/form-data">
+        <label for="id">ID:</label><br>
+        <input type="number" id="id" name="id"><br>
+        <label for="propriedade_id">ID da Propriedade:</label><br>
+        <input type="number" id="propriedade_id" name="propriedade_id"><br>
+        <label for="orientacao">Orientação:</label><br>
+        <input type="text" id="orientacao" name="orientacao"><br>
+        <label for="fotos">Fotos:</label><br>
+        <input type="file" id="fotos" name="fotos" multiple><br>
+        <label for="assinatura">Assinatura:</label><br>
+        <input type="file" id="assinatura" name="assinatura"><br>
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>

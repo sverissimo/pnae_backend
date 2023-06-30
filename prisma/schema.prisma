@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Visita {
+  id             Int           @id @default(autoincrement())
+  propriedade    Propriedade?  @relation(fields: [propriedade_id], references: [id])
+  propriedade_id Int           @map("propriedadeId")
+  orientacao     String
+  files          PictureFile[]
+  created_at     DateTime?     @default(now()) @map("createdAt")
+}
+
+model PictureFile {
+  id           String             @id @default(uuid())
+  fileName     String
+  length       Float
+  contentType  String
+  description  PictureDescription
+  visita       Visita             @relation(fields: [visita_id], references: [id])
+  visita_id    Int                @map("visitaId")
+  updload_date DateTime           @default(now())
+}
+
+model Propriedade {
+  id              Int          @id @default(autoincrement())
+  nome            String
+  municipio       String
+  area            String
+  coordenadas     String
+  proprietario    Proprietario @relation(fields: [proprietario_id], references: [id])
+  proprietario_id Int          @map("proprietarioId")
+  visita          Visita[]
+}
+
+model Proprietario {
+  id              Int           @id @default(autoincrement())
+  tipo_pessoa     TipoPessoa
+  nome            String
+  cpf             String?       @unique
+  cnpj            String?       @unique
+  data_nascimento DateTime?
+  sexo            Sexo?
+  propriedades    Propriedade[]
+}
+
+model Tecnico {
+  id   Int    @id @default(autoincrement())
+  nome String
+  cpf  String
+  masp String
+}
+
+enum TipoPessoa {
+  FISICA
+  JURIDICA
+}
+
+enum PictureDescription {
+  FOTO_VISITA
+  ASSINATURA_PROPRIETARIO
+}
+
+enum Sexo {
+  MASCULINO
+  FEMININO
+  NAO_INFORMADO
+}
