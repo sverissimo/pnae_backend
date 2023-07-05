@@ -27,7 +27,8 @@
 			"extensions": [
 				"esbenp.prettier-vscode",
 				"chakrounanas.turbo-console-log",
-				"prisma.prisma"
+				"prisma.prisma",
+				"mikestead.dotenv"
 			]
 		}
 	}

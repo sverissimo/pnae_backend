@@ -1,4 +1,4 @@
-import { Body, Injectable, Res } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateVisitaDto } from './dto/create-visita.dto';
 import { UpdateVisitaDto } from './dto/update-visita.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -42,6 +42,6 @@ export class VisitasService {
 
   async remove(id: number) {
     await this.prismaService.visita.delete({ where: { id } });
-    return 'removed.';
+    return 'Visita removed.';
   }
 }

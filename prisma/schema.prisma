@@ -8,45 +8,45 @@ datasource db {
 }
 
 model Visita {
-  id             Int           @id @default(autoincrement())
-  propriedade    Propriedade?  @relation(fields: [propriedade_id], references: [id])
-  propriedade_id Int           @map("propriedadeId")
-  orientacao     String
-  files          PictureFile[]
-  created_at     DateTime?     @default(now()) @map("createdAt")
+  id            Int           @id @default(autoincrement())
+  propriedade   Propriedade?  @relation(fields: [propriedadeId], references: [id])
+  propriedadeId Int           @map("propriedade_id")
+  orientacao    String
+  files         PictureFile[]
+  createdAt     DateTime?     @default(now()) @map("created_at")
 }
 
 model PictureFile {
-  id           String             @id @default(uuid())
-  fileName     String
-  length       Float
-  contentType  String
-  description  PictureDescription
-  visita       Visita             @relation(fields: [visita_id], references: [id])
-  visita_id    Int                @map("visitaId")
-  updload_date DateTime           @default(now())
+  id          String             @id @default(uuid())
+  fileName    String
+  size        Float
+  mimeType    String
+  description PictureDescription
+  visita      Visita?            @relation(fields: [visitaId], references: [id])
+  visitaId    Int                @map("visita_id")
+  updloadDate DateTime?          @default(now()) @map("upload_date")
 }
 
 model Propriedade {
-  id              Int          @id @default(autoincrement())
-  nome            String
-  municipio       String
-  area            String
-  coordenadas     String
-  proprietario    Proprietario @relation(fields: [proprietario_id], references: [id])
-  proprietario_id Int          @map("proprietarioId")
-  visita          Visita[]
+  id             Int          @id @default(autoincrement())
+  nome           String
+  municipio      String
+  area           String
+  coordenadas    String
+  proprietario   Proprietario @relation(fields: [proprietarioId], references: [id])
+  proprietarioId Int          @map("proprietario_id")
+  visita         Visita[]
 }
 
 model Proprietario {
-  id              Int           @id @default(autoincrement())
-  tipo_pessoa     TipoPessoa
-  nome            String
-  cpf             String?       @unique
-  cnpj            String?       @unique
-  data_nascimento DateTime?
-  sexo            Sexo?
-  propriedades    Propriedade[]
+  id             Int           @id @default(autoincrement())
+  tipoPessoa     TipoPessoa    @map("tipo_pessoa")
+  nome           String
+  cpf            String?       @unique
+  cnpj           String?       @unique
+  dataNascimento DateTime?     @map("data_nascimento")
+  sexo           Sexo?
+  propriedades   Propriedade[]
 }
 
 model Tecnico {

@@ -1,6 +1,4 @@
 export class CreateVisitaDto {
-  id?: number;
-  propriedade_id: number;
+  propriedadeId: number;
   orientacao: string;
-  created_at?: Date;
 }

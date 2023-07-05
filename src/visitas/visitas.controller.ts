@@ -8,14 +8,16 @@ import {
   Delete,
   UseInterceptors,
   UploadedFiles,
+  Res,
 } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { VisitasService } from './visitas.service';
 import { CreateVisitaDto } from './dto/create-visita.dto';
 import { UpdateVisitaDto } from './dto/update-visita.dto';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { FileService } from 'src/common/file.service';
-import { Visita } from './entities/visita.entity';
-import { FileDto } from './dto/files.dto';
+import { VisitaFilesDto } from './dto/files.dto';
+import { Response } from 'express';
+import { FilesInputDto } from 'src/common/files-input.dto';
 
 @Controller('visitas')
 export class VisitasController {
@@ -31,17 +33,13 @@ export class VisitasController {
       { name: 'assinatura', maxCount: 1 },
     ]),
   )
-  async create(
-    @UploadedFiles()
-    files: FileDto,
-    @Body() createVisitaDto: CreateVisitaDto,
-  ) {
+  async create(@UploadedFiles() files: FilesInputDto, @Body() createVisitaDto: CreateVisitaDto) {
+    createVisitaDto.propriedadeId = Number(createVisitaDto.propriedadeId);
     const visitaId = await this.visitasService.create(createVisitaDto);
 
     if (files) {
-      await this.fileService.save(files, visitaId); //TODO: IMPLEMENT THIS
+      await this.fileService.save(files, visitaId);
     }
-
     return visitaId;
   }
 
@@ -61,7 +59,21 @@ export class VisitasController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.visitasService.remove(+id);
+  async remove(@Param('id') id: string, @Res() res: Response) {
+    try {
+      const visita = await this.visitasService.findOne(+id);
+
+      if (!visita.length) {
+        return res.status(404).end();
+      }
+
+      const { files } = visita[0];
+      const fileIds = files.map((f) => f.id);
+      await this.fileService.remove(fileIds, process.env.FILES_FOLDER);
+      await this.visitasService.remove(+id);
+      return res.status(204).end();
+    } catch (error) {
+      return res.status(500).send(error.message);
+    }
   }
 }

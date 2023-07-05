@@ -1,21 +1,19 @@
+import { join } from 'path';
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { AppService } from './app.service';
 import { VisitasModule } from './visitas/visitas.module';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'src'),
+      rootPath: join(__dirname, '../client', 'src'),
       exclude: ['/api/(.*)'],
     }),
     VisitasModule,
   ],
-  //controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
-
-console.log(join(__dirname, '..', 'src', 'tempForm.html'));
