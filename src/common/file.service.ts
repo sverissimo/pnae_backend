@@ -61,7 +61,7 @@ export class FileService {
       fileName: file.originalname,
       size: Number(file.size),
       mimeType: file.mimetype,
-      description: file.fieldname === 'fotos' ? 'FOTO_VISITA' : 'ASSINATURA_PROPRIETARIO',
+      description: file.fieldname === 'fotos' ? 'FOTO_VISITA' : 'ASSINATURA_PRODUTOR',
       visitaId: Number(visitaId),
     };
     return fileMetadata;

@@ -7,13 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Visita {
-  id            Int           @id @default(autoincrement())
-  propriedade   Propriedade?  @relation(fields: [propriedadeId], references: [id])
-  propriedadeId Int           @map("propriedade_id")
-  orientacao    String
-  files         PictureFile[]
-  createdAt     DateTime?     @default(now()) @map("created_at")
+model Relatorio {
+  id              Int           @id @default(autoincrement())
+  numeroRelatorio Int           @map("nr_relatorio")
+  assunto         String
+  orientacao      String
+  propriedade     Propriedade?  @relation(fields: [propriedadeId], references: [id])
+  propriedadeId   Int           @map("propriedade_id")
+  files           PictureFile[]
+  createdAt       DateTime?     @default(now()) @map("created_at")
 }
 
 model PictureFile {
@@ -22,23 +24,23 @@ model PictureFile {
   size        Float
   mimeType    String
   description PictureDescription
-  visita      Visita?            @relation(fields: [visitaId], references: [id])
-  visitaId    Int                @map("visita_id")
+  relatorio   Relatorio?         @relation(fields: [relatorioId], references: [id])
+  relatorioId Int                @map("relatorio_id")
   updloadDate DateTime?          @default(now()) @map("upload_date")
 }
 
 model Propriedade {
-  id             Int          @id @default(autoincrement())
-  nome           String
-  municipio      String
-  area           String
-  coordenadas    String
-  proprietario   Proprietario @relation(fields: [proprietarioId], references: [id])
-  proprietarioId Int          @map("proprietario_id")
-  visita         Visita[]
+  id          Int         @id @default(autoincrement())
+  nome        String
+  municipio   String
+  area        String
+  coordenadas String
+  produtor    Produtor    @relation(fields: [produtorId], references: [id])
+  produtorId  Int         @map("produtor_id")
+  relatorio   Relatorio[]
 }
 
-model Proprietario {
+model Produtor {
   id             Int           @id @default(autoincrement())
   tipoPessoa     TipoPessoa    @map("tipo_pessoa")
   nome           String
@@ -62,8 +64,8 @@ enum TipoPessoa {
 }
 
 enum PictureDescription {
-  FOTO_VISITA
-  ASSINATURA_PROPRIETARIO
+  FOTO_RELATORIO
+  ASSINATURA_PRODUTOR
 }
 
 enum Sexo {

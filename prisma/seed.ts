@@ -6,14 +6,15 @@ import { join } from 'path';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log(join);
-  const data = JSON.parse(
-    fs.readFileSync(join(__dirname, 'data', 'fakeData.json'), 'utf-8'),
+  console.log(
+    '🚀 ~ file: seed.ts:10**********************',
+    join(__dirname, 'data', 'fakeData.json'),
   );
+  const data = JSON.parse(fs.readFileSync(join(__dirname, 'data', 'fakeData.json'), 'utf-8'));
 
-  // Insert proprietarios
-  await prisma.proprietario.createMany({
-    data: data.proprietarios,
+  // Insert produtores
+  await prisma.produtor.createMany({
+    data: data.produtores,
   });
 
   // Insert propriedades
@@ -21,9 +22,9 @@ async function main() {
     data: data.propriedades,
   });
 
-  // Insert visitas
-  await prisma.visita.createMany({
-    data: data.visitas,
+  // Insert relatorios
+  await prisma.relatorio.createMany({
+    data: data.relatorios,
   });
 
   // Insert pictureFiles
