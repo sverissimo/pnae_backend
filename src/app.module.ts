@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { VisitasModule } from './relatorios/relatorios.module';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
+import { ProdutorModule } from './produtor/produtor.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AppController } from './app.controller';
       exclude: ['/api/(.*)'],
     }), */
     VisitasModule,
+    ProdutorModule,
   ],
   controllers: [AppController],
   providers: [AppService],

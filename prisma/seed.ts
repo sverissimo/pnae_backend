@@ -6,10 +6,6 @@ import { join } from 'path';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log(
-    '🚀 ~ file: seed.ts:10**********************',
-    join(__dirname, 'data', 'fakeData.json'),
-  );
   const data = JSON.parse(fs.readFileSync(join(__dirname, 'data', 'fakeData.json'), 'utf-8'));
 
   // Insert produtores

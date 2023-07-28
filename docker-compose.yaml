@@ -5,7 +5,8 @@ services:
     image: nest-app
     build: .
     entrypoint: "dockerize -wait tcp://postgres:5432 -timeout 20s /usr/local/bin/docker-entrypoint.sh"
-    command: "npm run start:dev"
+    #command: "npm run start:dev"
+    command: "tail -f /dev/null"
     ports:
       - '3000:3000'
     depends_on:

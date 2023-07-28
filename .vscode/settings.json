@@ -21,5 +21,18 @@
     "titleBar.inactiveBackground": "#081d3699",
     "titleBar.inactiveForeground": "#e7e7e799"
   },
-  "peacock.remoteColor": "#081d36"
+  "peacock.remoteColor": "#081d36",
+  "material-icon-theme.activeIconPack": "nest",
+  "material-icon-theme.files.associations": {
+    "*.module.ts": "nest-module",
+    "*.controller.ts": "nest-controller",
+    "*.service.ts": "nest-service",
+    "*.middleware.ts": "nest-middleware",
+    "*.filter.ts": "nest-filter",
+    "*.pipe.ts": "nest-pipe",
+    "*.gateway.ts": "nest-gateway",
+    "*.decorator.ts": "nest-decorator",
+    "*.guard.ts": "nest-guard",
+    "*.resolver.ts": "nest-resolver"
+  }
 }

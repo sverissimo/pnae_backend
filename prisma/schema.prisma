@@ -7,13 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Produtor {
+  id             Int           @id
+  tipoPessoa     TipoPessoa    @map("tipo_pessoa")
+  nome           String
+  cpfCnpj        String?       @unique @map("nr_cpf_cnpj")
+  dataNascimento DateTime?     @map("data_nascimento")
+  sexo           Sexo?
+  propriedades   Propriedade[]
+}
+
 model Relatorio {
   id              Int           @id @default(autoincrement())
   numeroRelatorio Int           @map("nr_relatorio")
   assunto         String
   orientacao      String
-  propriedade     Propriedade?  @relation(fields: [propriedadeId], references: [id])
-  propriedadeId   Int           @map("propriedade_id")
+  perfilId        Int?          @map("perfil_id")
   files           PictureFile[]
   createdAt       DateTime?     @default(now()) @map("created_at")
 }
@@ -30,25 +39,13 @@ model PictureFile {
 }
 
 model Propriedade {
-  id          Int         @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   nome        String
   municipio   String
   area        String
   coordenadas String
-  produtor    Produtor    @relation(fields: [produtorId], references: [id])
-  produtorId  Int         @map("produtor_id")
-  relatorio   Relatorio[]
-}
-
-model Produtor {
-  id             Int           @id @default(autoincrement())
-  tipoPessoa     TipoPessoa    @map("tipo_pessoa")
-  nome           String
-  cpf            String?       @unique
-  cnpj           String?       @unique
-  dataNascimento DateTime?     @map("data_nascimento")
-  sexo           Sexo?
-  propriedades   Propriedade[]
+  produtor    Produtor @relation(fields: [produtorId], references: [id])
+  produtorId  Int      @map("produtor_id")
 }
 
 model Tecnico {

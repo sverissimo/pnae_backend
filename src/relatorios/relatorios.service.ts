@@ -4,56 +4,58 @@ import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
-export class VisitasService {
+export class RelatorioService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(createRelatorioDto: CreateRelatorioDto): Promise<number> {
-    console.log(
-      '🚀 ~ file: visitas.service.ts:11 ~ VisitasService ~ create ~ createRelatorioDto:',
-      createRelatorioDto,
-    );
-
     const relatorio = await this.prismaService.relatorio.create({
       data: {
         numeroRelatorio: createRelatorioDto.numeroRelatorio,
         assunto: createRelatorioDto.assunto,
         orientacao: createRelatorioDto.orientacao,
-        propriedade: {
-          connect: {
-            id: createRelatorioDto.propriedadeId,
-          },
-        },
       },
     });
     return relatorio.id;
   }
 
   async findAll() {
-    const visitas = this.prismaService.relatorio.findMany({
+    const relatorios = this.prismaService.relatorio.findMany({
       include: {
         files: true,
       },
     });
     const props = tst();
-    const result = await Promise.all([visitas, props]);
+    const result = await Promise.all([relatorios, props]);
     return { result: [...result[0], result[1]?.data] };
   }
 
+  async findMany(perfilId: number) {
+    const relatorios = await this.prismaService.relatorio.findMany({ where: { perfilId } });
+    return relatorios;
+  }
+
   async findOne(id: number) {
-    const visitas = await this.prismaService.relatorio.findMany({
+    const relatorios = await this.prismaService.relatorio.findMany({
       where: { id: id },
       include: { files: true },
     });
 
-    return visitas;
+    return relatorios;
   }
 
   async update(id: number, updateRelatorioDto: Omit<UpdateRelatorioDto, 'fotos'>) {
-    const updated = await this.prismaService.relatorio.update({
-      where: { id },
-      data: { ...updateRelatorioDto },
-    });
-    return updated;
+    try {
+      const updated = await this.prismaService.relatorio.update({
+        where: { id },
+        data: { ...updateRelatorioDto },
+      });
+      return updated;
+    } catch (error) {
+      console.log(
+        '🚀 ~ file: relatorios.service.ts:56 ~ RelatorioService ~ update ~ error:',
+        error,
+      );
+    }
   }
 
   async remove(id: number) {
@@ -83,7 +85,7 @@ const tst = async () => {
       body: JSON.stringify(bd),
     });
     const fk2 = await fk.json();
-    console.log('🚀 ~ file: visitas.controller.ts:60 ~ VisitasController ~ tst ~ fk2:', fk2);
+    console.log('🚀 ~ file: relatorios.controller.ts:60 ~ RelatorioController ~ tst ~ fk2:', fk2);
     return fk2;
   } catch (error) {
     console.error(error);

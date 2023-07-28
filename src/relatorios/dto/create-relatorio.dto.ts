@@ -1,6 +1,6 @@
 export class CreateRelatorioDto {
+  produtorId: number;
   numeroRelatorio: number;
   assunto: string;
-  propriedadeId: number;
   orientacao: string;
 }
