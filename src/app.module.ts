@@ -6,6 +6,7 @@ import { VisitasModule } from './relatorios/relatorios.module';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { ProdutorModule } from './produtor/produtor.module';
+import { PerfilModule } from './perfil/perfil.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ProdutorModule } from './produtor/produtor.module';
     }), */
     VisitasModule,
     ProdutorModule,
+    PerfilModule,
   ],
   controllers: [AppController],
   providers: [AppService],

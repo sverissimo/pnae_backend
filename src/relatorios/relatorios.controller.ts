@@ -37,11 +37,11 @@ export class RelatorioController {
     @UploadedFiles() files: FilesInputDto,
     @Body() createRelatorioDto: CreateRelatorioDto,
   ) {
-    const visitaId = await this.relatorioService.create(createRelatorioDto);
+    const relatorioId = await this.relatorioService.create(createRelatorioDto);
     if (files) {
-      await this.fileService.save(files, visitaId);
+      await this.fileService.save(files, relatorioId);
     }
-    return visitaId;
+    return relatorioId;
   }
 
   @Get('/all')
@@ -56,12 +56,17 @@ export class RelatorioController {
 
   @Get()
   findByProdutorId(@Query('produtorId') produtorId: number) {
-    return this.relatorioService.findMany(produtorId);
+    return this.relatorioService.findMany(+produtorId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRelatorioDto: UpdateRelatorioDto) {
-    return this.relatorioService.update(+id, updateRelatorioDto);
+  @Patch()
+  update(@Body() updateRelatorioDto: UpdateRelatorioDto, @Res() res: Response) {
+    try {
+      return this.relatorioService.update(updateRelatorioDto);
+    } catch (error) {
+      console.log('🚀 ~ file: relatorios.controller.ts:67 ~ update ~ error:', error);
+      return res.status(500).send(error);
+    }
   }
 
   @Delete(':id')

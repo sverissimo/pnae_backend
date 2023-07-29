@@ -24,11 +24,8 @@ export class ProdutorService {
   async findOne(cpfProdutor: string) {
     const { produtor }: any = await this.api.getProdutor(cpfProdutor);
 
-    const { perfis } = produtor;
-    for (const p of perfis) {
-      const relatorios = await this.relatorioService.findMany(p.id);
-      p.relatorios = relatorios;
-    }
+    const relatorios = await this.relatorioService.findMany(produtor.id_pessoa_demeter);
+    produtor.relatorios = relatorios;
 
     return produtor;
 

@@ -10,6 +10,7 @@ export class RelatorioService {
   async create(createRelatorioDto: CreateRelatorioDto): Promise<number> {
     const relatorio = await this.prismaService.relatorio.create({
       data: {
+        produtorId: createRelatorioDto.produtorId,
         numeroRelatorio: createRelatorioDto.numeroRelatorio,
         assunto: createRelatorioDto.assunto,
         orientacao: createRelatorioDto.orientacao,
@@ -29,8 +30,8 @@ export class RelatorioService {
     return { result: [...result[0], result[1]?.data] };
   }
 
-  async findMany(perfilId: number) {
-    const relatorios = await this.prismaService.relatorio.findMany({ where: { perfilId } });
+  async findMany(produtorId: number) {
+    const relatorios = await this.prismaService.relatorio.findMany({ where: { produtorId } });
     return relatorios;
   }
 
@@ -43,11 +44,12 @@ export class RelatorioService {
     return relatorios;
   }
 
-  async update(id: number, updateRelatorioDto: Omit<UpdateRelatorioDto, 'fotos'>) {
+  async update(updateRelatorioDto: UpdateRelatorioDto) {
     try {
+      const { id, ...update } = updateRelatorioDto;
       const updated = await this.prismaService.relatorio.update({
         where: { id },
-        data: { ...updateRelatorioDto },
+        data: update,
       });
       return updated;
     } catch (error) {

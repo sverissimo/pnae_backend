@@ -3,6 +3,7 @@ import { gql } from 'graphql-request';
 export const produtorQuery = gql`
   query Produtor($id: Int, $cpf: String) {
     produtor(id: $id, cpf: $cpf) {
+      id_pessoa_demeter
       nm_pessoa
       dap
       nr_cpf_cnpj

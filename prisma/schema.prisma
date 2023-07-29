@@ -8,13 +8,28 @@ datasource db {
 }
 
 model Produtor {
-  id             Int           @id
-  tipoPessoa     TipoPessoa    @map("tipo_pessoa")
-  nome           String
-  cpfCnpj        String?       @unique @map("nr_cpf_cnpj")
-  dataNascimento DateTime?     @map("data_nascimento")
-  sexo           Sexo?
+  id             Int           @id @map("id_pessoa_demeter")
+  nome           String        @map("nm_pessoa")
+  cpfCnpj        String        @unique @map("nr_cpf_cnpj")
+  tipoPessoa     TipoPessoa    @map("tp_pessoa")
+  sexo           TipoSexo?     @map("tp_sexo")
+  dataNascimento String?       @map("dt_nascimento")
+  situacao       Int           @map("sn_ativo")
+  caf            String?
+  dap            String?
+  municipioId    Int?          @map("id_municipio")
   propriedades   Propriedade[]
+  relatorios     Relatorio[]
+}
+
+model Propriedade {
+  id              Int       @id
+  produtorId      Int       @map("produtor_id")
+  nomePropriedade String    @map("nome_propriedade")
+  coordenadas     String?   @map("geo_ponto_texto")
+  area            String?   @map("area_total")
+  municipioId     Int?      @map("id_municipio")
+  produtor        Produtor? @relation(fields: [produtorId], references: [id])
 }
 
 model Relatorio {
@@ -22,7 +37,8 @@ model Relatorio {
   numeroRelatorio Int           @map("nr_relatorio")
   assunto         String
   orientacao      String
-  perfilId        Int?          @map("perfil_id")
+  produtor        Produtor?     @relation(fields: [produtorId], references: [id])
+  produtorId      Int           @map("produtor_id")
   files           PictureFile[]
   createdAt       DateTime?     @default(now()) @map("created_at")
 }
@@ -38,16 +54,6 @@ model PictureFile {
   updloadDate DateTime?          @default(now()) @map("upload_date")
 }
 
-model Propriedade {
-  id          Int      @id @default(autoincrement())
-  nome        String
-  municipio   String
-  area        String
-  coordenadas String
-  produtor    Produtor @relation(fields: [produtorId], references: [id])
-  produtorId  Int      @map("produtor_id")
-}
-
 model Tecnico {
   id   Int    @id @default(autoincrement())
   nome String
@@ -56,8 +62,13 @@ model Tecnico {
 }
 
 enum TipoPessoa {
-  FISICA
-  JURIDICA
+  F
+  J
+}
+
+enum TipoSexo {
+  F
+  M
 }
 
 enum PictureDescription {
