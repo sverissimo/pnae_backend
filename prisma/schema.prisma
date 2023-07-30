@@ -20,6 +20,7 @@ model Produtor {
   municipioId    Int?          @map("id_municipio")
   propriedades   Propriedade[]
   relatorios     Relatorio[]
+  Perfil         Perfil[]
 }
 
 model Propriedade {
@@ -80,4 +81,65 @@ enum Sexo {
   MASCULINO
   FEMININO
   NAO_INFORMADO
+}
+
+model Perfil {
+  id                                           Int            @id @default(autoincrement())
+  tipo_perfil                                  String
+  id_tecnico                                   Int
+  id_cliente                                   Int
+  produtor                                     Produtor       @relation(fields: [id_cliente], references: [id])
+  data_preenchimento                           DateTime
+  data_atualizacao                             DateTime
+  participa_organizacao                        Boolean
+  id_dados_producao_in_natura                  Int?
+  nivel_tecnologico_cultivo                    Int?
+  sistema_producao                             Int?
+  condicao_posse                               Int?
+  dap_caf_vigente                              Boolean?
+  credito_rural                                Boolean?
+  fonte_captacao_agua                          Int?
+  forma_esgotamento_sanitario                  Int?
+  possui_cadastro_car                          Boolean?
+  aderiu_pra                                   Boolean?
+  ciente_iniciativas_regularizacao_pra         Boolean?
+  realiza_escalonamento_producao               Boolean?
+  procedimento_pos_colheita                    Int?
+  tipo_gestao_unidade                          String?
+  pessoas_processamento_alimentos              Int?
+  tipo_estabelecimento                         String?
+  tipo_pessoa_juridica                         String?
+  agroindustria_precisa_adaptacao_reforma      Boolean?
+  possui_registro_orgao_fiscalizacao_sanitaria Boolean?
+  orgao_fiscalizacao_sanitaria                 String?
+  atividades_usam_recursos_hidricos            Int?
+  atividades_com_regularizacao_ambiental       Int?
+  possui_agroindustria_propria                 Boolean?
+  grau_interesse_pnae                          String
+  id_dados_producao_agro_industria             Int?           @unique()
+  dados_producao                               DadosProducao? @relation(fields: [id_dados_producao_agro_industria], references: [id])
+  atividade                                    Atividade?
+}
+
+model DadosProducao {
+  id                                       Int     @id //@default(autoincrement())
+  controla_custos_producao                 Boolean
+  dificuldade_fornecimento                 Int
+  forma_entrega_produtos                   Int
+  informacoes_adicionais                   String?
+  local_comercializacao                    Int
+  perfil                                   Perfil?
+  tipo_regularizacao_ambiental             String
+  tipo_regularizacao_uso_recursos_hidricos String
+  valor_total_obtido_outros                Int
+  valor_total_obtido_pnae                  Int
+}
+
+model Atividade {
+  id                     Int      @id
+  id_perfil_see          Int      @unique
+  id_propriedade         Int      @unique
+  atividade              String
+  producao_dedicada_pnae Boolean?
+  perfil                 Perfil   @relation(fields: [id_perfil_see], references: [id])
 }

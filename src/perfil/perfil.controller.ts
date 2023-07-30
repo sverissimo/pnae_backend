@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { PerfilService } from './perfil.service';
 import { CreatePerfilDto } from './dto/create-perfil.dto';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
@@ -12,22 +12,20 @@ export class PerfilController {
     return this.perfilService.create(createPerfilDto);
   }
 
-  @Get()
+  @Get('/all')
   findAll() {
     return this.perfilService.findAll();
+  }
+
+  @Get()
+  findByProdutorId(@Query('produtorId') produtorId: string) {
+    return this.perfilService.findByProdutorId(+produtorId);
   }
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const localPerfil = await this.perfilService.findOne(+id);
-    console.log(
-      '🚀 ~ file: perfil.controller.ts:23 ~ PerfilController ~ findOne ~ localPerfil:',
-      localPerfil,
-    );
-    if (localPerfil) {
-      return localPerfil;
-    }
-    return;
+    return localPerfil;
   }
 
   @Patch(':id')

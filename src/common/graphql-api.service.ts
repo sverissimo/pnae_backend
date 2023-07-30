@@ -1,5 +1,5 @@
 import { GraphQLClient, request } from 'graphql-request';
-import { produtorQuery } from './queries';
+import { perfilQuery, perfisPorProdutorQuery, produtorQuery } from './queries';
 
 export class GraphQLApiGateway {
   client: GraphQLClient;
@@ -13,6 +13,19 @@ export class GraphQLApiGateway {
     const document = produtorQuery;
     const variables = { cpf: cpfProdutor };
     const result = await request({ url: this.url, document, variables });
+    return result;
+  }
+
+  async getPerfilByProdutorId(produtorId: number) {
+    const document = perfisPorProdutorQuery;
+    const variables = { produtorId };
+    const { perfisPorProdutor } = (await request({ url: this.url, document, variables })) as any;
+    return perfisPorProdutor;
+  }
+
+  async getPerfis() {
+    const document = perfilQuery;
+    const result = await request({ url: this.url, document });
     return result;
   }
 }

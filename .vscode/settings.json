@@ -1,7 +1,7 @@
 {
   "editor.fontSize": 12.5,
   "terminal.integrated.fontSize": 12,
-  "window.zoomLevel": 0,
+  "window.zoomLevel": -0.35,
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#0f3562",
     "activityBar.background": "#0f3562",
