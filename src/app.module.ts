@@ -7,10 +7,11 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { ProdutorModule } from './produtor/produtor.module';
 import { PerfilModule } from './perfil/perfil.module';
+import { config } from './config';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, load: [config] }),
     /* ServeStaticModule.forRoot({
       //rootPath: join(__dirname, '../client', 'src'),
       rootPath: join(__dirname, '../client', 'src'),

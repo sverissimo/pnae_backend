@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Res } from '@nestjs/common';
 import { CreatePerfilDto } from './dto/create-perfil.dto';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -8,8 +8,8 @@ import { GraphQLApiGateway } from 'src/common/graphql-api.service';
 export class PerfilService {
   constructor(private prismaService: PrismaService, private api: GraphQLApiGateway) {}
 
-  create(createPerfilDto: CreatePerfilDto) {
-    return 'This action adds a new perfil';
+  async create(createPerfilDto: CreatePerfilDto) {
+    return await this.api.createPerfil(createPerfilDto);
   }
 
   async findAll() {
@@ -28,13 +28,13 @@ export class PerfilService {
     return perfis;
   }
 
-  findOne = (id: number) => this.prismaService.perfil.findUnique({ where: { id } });
+  findOne = async (id: number) => await this.prismaService.perfil.findFirst({ where: { id } });
 
-  update(id: number, updatePerfilDto: UpdatePerfilDto) {
-    return `This action updates a #${id} perfil`;
+  async update(id: number, updatePerfilDto: UpdatePerfilDto) {
+    return await this.api.updatePerfil(id, updatePerfilDto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} perfil`;
+  async remove(id: number) {
+    return await this.api.deletePerfil(id);
   }
 }
