@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateProdutorDto } from './dto/create-produtor.dto';
 import { UpdateProdutorDto } from './dto/update-produtor.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { GraphQLApiGateway } from 'src/common/graphql-api.service';
+import { GraphQLApiGateway } from 'src/@graphQL-server/graphql-api.service';
 import { RelatorioService } from 'src/relatorios/relatorios.service';
 
 @Injectable()

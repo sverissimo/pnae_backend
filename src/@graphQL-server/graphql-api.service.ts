@@ -1,14 +1,14 @@
-import { GraphQLClient, request } from 'graphql-request';
-import { produtorQuery } from './queries';
+import { GraphQLClient } from 'graphql-request';
+import { ConfigService } from '@nestjs/config';
+import { Injectable } from '@nestjs/common';
 import {
+  produtorQuery,
   createPerfilMutation,
   deletePerfilMutation,
   perfilQuery,
   perfisPorProdutorQuery,
   updatePerfilMutation,
-} from './perfil-queries';
-import { ConfigService } from '@nestjs/config';
-import { Injectable } from '@nestjs/common';
+} from './queries';
 
 @Injectable()
 export class GraphQLApiGateway {

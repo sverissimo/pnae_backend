@@ -2,7 +2,7 @@ import { Injectable, Res } from '@nestjs/common';
 import { CreatePerfilDto } from './dto/create-perfil.dto';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { GraphQLApiGateway } from 'src/common/graphql-api.service';
+import { GraphQLApiGateway } from 'src/@graphQL-server/graphql-api.service';
 
 @Injectable()
 export class PerfilService {

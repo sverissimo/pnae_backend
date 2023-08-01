@@ -64,3 +64,25 @@ export const produtorQuery = gql`
     }
   }
 `;
+
+export const produtorSQLJoinQuery = (cpf: string) => `
+SELECT
+    p."id",
+    p."produtor_id",
+    p."propriedade_id",
+    s."id",
+    s."tipo_perfil",
+    s."id_tecnico",
+    s."id_cliente",
+    s."data_preenchimento",
+    -- include other fields from at_prf_see
+    pp."id",
+    pp."produtor_id",
+    pp."propriedade_id",
+    g."nr_cpf_cnpj"
+FROM "public"."ProdutorPropriedades" p
+LEFT JOIN "public"."at_prf_see" s ON p."produtor_id" = s."id_cliente"
+LEFT JOIN "public"."ProdutorPropriedades" pp ON pp."produtor_id" = p."produtor_id"
+INNER JOIN "public"."ger_pessoa" g ON p."produtor_id" = g."id_pessoa_demeter"
+WHERE g."nr_cpf_cnpj" = ${cpf}::text
+`;
