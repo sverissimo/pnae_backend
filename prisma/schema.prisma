@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Produtor {
-  id             Int           @id @map("id_pessoa_demeter")
+  id             BigInt        @id @map("id_pessoa_demeter")
   nome           String        @map("nm_pessoa")
   cpfCnpj        String        @unique @map("nr_cpf_cnpj")
   tipoPessoa     TipoPessoa    @map("tp_pessoa")
@@ -25,7 +25,7 @@ model Produtor {
 
 model Propriedade {
   id              Int       @id
-  produtorId      Int       @map("produtor_id")
+  produtorId      BigInt    @map("produtor_id")
   nomePropriedade String    @map("nome_propriedade")
   coordenadas     String?   @map("geo_ponto_texto")
   area            String?   @map("area_total")
@@ -39,7 +39,7 @@ model Relatorio {
   assunto         String
   orientacao      String
   produtor        Produtor?     @relation(fields: [produtorId], references: [id])
-  produtorId      Int           @map("produtor_id")
+  produtorId      BigInt        @map("produtor_id")
   files           PictureFile[]
   createdAt       DateTime?     @default(now()) @map("created_at")
 }
@@ -87,7 +87,7 @@ model Perfil {
   id                                           Int            @id @default(autoincrement())
   tipo_perfil                                  String
   id_tecnico                                   Int
-  id_cliente                                   Int
+  id_cliente                                   BigInt
   produtor                                     Produtor       @relation(fields: [id_cliente], references: [id])
   data_preenchimento                           DateTime
   data_atualizacao                             DateTime

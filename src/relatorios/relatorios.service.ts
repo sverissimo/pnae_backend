@@ -2,12 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { RelatorioAPI } from 'src/@graphQL-server/relatorio-api.service';
+import { Relatorio } from '@prisma/client';
 
 @Injectable()
 export class RelatorioService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly relatorioGraphQLAPI: RelatorioAPI,
+  ) {}
 
-  async create(createRelatorioDto: CreateRelatorioDto): Promise<number> {
+  async create(createRelatorioDto: CreateRelatorioDto): Promise<Relatorio> {
     const relatorio = await this.prismaService.relatorio.create({
       data: {
         produtorId: createRelatorioDto.produtorId,
@@ -16,18 +21,25 @@ export class RelatorioService {
         orientacao: createRelatorioDto.orientacao,
       },
     });
-    return relatorio.id;
+    const demeterUpdate = await this.relatorioGraphQLAPI.createRelatorio(relatorio);
+    console.log('🚀 ~ file: relatorios.service.ts:25 ~ create ~ demeterUpdate:', demeterUpdate);
+
+    /* ### TODO - avaliar a utilização de criação com transaction para garantir Sync
+     const relatorio = await this.prismaService.createSync(
+      createRelatorioDto,
+      'relatorio',
+      this.relatorioGraphQLAPI,
+    ); */
+    return relatorio;
   }
 
   async findAll() {
-    const relatorios = this.prismaService.relatorio.findMany({
+    const relatorios = await this.prismaService.relatorio.findMany({
       include: {
         files: true,
       },
     });
-    const props = tst();
-    const result = await Promise.all([relatorios, props]);
-    return { result: [...result[0], result[1]?.data] };
+    return relatorios;
   }
 
   async findMany(produtorId: number) {
@@ -36,61 +48,30 @@ export class RelatorioService {
   }
 
   async findOne(id: number) {
-    const relatorios = await this.prismaService.relatorio.findMany({
+    const relatorios = await this.prismaService.relatorio.findUnique({
       where: { id: id },
       include: { files: true },
     });
-
     return relatorios;
   }
 
-  async update(updateRelatorioDto: UpdateRelatorioDto) {
-    try {
-      const { id, ...update } = updateRelatorioDto;
-      const updated = await this.prismaService.relatorio.update({
-        where: { id },
-        data: update,
-      });
-      return updated;
-    } catch (error) {
-      console.log(
-        '🚀 ~ file: relatorios.service.ts:56 ~ RelatorioService ~ update ~ error:',
-        error,
-      );
-    }
+  async update(update: UpdateRelatorioDto) {
+    const demeterUpdate = await this.relatorioGraphQLAPI.updateRelatorio(update);
+    console.log('🚀 relatorios.service.ts:63 ~ RelatorioService ~ demeterUpdate:', demeterUpdate);
+    const updated = await this.prismaService.relatorio.update({
+      where: { id: update.id },
+      data: update,
+    });
+    return updated;
   }
 
   async remove(id: number) {
+    const demeterResult = await this.relatorioGraphQLAPI.deleteRelatorio(id);
+    console.log(
+      '🚀 ~ file: relatorios.service.ts:70 ~ RelatorioService ~ remove ~ demeterResult:',
+      demeterResult,
+    );
     await this.prismaService.relatorio.delete({ where: { id } });
-    return 'Relatorio removed.';
+    return `Relatorio ${id} removed.`;
   }
 }
-
-const tst = async () => {
-  try {
-    const bd = {
-      query:
-        'query Produtor($id: Int, $cpf: String) {\r\n  produtor(id: $id, cpf: $cpf), {    \r\n    nm_pessoa\r\n    propriedades {\r\n      nome_propriedade\r\n id_pl_propriedade\r\n    }\r\n  }\r\n}',
-      variables: {
-        id: 700002,
-        cpf: '45826560649',
-      },
-      operationName: 'Produtor',
-    };
-    //const fk = await fetch('http://localhost:4000', {
-
-    const fk = await fetch('http://172.17.0.1:4000', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(bd),
-    });
-    const fk2 = await fk.json();
-    console.log('🚀 ~ file: relatorios.controller.ts:60 ~ RelatorioController ~ tst ~ fk2:', fk2);
-    return fk2;
-  } catch (error) {
-    console.error(error);
-    throw new Error(error.message);
-  }
-};

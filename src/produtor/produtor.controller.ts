@@ -18,8 +18,9 @@ export class ProdutorController {
   }
 
   @Get(':cpf')
-  findOne(@Param('cpf') cpfProdutor: string) {
-    return this.produtorService.findOne(cpfProdutor);
+  async findOne(@Param('cpf') cpfProdutor: string) {
+    const produtor = await this.produtorService.findOne(cpfProdutor);
+    return produtor;
   }
 
   @Patch(':id')

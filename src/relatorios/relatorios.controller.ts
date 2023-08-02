@@ -10,13 +10,14 @@ import {
   UploadedFiles,
   Res,
   Query,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { RelatorioService } from './relatorios.service';
 import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { FileService } from 'src/common/file.service';
-import { Response } from 'express';
 import { FilesInputDto } from 'src/common/files-input.dto';
 
 @Controller('relatorios')
@@ -37,7 +38,7 @@ export class RelatorioController {
     @UploadedFiles() files: FilesInputDto,
     @Body() createRelatorioDto: CreateRelatorioDto,
   ) {
-    const relatorioId = await this.relatorioService.create(createRelatorioDto);
+    const { id: relatorioId } = await this.relatorioService.create(createRelatorioDto);
     if (files) {
       await this.fileService.save(files, relatorioId);
     }
@@ -50,40 +51,54 @@ export class RelatorioController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.relatorioService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    const relatorio = await this.relatorioService.findOne(+id);
+    if (!relatorio) {
+      throw new NotFoundException('Nenhum relatório encontrado');
+    }
+    return relatorio;
   }
 
   @Get()
-  findByProdutorId(@Query('produtorId') produtorId: number) {
-    return this.relatorioService.findMany(+produtorId);
+  async findByProdutorId(@Query('produtorId') produtorId: number) {
+    const relatorio = await this.relatorioService.findMany(+produtorId);
+    if (!relatorio) {
+      throw new NotFoundException('Nenhum relatório encontrado');
+    }
+    return relatorio;
   }
 
-  @Patch()
-  update(@Body() updateRelatorioDto: UpdateRelatorioDto, @Res() res: Response) {
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() update: Omit<UpdateRelatorioDto, 'id'>) {
     try {
-      return this.relatorioService.update(updateRelatorioDto);
+      const updatedRelatorio = await this.relatorioService.update({ id: +id, ...update });
+      if (!updatedRelatorio) {
+        throw new NotFoundException(`Relatorio com id ${id} não encontrado.`);
+      }
+      return updatedRelatorio;
     } catch (error) {
       console.log('🚀 ~ file: relatorios.controller.ts:67 ~ update ~ error:', error);
-      return res.status(500).send(error);
+      throw new BadRequestException(error.message); // or throw new InternalServerErrorException(error.message);
     }
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string, @Res() res: Response) {
+  async remove(@Param('id') id: string) {
     try {
-      const relatorio = await this.relatorioService.findOne(+id);
-      if (!relatorio.length) {
-        return res.status(404).end();
-      }
-
-      const { files } = relatorio[0];
-      const fileIds = files.map((f) => f.id);
-      await this.fileService.remove(fileIds, process.env.FILES_FOLDER);
-      await this.relatorioService.remove(+id);
-      return res.status(204).end();
+      /* const relatorio = await this.relatorioService.findOne(+id);
+      if (!relatorio) {
+        throw new NotFoundException(`Relatorio com id ${id} não encontrado.`);
+      } */
+      /* const { files } = relatorio;
+      if (files && files.length > 0) {
+        const fileIds = files.map((f) => f.id);
+        await this.fileService.remove(fileIds, process.env.FILES_FOLDER);
+      } */
+      const result = await this.relatorioService.remove(+id);
+      return result;
     } catch (error) {
-      return res.status(500).send(error.message);
+      console.log('🚀 ~ file: relatorios.controller.ts:67 ~ update ~ error:', error);
+      throw new BadRequestException(error.message); // or throw new InternalServerErrorException(error.message);
     }
   }
 }

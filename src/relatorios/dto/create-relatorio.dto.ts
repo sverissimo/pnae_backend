@@ -1,5 +1,5 @@
 export class CreateRelatorioDto {
-  produtorId: number;
+  produtorId: bigint;
   numeroRelatorio: number;
   assunto: string;
   orientacao: string;

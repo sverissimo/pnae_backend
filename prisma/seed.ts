@@ -10,7 +10,10 @@ async function main() {
 
   // Insert produtores
   await prisma.produtor.createMany({
-    data: data.produtores,
+    data: data.map((p) => ({
+      ...p,
+      id: BigInt(p.id),
+    })),
   });
 
   // Insert propriedades
