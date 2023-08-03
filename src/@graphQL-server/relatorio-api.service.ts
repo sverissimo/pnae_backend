@@ -1,15 +1,17 @@
 import { Relatorio } from '@prisma/client';
-import { GraphQLApiGateway } from './graphql-api.service';
 import {
   createRelatorioMutation,
   deleteRelatorioMutation,
   relatorioQuery,
+  relatoriosFindAllQuery,
   updateRelatorioMutation,
-} from './queries/relatorio-queries';
+} from './queries';
 import { Injectable } from '@nestjs/common';
+import { GraphQLAPI } from './GraphQLAPI';
+import { APIService } from './APIService';
 
 @Injectable()
-export class RelatorioAPI extends GraphQLApiGateway {
+export class RelatorioGraphQLAPI extends GraphQLAPI implements APIService<Relatorio> {
   async getRelatorio(id: number, cpfProdutor: string): Promise<Relatorio | unknown> {
     const document = relatorioQuery;
     const variables = { id, cpf: cpfProdutor };
@@ -38,5 +40,11 @@ export class RelatorioAPI extends GraphQLApiGateway {
     const variables = { id };
     const result = await this.client.request({ document, variables });
     return result;
+  }
+
+  async findAll(): Promise<Relatorio[]> {
+    const document = relatoriosFindAllQuery;
+    const result = await this.client.request({ document });
+    return result as Relatorio[];
   }
 }

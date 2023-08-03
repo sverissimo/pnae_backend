@@ -2,14 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { RelatorioAPI } from 'src/@graphQL-server/relatorio-api.service';
+import { RelatorioGraphQLAPI } from 'src/@graphQL-server/relatorio-api.service';
 import { Relatorio } from '@prisma/client';
 
 @Injectable()
 export class RelatorioService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly relatorioGraphQLAPI: RelatorioAPI,
+    private readonly graphQLAPI: RelatorioGraphQLAPI,
   ) {}
 
   async create(createRelatorioDto: CreateRelatorioDto): Promise<Relatorio> {
@@ -21,14 +21,14 @@ export class RelatorioService {
         orientacao: createRelatorioDto.orientacao,
       },
     });
-    const demeterUpdate = await this.relatorioGraphQLAPI.createRelatorio(relatorio);
+    const demeterUpdate = await this.graphQLAPI.createRelatorio(relatorio);
     console.log('🚀 ~ file: relatorios.service.ts:25 ~ create ~ demeterUpdate:', demeterUpdate);
 
     /* ### TODO - avaliar a utilização de criação com transaction para garantir Sync
      const relatorio = await this.prismaService.createSync(
       createRelatorioDto,
       'relatorio',
-      this.relatorioGraphQLAPI,
+      this.graphQLAPI,
     ); */
     return relatorio;
   }
@@ -56,7 +56,7 @@ export class RelatorioService {
   }
 
   async update(update: UpdateRelatorioDto) {
-    const demeterUpdate = await this.relatorioGraphQLAPI.updateRelatorio(update);
+    const demeterUpdate = await this.graphQLAPI.updateRelatorio(update);
     console.log('🚀 relatorios.service.ts:63 ~ RelatorioService ~ demeterUpdate:', demeterUpdate);
     const updated = await this.prismaService.relatorio.update({
       where: { id: update.id },
@@ -66,7 +66,7 @@ export class RelatorioService {
   }
 
   async remove(id: number) {
-    const demeterResult = await this.relatorioGraphQLAPI.deleteRelatorio(id);
+    const demeterResult = await this.graphQLAPI.deleteRelatorio(id);
     console.log(
       '🚀 ~ file: relatorios.service.ts:70 ~ RelatorioService ~ remove ~ demeterResult:',
       demeterResult,

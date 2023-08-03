@@ -1,42 +1,23 @@
-import { GraphQLClient } from 'graphql-request';
-import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
 import {
-  produtorQuery,
   createPerfilMutation,
   deletePerfilMutation,
   perfilQuery,
   perfisPorProdutorQuery,
   updatePerfilMutation,
 } from './queries';
+import { GraphQLAPI } from './GraphQLAPI';
 
 @Injectable()
-export class GraphQLApiGateway {
-  client: GraphQLClient;
-  url: string;
-
-  constructor(private configService: ConfigService) {
-    const token = this.configService.get('token');
-    const url = this.configService.get('url');
-
-    this.client = new GraphQLClient(url, {
-      headers: {
-        authorization: 'Bearer ' + token,
-      },
-    });
-  }
-
-  async getProdutor(cpfProdutor: string) {
-    const document = produtorQuery;
-    const variables = { cpf: cpfProdutor };
-    const result = await this.client.request({ document, variables });
-    return result;
-  }
-
+export class PerfilGraphQLAPI extends GraphQLAPI {
   async getPerfilByProdutorId(produtorId: number) {
     const document = perfisPorProdutorQuery;
     const variables = { produtorId };
     const { perfisPorProdutor } = (await this.client.request({ document, variables })) as any;
+    console.log(
+      '🚀 ~ file: perfil-api.service.ts:18 ~ PerfilGraphQLAPI ~ getPerfilByProdutorId ~ perfisPorProdutor:',
+      perfisPorProdutor,
+    );
     return perfisPorProdutor;
   }
 

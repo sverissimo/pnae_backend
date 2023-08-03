@@ -10,6 +10,15 @@ export const relatorioQuery = gql`
   }
 `;
 
+export const relatoriosFindAllQuery = gql`
+  query Relatorios {
+    relatorios {
+      assunto
+      orientacao
+    }
+  }
+`;
+
 export const createRelatorioMutation = gql`
   mutation CreateRelatorio($createRelatorioInput: CreateRelatorioInput) {
     createRelatorio(createRelatorioInput: $createRelatorioInput) {

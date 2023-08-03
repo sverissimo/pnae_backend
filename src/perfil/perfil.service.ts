@@ -2,18 +2,18 @@ import { Injectable, Res } from '@nestjs/common';
 import { CreatePerfilDto } from './dto/create-perfil.dto';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { GraphQLApiGateway } from 'src/@graphQL-server/graphql-api.service';
+import { PerfilGraphQLAPI } from 'src/@graphQL-server/perfil-api.service';
 
 @Injectable()
 export class PerfilService {
-  constructor(private prismaService: PrismaService, private api: GraphQLApiGateway) {}
+  constructor(private prismaService: PrismaService, private graphQLAPI: PerfilGraphQLAPI) {}
 
   async create(createPerfilDto: CreatePerfilDto) {
-    return await this.api.createPerfil(createPerfilDto);
+    return await this.graphQLAPI.createPerfil(createPerfilDto);
   }
 
   async findAll() {
-    const perfis = await this.api.getPerfis();
+    const perfis = await this.graphQLAPI.getPerfis();
     return perfis;
   }
 
@@ -24,17 +24,17 @@ export class PerfilService {
     if (localPerfil.length) {
       return localPerfil;
     }
-    const perfis = await this.api.getPerfilByProdutorId(produtorId);
+    const perfis = await this.graphQLAPI.getPerfilByProdutorId(produtorId);
     return perfis;
   }
 
   findOne = async (id: number) => await this.prismaService.perfil.findFirst({ where: { id } });
 
   async update(id: number, updatePerfilDto: UpdatePerfilDto) {
-    return await this.api.updatePerfil(id, updatePerfilDto);
+    return await this.graphQLAPI.updatePerfil(id, updatePerfilDto);
   }
 
   async remove(id: number) {
-    return await this.api.deletePerfil(id);
+    return await this.graphQLAPI.deletePerfil(id);
   }
 }

@@ -2,14 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { CreateProdutorDto } from './dto/create-produtor.dto';
 import { UpdateProdutorDto } from './dto/update-produtor.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { GraphQLApiGateway } from 'src/@graphQL-server/graphql-api.service';
 import { RelatorioService } from 'src/relatorios/relatorios.service';
+import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 
 @Injectable()
 export class ProdutorService {
   constructor(
     private prismaService: PrismaService,
-    private api: GraphQLApiGateway,
+    private api: ProdutorGraphQLAPI,
     private relatorioService: RelatorioService,
   ) {}
 
@@ -23,7 +23,6 @@ export class ProdutorService {
 
   async findOne(cpfProdutor: string) {
     const { produtor }: any = await this.api.getProdutor(cpfProdutor);
-
     const relatorios = await this.relatorioService.findMany(produtor.id_pessoa_demeter);
     produtor.relatorios = relatorios;
 

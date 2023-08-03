@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { RelatorioAPI } from 'src/@graphQL-server/relatorio-api.service';
+import { RelatorioGraphQLAPI } from 'src/@graphQL-server/relatorio-api.service';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
@@ -24,7 +24,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   async createSync<T>(
     entity: T,
     table: string,
-    grapQLAPI: RelatorioAPI,
+    grapQLAPI: RelatorioGraphQLAPI,
   ): Promise<T & { id: number; createdAt: Date }> {
     return await this.$transaction(async (prismaClient) => {
       try {
