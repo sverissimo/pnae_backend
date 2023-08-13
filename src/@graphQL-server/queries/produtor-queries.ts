@@ -6,11 +6,22 @@ export const produtorQuery = gql`
       id_pessoa_demeter
       nm_pessoa
       dap
+      caf
+      tp_sexo
       nr_cpf_cnpj
       propriedades {
+        id_pl_propriedade
         nome_propriedade
         area_total
+        geo_ponto_texto
+        id_municipio
+        atividade_principal
+        at_prf_see_propriedade {
+          producao_dedicada_pnae
+          atividade
+        }
       }
+
       perfis {
         id
         tipo_perfil
@@ -44,12 +55,27 @@ export const produtorQuery = gql`
         possui_agroindustria_propria
         grau_interesse_pnae
         id_dados_producao_agro_industria
-
-        atividade {
+        usuario {
+          nome_usuario
+          matricula_usuario
+          digito_matricula
+        }
+        at_prf_see_propriedade {
           atividade
           producao_dedicada_pnae
         }
-        dados_producao {
+        dados_producao_agro_industria {
+          controla_custos_producao
+          dificuldade_fornecimento
+          forma_entrega_produtos
+          informacoes_adicionais
+          local_comercializacao
+          tipo_regularizacao_ambiental
+          tipo_regularizacao_uso_recursos_hidricos
+          valor_total_obtido_outros
+          valor_total_obtido_pnae
+        }
+        dados_producao_in_natura {
           controla_custos_producao
           dificuldade_fornecimento
           forma_entrega_produtos

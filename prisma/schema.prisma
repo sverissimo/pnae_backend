@@ -40,6 +40,7 @@ model Relatorio {
   orientacao      String
   produtor        Produtor?     @relation(fields: [produtorId], references: [id])
   produtorId      BigInt        @map("produtor_id")
+  tecnicoId       BigInt        @map("tecnico_id")
   files           PictureFile[]
   createdAt       DateTime?     @default(now()) @map("created_at")
 }
@@ -56,10 +57,17 @@ model PictureFile {
 }
 
 model Tecnico {
-  id   Int    @id @default(autoincrement())
-  nome String
-  cpf  String
-  masp String
+  id_usuario        BigInt  @id(map: "pk_usuario") @default(autoincrement())
+  login_usuario     String  @unique(map: "uq_usuario_login") @db.VarChar(255)
+  nome_usuario      String? @db.VarChar(255)
+  email_usuario     String? @db.VarChar(255)
+  celular_usuario   String? @db.VarChar(255)
+  cpf_usuario       String? @db.VarChar(14)
+  matricula_usuario String? @db.Char(5)
+  digito_matricula  String? @db.Char(1)
+  id_und_empresa    String? @db.Char(5)
+  id_cargo          String? @db.Char(4)
+  sexo_usuario      String? @db.Char(1)
 }
 
 enum TipoPessoa {

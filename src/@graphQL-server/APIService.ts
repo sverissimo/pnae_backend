@@ -10,4 +10,6 @@ export interface APIService<T> {
   updateMany?: () => void;
   upsert?: () => void;
   count?: () => void;
+  serialize?: () => void;
+  deserialize?: () => void;
 }

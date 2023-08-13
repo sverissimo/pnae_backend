@@ -19,8 +19,13 @@ export class ProdutorController {
 
   @Get(':cpf')
   async findOne(@Param('cpf') cpfProdutor: string) {
-    const produtor = await this.produtorService.findOne(cpfProdutor);
-    return produtor;
+    try {
+      const produtor = await this.produtorService.findOne(cpfProdutor);
+      return produtor;
+    } catch (error) {
+      console.log('🚀file: produtor.controller.ts:26 ~ ProdutorController error:', error);
+      return error;
+    }
   }
 
   @Patch(':id')

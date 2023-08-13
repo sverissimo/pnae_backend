@@ -17,4 +17,8 @@ export abstract class GraphQLAPI {
       },
     });
   }
+
+  deserializeBigInt(value: string): bigint {
+    return BigInt(value);
+  }
 }

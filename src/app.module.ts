@@ -9,11 +9,11 @@ import { ProdutorModule } from './produtor/produtor.module';
 import { PerfilModule } from './perfil/perfil.module';
 import { config } from './config';
 
-(BigInt.prototype as any).toJSON = function () {
+/* (BigInt.prototype as any).toJSON = function () {
   const int = Number.parseInt(this.toString());
   return int ?? this.toString();
 };
-
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [config] }),
