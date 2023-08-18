@@ -56,7 +56,7 @@ model PictureFile {
   updloadDate DateTime?          @default(now()) @map("upload_date")
 }
 
-model Tecnico {
+model Usuario {
   id_usuario        BigInt  @id(map: "pk_usuario") @default(autoincrement())
   login_usuario     String  @unique(map: "uq_usuario_login") @db.VarChar(255)
   nome_usuario      String? @db.VarChar(255)

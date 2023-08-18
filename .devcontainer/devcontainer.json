@@ -29,7 +29,9 @@
         "esbenp.prettier-vscode",
         "chakrounanas.turbo-console-log",
         "prisma.prisma",
-        "mikestead.dotenv"
+        "mikestead.dotenv",
+        "github.copilot",
+        "github.copilot-chat"
       ]
     }
   }

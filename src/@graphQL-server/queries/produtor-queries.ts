@@ -9,6 +9,8 @@ export const produtorQuery = gql`
       caf
       tp_sexo
       nr_cpf_cnpj
+      dt_nascimento
+      sn_ativo
       propriedades {
         id_pl_propriedade
         nome_propriedade
@@ -59,6 +61,8 @@ export const produtorQuery = gql`
           nome_usuario
           matricula_usuario
           digito_matricula
+          login_usuario
+          id_usuario
         }
         at_prf_see_propriedade {
           atividade

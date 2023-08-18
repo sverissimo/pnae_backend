@@ -8,6 +8,8 @@ import { AppController } from './app.controller';
 import { ProdutorModule } from './produtor/produtor.module';
 import { PerfilModule } from './perfil/perfil.module';
 import { config } from './config';
+import { UsuarioController } from './usuario/usuario.controller';
+import { UsuarioGraphQLAPI } from './@graphQL-server/usuario-api.service';
 
 /* (BigInt.prototype as any).toJSON = function () {
   const int = Number.parseInt(this.toString());
@@ -26,7 +28,7 @@ import { config } from './config';
     ProdutorModule,
     PerfilModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, UsuarioController],
+  providers: [AppService, UsuarioGraphQLAPI],
 })
 export class AppModule {}

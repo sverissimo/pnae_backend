@@ -15,14 +15,20 @@ export class RelatorioService {
   async create(createRelatorioDto: CreateRelatorioDto): Promise<Relatorio> {
     const relatorio = await this.prismaService.relatorio.create({
       data: {
-        produtorId: createRelatorioDto.produtorId,
-        numeroRelatorio: createRelatorioDto.numeroRelatorio,
+        //produtorId: createRelatorioDto.produtorId,
+        numeroRelatorio: +createRelatorioDto.numeroRelatorio,
         assunto: createRelatorioDto.assunto,
         orientacao: createRelatorioDto.orientacao,
+        produtor: {
+          connect: {
+            id: BigInt(createRelatorioDto.produtorId),
+          },
+        },
       },
     });
-    const demeterUpdate = await this.graphQLAPI.createRelatorio(relatorio);
-    console.log('🚀 ~ file: relatorios.service.ts:25 ~ create ~ demeterUpdate:', demeterUpdate);
+
+    //const demeterUpdate = await this.graphQLAPI.createRelatorio(relatorio);
+    // console.log('🚀 ~ file: relatorios.service.ts:25 ~ create ~ demeterUpdate:', demeterUpdate);
 
     /* ### TODO - avaliar a utilização de criação com transaction para garantir Sync
      const relatorio = await this.prismaService.createSync(

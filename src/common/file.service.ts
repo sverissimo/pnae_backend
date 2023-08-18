@@ -18,7 +18,7 @@ export class FileService {
     }
   }
 
-  async save(files: FilesInputDto, visitaId: number) {
+  async save(files: FilesInputDto, relatorioId: number) {
     const uploadFolder = join(__dirname, '../../..', '', 'data/files');
     const folderExists = existsSync(uploadFolder);
     if (!folderExists) {
@@ -28,7 +28,7 @@ export class FileService {
     for (const key in files) {
       if (files[key]) {
         for (const file of files[key]) {
-          const fileMetadata = this.createFileMetadata(file, visitaId);
+          const fileMetadata = this.createFileMetadata(file, relatorioId);
           const { id: fileId } = await this.saveMetadata(fileMetadata);
           await fs.writeFile(`${uploadFolder}/${fileId}`, file.buffer);
         }
@@ -56,14 +56,18 @@ export class FileService {
     return;
   }
 
-  private createFileMetadata(file: Express.Multer.File, visitaId: number | string) {
+  private createFileMetadata(file: Express.Multer.File, relatorioId: number | string) {
     const fileMetadata = {
       fileName: file.originalname,
       size: Number(file.size),
       mimeType: file.mimetype,
-      description: file.fieldname === 'fotos' ? 'FOTO_VISITA' : 'ASSINATURA_PRODUTOR',
-      visitaId: Number(visitaId),
+      description: file.fieldname === 'foto' ? 'FOTO_RELATORIO' : 'ASSINATURA_PRODUTOR',
+      relatorioId: Number(relatorioId),
     };
+    console.log(
+      '🚀 ~ file: file.service.ts:67 ~ FileService ~ createFileMetadata ~ fileMetadata:',
+      fileMetadata,
+    );
     return fileMetadata;
   }
 

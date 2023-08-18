@@ -8,7 +8,6 @@ import {
   Delete,
   UseInterceptors,
   UploadedFiles,
-  Res,
   Query,
   NotFoundException,
   BadRequestException,
@@ -30,7 +29,7 @@ export class RelatorioController {
   @Post()
   @UseInterceptors(
     FileFieldsInterceptor([
-      { name: 'fotos', maxCount: 10 },
+      { name: 'foto', maxCount: 10 },
       { name: 'assinatura', maxCount: 1 },
     ]),
   )
@@ -38,13 +37,17 @@ export class RelatorioController {
     @UploadedFiles() files: FilesInputDto,
     @Body() createRelatorioDto: CreateRelatorioDto,
   ) {
-    const { id: relatorioId } = await this.relatorioService.create(createRelatorioDto);
-    if (files) {
-      await this.fileService.save(files, relatorioId);
+    try {
+      const { id: relatorioId } = await this.relatorioService.create(createRelatorioDto);
+      if (files) {
+        await this.fileService.save(files, relatorioId);
+      }
+      return relatorioId;
+    } catch (error) {
+      console.log('🚀 ~ file: relatorios.controller.ts:52 ~ RelatorioController ~ error:', error);
+      return error;
     }
-    return relatorioId;
   }
-
   @Get('/all')
   findAll() {
     return this.relatorioService.findAll();

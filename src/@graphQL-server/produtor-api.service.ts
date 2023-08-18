@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { produtorQuery } from './queries';
 import { GraphQLAPI } from './GraphQLAPI';
-import { Produtor } from '@prisma/client';
 
 @Injectable()
 export class ProdutorGraphQLAPI extends GraphQLAPI {
