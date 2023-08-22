@@ -1,8 +1,9 @@
-export type Relatorio = {
+export type RelatorioPDF = {
   id?: number;
   produtorId?: string | BigInt;
   tecnicoId?: string | BigInt;
   nomeTecnico?: string;
+  matricula?: string;
   numeroRelatorio?: number;
   assunto?: string;
   orientacao?: string;

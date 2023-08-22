@@ -21,6 +21,8 @@ model Produtor {
   propriedades   Propriedade[]
   relatorios     Relatorio[]
   Perfil         Perfil[]
+
+  @@map("produtor")
 }
 
 model Propriedade {
@@ -31,29 +33,38 @@ model Propriedade {
   area            String?   @map("area_total")
   municipioId     Int?      @map("id_municipio")
   produtor        Produtor? @relation(fields: [produtorId], references: [id])
+
+  @@map("propriedade")
 }
 
 model Relatorio {
   id              Int           @id @default(autoincrement())
-  numeroRelatorio Int           @map("nr_relatorio")
-  assunto         String
-  orientacao      String
-  produtor        Produtor?     @relation(fields: [produtorId], references: [id])
   produtorId      BigInt        @map("produtor_id")
   tecnicoId       BigInt        @map("tecnico_id")
+  numeroRelatorio Int           @map("numero_relatorio")
+  assunto         String
+  orientacao      String
+  pictureURI      String?
+  assinaturaURI   String?
+  produtor        Produtor?     @relation(fields: [produtorId], references: [id])
   files           PictureFile[]
   createdAt       DateTime?     @default(now()) @map("created_at")
+  updatedAt       DateTime?     @updatedAt @map("updated_at")
+
+  @@map("relatorio")
 }
 
 model PictureFile {
   id          String             @id @default(uuid())
   fileName    String
-  size        Float
+  size        Int
   mimeType    String
   description PictureDescription
   relatorio   Relatorio?         @relation(fields: [relatorioId], references: [id])
   relatorioId Int                @map("relatorio_id")
-  updloadDate DateTime?          @default(now()) @map("upload_date")
+  uploadDate  DateTime?          @default(now()) @map("upload_date")
+
+  @@map("arquivos")
 }
 
 model Usuario {
@@ -68,6 +79,8 @@ model Usuario {
   id_und_empresa    String? @db.Char(5)
   id_cargo          String? @db.Char(4)
   sexo_usuario      String? @db.Char(1)
+
+  @@map("usuario")
 }
 
 enum TipoPessoa {
@@ -127,6 +140,8 @@ model Perfil {
   id_dados_producao_agro_industria             Int?           @unique()
   dados_producao                               DadosProducao? @relation(fields: [id_dados_producao_agro_industria], references: [id])
   atividade                                    Atividade?
+
+  @@map("perfil")
 }
 
 model DadosProducao {
@@ -141,6 +156,8 @@ model DadosProducao {
   tipo_regularizacao_uso_recursos_hidricos String
   valor_total_obtido_outros                Int
   valor_total_obtido_pnae                  Int
+
+  @@map("dados_producao")
 }
 
 model Atividade {
@@ -150,4 +167,6 @@ model Atividade {
   atividade              String
   producao_dedicada_pnae Boolean?
   perfil                 Perfil   @relation(fields: [id_perfil_see], references: [id])
+
+  @@map("atividade")
 }

@@ -2,12 +2,11 @@ import { join } from 'path';
 import puppeteer from 'puppeteer';
 import * as fs from 'fs';
 import * as ejs from 'ejs';
-import { Relatorio } from 'src/relatorios/entities/relatorio.entity';
 import { footer, header } from './layouts';
+import { RelatorioPDF } from 'src/relatorios/entities/relatorio-pdf.entity';
 
-export const pdfGen = async (relatorio: Relatorio) => {
+export const pdfGen = async (relatorio: RelatorioPDF) => {
   const { pictureURI, assinaturaURI } = relatorio;
-  console.log('🚀 ~ file: pdf-gen.ts:8 ~ pdfGen ~ relatorio:', relatorio);
 
   const imageFolder = join(__dirname, '../..', 'data/files');
 
@@ -22,9 +21,9 @@ export const pdfGen = async (relatorio: Relatorio) => {
   const assinaturaBase64Image = fs
     .readFileSync(`${imageFolder}/${assinaturaURI}`)
     .toString('base64');
-  const assunto = 'wtv';
+
   const htmlWithPicture = await ejs.renderFile(`/home/node/app/src/@pdf-gen/template.ejs`, {
-    assunto,
+    ...relatorio,
     assinaturaBase64Image: `data:image/jpeg;base64,${assinaturaBase64Image} `,
     pictureBase64Image: `data:image/jpeg;base64,${pictureBase64Image} `,
   });

@@ -5,6 +5,7 @@
 #Data
 /data
 *.env
+result*.*
 
 # Logs
 logs

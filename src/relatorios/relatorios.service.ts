@@ -3,7 +3,7 @@ import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RelatorioGraphQLAPI } from 'src/@graphQL-server/relatorio-api.service';
-import { Relatorio } from '@prisma/client';
+import { Prisma, Relatorio } from '@prisma/client';
 
 @Injectable()
 export class RelatorioService {
@@ -12,10 +12,13 @@ export class RelatorioService {
     private readonly graphQLAPI: RelatorioGraphQLAPI,
   ) {}
 
-  async create(createRelatorioDto: CreateRelatorioDto): Promise<Relatorio> {
+  async create(
+    createRelatorioDto: Prisma.RelatorioCreateInput & { produtorId: any },
+  ): Promise<Relatorio> {
     const relatorio = await this.prismaService.relatorio.create({
       data: {
         //produtorId: createRelatorioDto.produtorId,
+        tecnicoId: createRelatorioDto.tecnicoId,
         numeroRelatorio: +createRelatorioDto.numeroRelatorio,
         assunto: createRelatorioDto.assunto,
         orientacao: createRelatorioDto.orientacao,
@@ -54,16 +57,23 @@ export class RelatorioService {
   }
 
   async findOne(id: number) {
-    const relatorios = await this.prismaService.relatorio.findUnique({
+    const relatorio = await this.prismaService.relatorio.findUnique({
       where: { id: id },
       include: { files: true },
+      // include: { files: { where: { relatorioId: id } } },
     });
-    return relatorios;
+
+    const pics = await this.prismaService.pictureFile.findMany({
+      where: { id: { in: [relatorio.assinaturaURI, relatorio.pictureURI] } },
+    });
+    relatorio.files = pics;
+
+    return relatorio;
   }
 
   async update(update: UpdateRelatorioDto) {
-    const demeterUpdate = await this.graphQLAPI.updateRelatorio(update);
-    console.log('🚀 relatorios.service.ts:63 ~ RelatorioService ~ demeterUpdate:', demeterUpdate);
+    // const demeterUpdate = await this.graphQLAPI.updateRelatorio(update);
+    // console.log('🚀 relatorios.service.ts:63 ~ RelatorioService ~ demeterUpdate:', demeterUpdate);
     const updated = await this.prismaService.relatorio.update({
       where: { id: update.id },
       data: update,

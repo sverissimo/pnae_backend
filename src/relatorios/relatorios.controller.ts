@@ -20,12 +20,14 @@ import { FileService } from 'src/common/file.service';
 import { FilesInputDto } from 'src/common/files-input.dto';
 import { pdfGen } from 'src/@pdf-gen/pdf-gen';
 import { Relatorio } from './entities/relatorio.entity';
+import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 
 @Controller('relatorios')
 export class RelatorioController {
   constructor(
     private readonly relatorioService: RelatorioService,
     private readonly fileService: FileService,
+    private readonly api: UsuarioGraphQLAPI,
   ) {}
 
   @Post()
@@ -52,13 +54,7 @@ export class RelatorioController {
   }
   @Get('/all')
   async findAll() {
-    const tst: Partial<Relatorio> = {
-      pictureURI: '6ae231ac-46f2-4435-b213-c9f85563a663',
-      assinaturaURI: '30db3a9d-5025-4f47-bdbd-477d573db490',
-    };
-    await pdfGen(tst);
-    return 'wtv';
-    return this.relatorioService.findAll();
+    return await this.relatorioService.findAll();
   }
 
   @Get(':id')
@@ -76,6 +72,23 @@ export class RelatorioController {
     if (!relatorio) {
       throw new NotFoundException('Nenhum relatório encontrado');
     }
+    return relatorio;
+  }
+
+  @Get('/pdf/:id')
+  async getPDF(@Param('id') relatorioId: number) {
+    const relatorio = await this.relatorioService.findOne(+relatorioId);
+    if (!relatorio) {
+      throw new NotFoundException('Nenhum relatório encontrado');
+    }
+
+    const usuario = await this.api.getUsuario('' + relatorio.tecnicoId);
+    console.log(
+      '🚀 ~ file: relatorios.controller.ts:86 ~ RelatorioController ~ getPDF ~ usuario:',
+      usuario,
+    );
+
+    await pdfGen({ ...relatorio, nomeTecnico: usuario.nome_usuario, matricula: usuario.matricula });
     return relatorio;
   }
 
