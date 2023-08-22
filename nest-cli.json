@@ -4,8 +4,11 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true,
+
     "assets": [
-      {"include": "../client/**", "outDir": "dist/client", "watchAssets": true}
+      { "include": "../client/**", "outDir": "dist/client", "watchAssets": true },
+      {"include": "@pdf-gen/*.html", "outDir": "dist", "watchAssets": true  },
+      "@pdf-gen/*.png"
     ]
   }
 }

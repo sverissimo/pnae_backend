@@ -18,6 +18,8 @@ import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { FileService } from 'src/common/file.service';
 import { FilesInputDto } from 'src/common/files-input.dto';
+import { pdfGen } from 'src/@pdf-gen/pdf-gen';
+import { Relatorio } from './entities/relatorio.entity';
 
 @Controller('relatorios')
 export class RelatorioController {
@@ -49,7 +51,13 @@ export class RelatorioController {
     }
   }
   @Get('/all')
-  findAll() {
+  async findAll() {
+    const tst: Partial<Relatorio> = {
+      pictureURI: '6ae231ac-46f2-4435-b213-c9f85563a663',
+      assinaturaURI: '30db3a9d-5025-4f47-bdbd-477d573db490',
+    };
+    await pdfGen(tst);
+    return 'wtv';
     return this.relatorioService.findAll();
   }
 

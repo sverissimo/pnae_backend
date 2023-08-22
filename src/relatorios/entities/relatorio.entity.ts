@@ -1,10 +1,14 @@
-export class Relatorio {
-  id: number;
-  propriedade_id: number;
-  nr_visita: number;
-  assunto: string;
-  orientacao: string;
-  fotos: any[];
-  assinatura: any;
-  created_at?: any;
-}
+export type Relatorio = {
+  id?: number;
+  produtorId?: string;
+  tecnicoId?: string;
+  nome_tecnico?: string;
+  numeroRelatorio?: number;
+  assunto?: string;
+  orientacao?: string;
+  //produtor?: Produtor;
+  pictureURI?: string;
+  assinaturaURI?: string;
+  createdAt?: any;
+  updatedAt?: any;
+} | null;
