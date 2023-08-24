@@ -30,6 +30,7 @@
         "chakrounanas.turbo-console-log",
         "prisma.prisma",
         "mikestead.dotenv",
+        "mhutchie.git-graph",
         "github.copilot",
         "github.copilot-chat"
       ]

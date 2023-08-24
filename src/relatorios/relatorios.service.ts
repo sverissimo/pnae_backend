@@ -1,15 +1,18 @@
-import { Injectable } from '@nestjs/common';
-import { CreateRelatorioDto } from './dto/create-relatorio.dto';
-import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { RelatorioGraphQLAPI } from 'src/@graphQL-server/relatorio-api.service';
 import { Prisma, Relatorio } from '@prisma/client';
+import { pdfGen } from 'src/@pdf-gen/pdf-gen';
+import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
+import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
+import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
+import { formatCPF } from 'src/utils/formatCPF';
 
 @Injectable()
 export class RelatorioService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly graphQLAPI: RelatorioGraphQLAPI,
+    private readonly usuarioApi: UsuarioGraphQLAPI,
+    private readonly produtorApi: ProdutorGraphQLAPI,
   ) {}
 
   async create(
@@ -30,15 +33,6 @@ export class RelatorioService {
       },
     });
 
-    //const demeterUpdate = await this.graphQLAPI.createRelatorio(relatorio);
-    // console.log('🚀 ~ file: relatorios.service.ts:25 ~ create ~ demeterUpdate:', demeterUpdate);
-
-    /* ### TODO - avaliar a utilização de criação com transaction para garantir Sync
-     const relatorio = await this.prismaService.createSync(
-      createRelatorioDto,
-      'relatorio',
-      this.graphQLAPI,
-    ); */
     return relatorio;
   }
 
@@ -59,14 +53,10 @@ export class RelatorioService {
   async findOne(id: number) {
     const relatorio = await this.prismaService.relatorio.findUnique({
       where: { id: id },
-      include: { files: true },
-      // include: { files: { where: { relatorioId: id } } },
     });
-
-    const pics = await this.prismaService.pictureFile.findMany({
-      where: { id: { in: [relatorio.assinaturaURI, relatorio.pictureURI] } },
-    });
-    relatorio.files = pics;
+    if (!relatorio) {
+      throw new NotFoundException('Nenhum relatório encontrado');
+    }
 
     return relatorio;
   }
@@ -82,12 +72,36 @@ export class RelatorioService {
   }
 
   async remove(id: number) {
-    const demeterResult = await this.graphQLAPI.deleteRelatorio(id);
-    console.log(
-      '🚀 ~ file: relatorios.service.ts:70 ~ RelatorioService ~ remove ~ demeterResult:',
-      demeterResult,
-    );
+    /* TODO: Implementar isso depois
+    const { files } = relatorio;
+      if (files && files.length > 0) {
+        const fileIds = files.map((f) => f.id);
+        await this.fileService.remove(fileIds, process.env.FILES_FOLDER);
+      } */
     await this.prismaService.relatorio.delete({ where: { id } });
     return `Relatorio ${id} removed.`;
+  }
+
+  async createPDF(relatorioId: number) {
+    try {
+      const relatorio = await this.findOne(+relatorioId);
+      const usuario = await this.usuarioApi.getUsuario('' + relatorio.tecnicoId);
+      const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
+
+      await pdfGen({
+        ...relatorio,
+        produtor: {
+          nomeProdutor: produtor.nm_pessoa,
+          cpfProdutor: formatCPF(produtor.nr_cpf_cnpj),
+          caf: produtor.caf || produtor.dap,
+        },
+        nomeTecnico: usuario.nome_usuario,
+        matricula: usuario.matricula_usuario + '-' + usuario.digito_matricula,
+      });
+      return relatorio;
+    } catch (error) {
+      console.error('🚀 ~ file: relatorios.service.ts:114 ~ createPDF:', error);
+      throw new InternalServerErrorException(error.message); // or throw new InternalServerErrorException(error.message);
+    }
   }
 }

@@ -11,23 +11,20 @@ import {
   Query,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { FileService } from 'src/common/file.service';
 import { RelatorioService } from './relatorios.service';
 import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
-import { FileService } from 'src/common/file.service';
 import { FilesInputDto } from 'src/common/files-input.dto';
-import { pdfGen } from 'src/@pdf-gen/pdf-gen';
-import { Relatorio } from './entities/relatorio.entity';
-import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 
 @Controller('relatorios')
 export class RelatorioController {
   constructor(
     private readonly relatorioService: RelatorioService,
     private readonly fileService: FileService,
-    private readonly api: UsuarioGraphQLAPI,
   ) {}
 
   @Post()
@@ -48,7 +45,7 @@ export class RelatorioController {
       }
       return relatorioId;
     } catch (error) {
-      console.log('🚀 ~ file: relatorios.controller.ts:52 ~ RelatorioController ~ error:', error);
+      console.log('🚀 ~ relatorios.controller.ts:52:', error);
       return error;
     }
   }
@@ -77,19 +74,13 @@ export class RelatorioController {
 
   @Get('/pdf/:id')
   async getPDF(@Param('id') relatorioId: number) {
-    const relatorio = await this.relatorioService.findOne(+relatorioId);
-    if (!relatorio) {
-      throw new NotFoundException('Nenhum relatório encontrado');
+    try {
+      const relatorio = await this.relatorioService.createPDF(+relatorioId);
+      return relatorio;
+    } catch (error) {
+      console.log('🚀 relatorios.controller.ts:88 ~ getPDF ~ error:', error);
+      throw new InternalServerErrorException(error.message); // or throw new InternalServerErrorException(error.message);
     }
-
-    const usuario = await this.api.getUsuario('' + relatorio.tecnicoId);
-    console.log(
-      '🚀 ~ file: relatorios.controller.ts:86 ~ RelatorioController ~ getPDF ~ usuario:',
-      usuario,
-    );
-
-    await pdfGen({ ...relatorio, nomeTecnico: usuario.nome_usuario, matricula: usuario.matricula });
-    return relatorio;
   }
 
   @Patch(':id')
@@ -109,15 +100,7 @@ export class RelatorioController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
-      /* const relatorio = await this.relatorioService.findOne(+id);
-      if (!relatorio) {
-        throw new NotFoundException(`Relatorio com id ${id} não encontrado.`);
-      } */
-      /* const { files } = relatorio;
-      if (files && files.length > 0) {
-        const fileIds = files.map((f) => f.id);
-        await this.fileService.remove(fileIds, process.env.FILES_FOLDER);
-      } */
+      if (!+id) throw new BadRequestException('Id inválido');
       const result = await this.relatorioService.remove(+id);
       return result;
     } catch (error) {

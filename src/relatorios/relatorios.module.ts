@@ -5,11 +5,18 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { FileModule } from 'src/common/file.module';
 import { RelatorioGraphQLAPI } from 'src/@graphQL-server/relatorio-api.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
+import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 
 @Module({
-  imports: [FileModule],
   controllers: [RelatorioController],
-  providers: [RelatorioService, PrismaService, RelatorioGraphQLAPI, UsuarioGraphQLAPI],
+  providers: [
+    PrismaService,
+    RelatorioGraphQLAPI,
+    ProdutorGraphQLAPI,
+    RelatorioService,
+    { provide: UsuarioGraphQLAPI, useClass: UsuarioGraphQLAPI },
+  ],
+  imports: [FileModule],
   exports: [RelatorioService],
 })
 export class RelatorioModule {}

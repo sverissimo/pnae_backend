@@ -7,8 +7,9 @@
 
     "assets": [
       { "include": "../client/**", "outDir": "dist/client", "watchAssets": true },
-      {"include": "@pdf-gen/*.html", "outDir": "dist", "watchAssets": true  },
-      "@pdf-gen/*.png"
+      { "include": "@pdf-gen/*.html", "outDir": "dist", "watchAssets": true },
+      "@pdf-gen/*.png",
+      ".puppeteerrc.cjs"
     ]
   }
 }

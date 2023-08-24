@@ -134,6 +134,7 @@
 
       .assinaturaInfo {
         align-self: flex-start;
+        font-size: 10px;
         margin-left: 5px;
       }
 
@@ -185,15 +186,15 @@
           <tbody>
             <tr>
               <td class="td-label">Agricultor(a) Familiar:</td>
-              <td class="td-content">nomeProdutor Whatever</td>
+              <td class="td-content"><%= produtor.nomeProdutor %></td>
             </tr>
             <tr>
               <td class="td-label">CPF/CNPJ:</td>
-              <td class="td-content">cpf - 261.510.736-49</td>
+              <td class="td-content"><%= produtor.cpfProdutor %></td>
             </tr>
             <tr>
               <td class="td-label">DAP/CAF</td>
-              <td class="td-content">SDW0321065403210654</td>
+              <td class="td-content"><%= produtor.caf %></td>
             </tr>
             <tr>
               <td class="td-label">Nº da visita:</td>
@@ -207,8 +208,8 @@
               <td class="td-label">Extensionista 1:</td>
               <td class="td-content">
                 <div class="extensionista">
-                  <span class="nomeExtensionista"> Agricultor(a) Beneficiado(a) ou Membro </span>
-                  <span class="matricula"> <strong>Matrícula: </strong> m1230456 </span>
+                  <span class="nomeExtensionista"> <%= nomeTecnico %> </span>
+                  <span class="matricula"> <strong>Matrícula: </strong> <%= matricula %> </span>
                 </div>
               </td>
             </tr>
@@ -222,86 +223,10 @@
       <section class="textBox">
         <h5>Orientação Técnica</h5>
         <p><%= orientacao %></p>
-        <p>
-          orientacao - Nulla congue nisi vel diam hendrerit, at pulvinar massa aliquam. Nulla congue
-          nisi vel diam hendrerit, at pulvinar massa aliquam. Nulla congue nisi vel diam hendrerit,
-          at pulvinar massa aliquam.
-        </p>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas sit amet magna turpis.
-          Donec a tellus in mi pharetra volutpat at et nulla. Aenean porttitor fringilla diam et
-          pretium. Fusce id velit mauris. Aenean ultrices orci dolor, sed tristique eros molestie
-          eget. Fusce non ultrices odio. Sed nisi ex, porttitor non fermentum eu, rutrum quis
-          mauris. Morbi scelerisque sollicitudin semper. Nunc vitae pharetra tortor, vel gravida
-          ante. Integer euismod velit nisi, quis sollicitudin neque dictum nec. Morbi magna nulla,
-          scelerisque a malesuada at, scelerisque at quam. Aliquam sit amet lorem congue,
-          pellentesque metus non, aliquet purus. Integer a metus augue. Ut venenatis cursus ante,
-          sed venenatis quam consequat id. Fusce rhoncus elementum felis, eu volutpat magna lacinia
-          id. Proin ac sagittis nulla, a molestie turpis. Praesent sagittis leo ac congue faucibus.
-          Phasellus pellentesque faucibus nisl fringilla pharetra. Morbi iaculis mollis viverra.
-          Etiam eget lectus ac eros finibus cursus. Sed sed odio ac nisi semper tempus. Nam semper
-          congue dui quis dictum. Nullam molestie vehicula mi, ac faucibus augue cursus vitae.
-          Praesent orci lectus, tempor non enim a, accumsan volutpat mi. Donec tempus faucibus nisi
-          quis mollis. Duis vestibulum risus id purus dignissim, euismod tristique libero volutpat.
-        </p>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas sit amet magna turpis.
-          Donec a tellus in mi pharetra volutpat at et nulla. Aenean porttitor fringilla diam et
-          pretium. Fusce id velit mauris. Aenean ultrices orci dolor, sed tristique eros molestie
-          eget. Fusce non ultrices odio. Sed nisi ex, porttitor non fermentum eu, rutrum quis
-          mauris. Morbi scelerisque sollicitudin semper. Nunc vitae pharetra tortor, vel gravida
-          ante. Integer euismod velit nisi, quis sollicitudin neque dictum nec. Morbi magna nulla,
-          scelerisque a malesuada at, scelerisque at quam. Aliquam sit amet lorem congue,
-          pellentesque metus non, aliquet purus. Integer a metus augue. Ut venenatis cursus ante,
-          sed venenatis quam consequat id. Fusce rhoncus elementum felis, eu volutpat magna lacinia
-          id. Proin ac sagittis nulla, a molestie turpis. Praesent sagittis leo ac congue faucibus.
-          Phasellus pellentesque faucibus nisl fringilla pharetra. Morbi iaculis mollis viverra.
-          Etiam eget lectus ac eros finibus cursus. Sed sed odio ac nisi semper tempus. Nam semper
-          congue dui quis dictum. Nullam molestie vehicula mi, ac faucibus augue cursus vitae.
-          Praesent orci lectus, tempor non enim a, accumsan volutpat mi. Donec tempus faucibus nisi
-          quis mollis. Duis vestibulum risus id purus dignissim, euismod tristique libero volutpat.
-        </p>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas sit amet magna turpis.
-          Donec a tellus in mi pharetra volutpat at et nulla. Aenean porttitor fringilla diam et
-          pretium. Fusce id velit mauris. Aenean ultrices orci dolor, sed tristique eros molestie
-          eget. Fusce non ultrices odio. Sed nisi ex, porttitor non fermentum eu, rutrum quis
-          mauris. Morbi scelerisque sollicitudin semper. Nunc vitae pharetra tortor, vel gravida
-          ante. Integer euismod velit nisi, quis sollicitudin neque dictum nec. Morbi magna nulla,
-          scelerisque a malesuada at, scelerisque at quam. Aliquam sit amet lorem congue,
-          pellentesque metus non, aliquet purus. Integer a metus augue. Ut venenatis cursus ante,
-          sed venenatis quam consequat id. Fusce rhoncus elementum felis, eu volutpat magna lacinia
-          id. Proin ac sagittis nulla, a molestie turpis. Praesent sagittis leo ac congue faucibus.
-          Phasellus pellentesque faucibus nisl fringilla pharetra. Morbi iaculis mollis viverra.
-          Etiam eget lectus ac eros finibus cursus. Sed sed odio ac nisi semper tempus. Nam semper
-          congue dui quis dictum. Nullam molestie vehicula mi, ac faucibus augue cursus vitae.
-          Praesent orci lectus, tempor non enim a, accumsan volutpat mi. Donec tempus faucibus nisi
-          quis mollis. Duis vestibulum risus id purus dignissim, euismod tristique libero volutpat.
-        </p>
-        <p>
-          Praesent sagittis leo ac congue faucibus. Phasellus pellentesque faucibus nisl fringilla
-          pharetra. Morbi iaculis mollis viverra. Etiam eget lectus ac eros finibus cursus. Sed sed
-          odio ac nisi semper tempus. Nam semper congue dui quis dictum. Nullam molestie vehicula
-          mi, ac faucibus augue cursus vitae. Praesent orci lectus, tempor non enim a, accumsan
-          volutpat mi. Donec tempus faucibus nisi quis mollis. Duis vestibulum risus id purus
-          dignissim, euismod tristique libero volutpat.
-        </p>
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas sit amet magna turpis.
-          Donec a tellus in mi pharetra volutpat at et nulla. Aenean porttitor fringilla diam et
-          pretium. Fusce id velit mauris. Aenean ultrices orci dolor, sed tristique eros molestie
-          eget. Fusce non ultrices odio. Sed nisi ex, porttitor non fermentum eu, rutrum quis
-          mauris. Morbi scelerisque sollicitudin semper. Nunc vitae pharetra tortor, vel gravida
-          ante. Integer euismod velit nisi, quis sollicitudin neque dictum nec. Morbi magna nulla,
-          scelerisque a malesuada at, scelerisque at quam. Aliquam sit amet lorem congue,
-          pellentesque metus non, aliquet purus. Integer a metus augue. Ut venenatis cursus ante,
-          sed venenatis quam consequat id. Fusce rhoncus elementum felis, eu volutpat magna lacinia
-          id. Proin ac sagittis nulla, a molestie turpis.
-        </p>
       </section>
 
       <section class="textBox">
-        <h5>Assinaturas</h5>
+        <h5>Assinatura do Produtor</h5>
         <div class="assinaturaContainer">
           <img
             id="assinaturaPlaceholder"
@@ -312,6 +237,7 @@
           <div class="assinaturaText">
             <hr />
             <p>Agricultor(a) Beneficiado(a) ou Membro da Unidade Familiar *</p>
+            <p>Data: <%= data %></p>
           </div>
           <div class="assinaturaInfo">
             <p>
