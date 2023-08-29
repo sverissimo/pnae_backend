@@ -1,11 +1,12 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Relatorio } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma, Relatorio } from '@prisma/client';
+import { FileService } from 'src/common/file.service';
 import { pdfGen } from 'src/@pdf-gen/pdf-gen';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
-import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { formatCPF } from 'src/utils/formatCPF';
+import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 
 @Injectable()
 export class RelatorioService {
@@ -13,27 +14,32 @@ export class RelatorioService {
     private readonly prismaService: PrismaService,
     private readonly usuarioApi: UsuarioGraphQLAPI,
     private readonly produtorApi: ProdutorGraphQLAPI,
+    private readonly fileService: FileService,
   ) {}
 
-  async create(
-    createRelatorioDto: Prisma.RelatorioCreateInput & { produtorId: any },
-  ): Promise<Relatorio> {
-    const relatorio = await this.prismaService.relatorio.create({
-      data: {
-        //produtorId: createRelatorioDto.produtorId,
-        tecnicoId: createRelatorioDto.tecnicoId,
-        numeroRelatorio: +createRelatorioDto.numeroRelatorio,
-        assunto: createRelatorioDto.assunto,
-        orientacao: createRelatorioDto.orientacao,
-        produtor: {
-          connect: {
-            id: BigInt(createRelatorioDto.produtorId),
+  async create(createRelatorioDto: CreateRelatorioDto): Promise<Relatorio> {
+    const { produtorId, tecnicoId, numeroRelatorio, ...relatorioInput } = createRelatorioDto;
+    try {
+      const relatorio = await this.prismaService.relatorio.create({
+        data: {
+          ...relatorioInput,
+          tecnicoId: BigInt(tecnicoId),
+          numeroRelatorio: +numeroRelatorio,
+          produtor: {
+            connect: {
+              id: BigInt(produtorId),
+            },
           },
         },
-      },
-    });
+      });
 
-    return relatorio;
+      return relatorio;
+    } catch (error) {
+      if (error.code === 'P2002' && error.meta?.target?.includes('id')) {
+        throw new Error('Relatório com este ID já existe');
+      }
+      throw error;
+    }
   }
 
   async findAll() {
@@ -50,7 +56,7 @@ export class RelatorioService {
     return relatorios;
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const relatorio = await this.prismaService.relatorio.findUnique({
       where: { id: id },
     });
@@ -61,7 +67,7 @@ export class RelatorioService {
     return relatorio;
   }
 
-  async update(update: UpdateRelatorioDto) {
+  async update(update: any) {
     // const demeterUpdate = await this.graphQLAPI.updateRelatorio(update);
     // console.log('🚀 relatorios.service.ts:63 ~ RelatorioService ~ demeterUpdate:', demeterUpdate);
     const updated = await this.prismaService.relatorio.update({
@@ -71,20 +77,20 @@ export class RelatorioService {
     return updated;
   }
 
-  async remove(id: number) {
-    /* TODO: Implementar isso depois
-    const { files } = relatorio;
-      if (files && files.length > 0) {
-        const fileIds = files.map((f) => f.id);
-        await this.fileService.remove(fileIds, process.env.FILES_FOLDER);
-      } */
+  async remove(id: string) {
+    const relatorio = await this.findOne(id);
+    const { pictureURI, assinaturaURI } = relatorio;
+    const fileIds = [pictureURI, assinaturaURI].filter((f) => !!f);
+    if (fileIds.length > 0) {
+      await this.fileService.remove(fileIds, process.env.FILES_FOLDER);
+    }
     await this.prismaService.relatorio.delete({ where: { id } });
     return `Relatorio ${id} removed.`;
   }
 
-  async createPDF(relatorioId: number) {
+  async createPDF(relatorioId: string) {
     try {
-      const relatorio = await this.findOne(+relatorioId);
+      const relatorio = await this.findOne(relatorioId);
       const usuario = await this.usuarioApi.getUsuario('' + relatorio.tecnicoId);
       const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
 

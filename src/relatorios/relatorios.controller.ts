@@ -56,7 +56,7 @@ export class RelatorioController {
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    const relatorio = await this.relatorioService.findOne(+id);
+    const relatorio = await this.relatorioService.findOne(id);
     if (!relatorio) {
       throw new NotFoundException('Nenhum relatório encontrado');
     }
@@ -73,9 +73,9 @@ export class RelatorioController {
   }
 
   @Get('/pdf/:id')
-  async getPDF(@Param('id') relatorioId: number) {
+  async getPDF(@Param('id') relatorioId: string) {
     try {
-      const relatorio = await this.relatorioService.createPDF(+relatorioId);
+      const relatorio = await this.relatorioService.createPDF(relatorioId);
       return relatorio;
     } catch (error) {
       console.log('🚀 relatorios.controller.ts:88 ~ getPDF ~ error:', error);
@@ -100,8 +100,8 @@ export class RelatorioController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
-      if (!+id) throw new BadRequestException('Id inválido');
-      const result = await this.relatorioService.remove(+id);
+      if (!id) throw new BadRequestException('Id inválido');
+      const result = await this.relatorioService.remove(id);
       return result;
     } catch (error) {
       console.log('🚀 ~ file: relatorios.controller.ts:67 ~ update ~ error:', error);

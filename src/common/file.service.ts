@@ -10,7 +10,6 @@ export class FileService {
 
   async getFileStream(fileUUIDName: string, filesFolder: string): Promise<ReadStream> {
     const filePath = join(filesFolder, fileUUIDName);
-
     if (existsSync(filePath)) {
       return createReadStream(filePath);
     } else {
@@ -18,8 +17,8 @@ export class FileService {
     }
   }
 
-  async save(files: FilesInputDto, relatorioId: number) {
-    const uploadFolder = join(__dirname, '../../..', '', 'data/files');
+  async save(files: FilesInputDto, relatorioId: string) {
+    const uploadFolder = join(__dirname, '../..', '', 'data/files');
     const folderExists = existsSync(uploadFolder);
     if (!folderExists) {
       await fs.mkdir(uploadFolder);
@@ -53,16 +52,17 @@ export class FileService {
       const filePath = join(filesFolder, id);
       await this.deleteFile(filePath);
     }
-    return;
+    return true;
   }
 
-  private createFileMetadata(file: Express.Multer.File, relatorioId: number | string) {
+  private createFileMetadata(file: Express.Multer.File, relatorioId: string) {
     const fileMetadata = {
+      id: file.originalname.split('.')[0],
       fileName: file.originalname,
       size: Number(file.size),
       mimeType: file.mimetype,
       description: file.fieldname === 'foto' ? 'FOTO_RELATORIO' : 'ASSINATURA_PRODUTOR',
-      relatorioId: Number(relatorioId),
+      relatorioId: relatorioId,
     };
     console.log(
       '🚀 ~ file: file.service.ts:67 ~ FileService ~ createFileMetadata ~ fileMetadata:',

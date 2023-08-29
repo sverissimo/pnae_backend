@@ -1,9 +1,10 @@
 export class CreateRelatorioDto {
-  produtorId: bigint;
+  id: string;
+  produtorId: bigint | string;
   tecnicoId: bigint;
   numeroRelatorio: number;
   assunto: string;
   orientacao: string;
-  pictureURI: string;
-  assinaturaURI: string;
+  assinaturaFileName?: string;
+  fotoFileName?: string;
 }

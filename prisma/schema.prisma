@@ -38,7 +38,7 @@ model Propriedade {
 }
 
 model Relatorio {
-  id              Int           @id @default(autoincrement())
+  id              String        @id
   produtorId      BigInt        @map("produtor_id")
   tecnicoId       BigInt        @map("tecnico_id")
   numeroRelatorio Int           @map("numero_relatorio")
@@ -55,13 +55,13 @@ model Relatorio {
 }
 
 model PictureFile {
-  id          String             @id @default(uuid())
+  id          String             @id
   fileName    String
   size        Int
   mimeType    String
   description PictureDescription
   relatorio   Relatorio?         @relation(fields: [relatorioId], references: [id])
-  relatorioId Int                @map("relatorio_id")
+  relatorioId String             @map("relatorio_id")
   uploadDate  DateTime?          @default(now()) @map("upload_date")
 
   @@map("arquivos")
