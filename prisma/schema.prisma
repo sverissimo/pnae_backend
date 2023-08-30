@@ -49,7 +49,7 @@ model Relatorio {
   produtor        Produtor?     @relation(fields: [produtorId], references: [id])
   files           PictureFile[]
   createdAt       DateTime?     @default(now()) @map("created_at")
-  updatedAt       DateTime?     @updatedAt @map("updated_at")
+  updatedAt       DateTime? //@updatedAt @map("updated_at")
 
   @@map("relatorio")
 }
@@ -60,7 +60,8 @@ model PictureFile {
   size        Int
   mimeType    String
   description PictureDescription
-  relatorio   Relatorio?         @relation(fields: [relatorioId], references: [id])
+  //relatorio   Relatorio?         @relation(fields: [relatorioId], references: [id])
+  relatorio   Relatorio?         @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
   relatorioId String             @map("relatorio_id")
   uploadDate  DateTime?          @default(now()) @map("upload_date")
 

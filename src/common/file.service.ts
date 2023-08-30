@@ -35,6 +35,22 @@ export class FileService {
     }
   }
 
+  async update(files: FilesInputDto, relatorioId: string) {
+    const oldFiles = await this.prismaService.pictureFile.findMany({ where: { relatorioId } });
+    await this.save(files, relatorioId);
+    if (oldFiles.length) {
+      const fileIdsToDelete = oldFiles
+        .filter((file) => {
+          return (
+            (file.description === 'FOTO_RELATORIO' && !!files['foto']) ||
+            (file.description === 'ASSINATURA_PRODUTOR' && !!files['assinatura'])
+          );
+        })
+        .map((file) => file.id);
+      await this.remove(fileIdsToDelete, join(__dirname, '../..', '', 'data/files'));
+    }
+  }
+
   async remove(fileIds: string | string[], filesFolder: string) {
     console.log('🚀 ~ file: file.service.ts:49 ~ FileService ~ remove ~ fileIds:', {
       fileIds,

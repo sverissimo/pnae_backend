@@ -30,7 +30,7 @@ export class RelatorioController {
   @Post()
   @UseInterceptors(
     FileFieldsInterceptor([
-      { name: 'foto', maxCount: 10 },
+      { name: 'foto', maxCount: 1 },
       { name: 'assinatura', maxCount: 1 },
     ]),
   )
@@ -60,6 +60,8 @@ export class RelatorioController {
     if (!relatorio) {
       throw new NotFoundException('Nenhum relatório encontrado');
     }
+    //TODO: Handle dates!!!!!!!!!
+    //relatorio.updatedAt = relatorio.updatedAt.toISOString();
     return relatorio;
   }
 
@@ -84,11 +86,25 @@ export class RelatorioController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() update: Omit<UpdateRelatorioDto, 'id'>) {
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'foto', maxCount: 1 },
+      { name: 'assinatura', maxCount: 1 },
+    ]),
+  )
+  async update(
+    @Param('id') id: string,
+    @UploadedFiles() files: FilesInputDto,
+    @Body() update: Omit<UpdateRelatorioDto, 'id'>,
+  ) {
+    console.log('🚀 relatoriosController.ts:88: ', update);
     try {
-      const updatedRelatorio = await this.relatorioService.update({ id: +id, ...update });
+      const updatedRelatorio = await this.relatorioService.update({ id, ...update });
       if (!updatedRelatorio) {
         throw new NotFoundException(`Relatorio com id ${id} não encontrado.`);
+      }
+      if (files && Object.keys(files).length > 0) {
+        await this.fileService.update(files, id);
       }
       return updatedRelatorio;
     } catch (error) {

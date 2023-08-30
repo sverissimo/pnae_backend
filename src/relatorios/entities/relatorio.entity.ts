@@ -11,4 +11,4 @@ export type Relatorio = {
   assinaturaURI?: string;
   createdAt?: any;
   updatedAt?: any;
-} | null;
+};

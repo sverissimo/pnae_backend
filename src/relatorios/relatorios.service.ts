@@ -7,6 +7,7 @@ import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { formatCPF } from 'src/utils/formatCPF';
 import { CreateRelatorioDto } from './dto/create-relatorio.dto';
+import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 
 @Injectable()
 export class RelatorioService {
@@ -63,16 +64,21 @@ export class RelatorioService {
     if (!relatorio) {
       throw new NotFoundException('Nenhum relatório encontrado');
     }
-
     return relatorio;
   }
 
-  async update(update: any) {
-    // const demeterUpdate = await this.graphQLAPI.updateRelatorio(update);
-    // console.log('🚀 relatorios.service.ts:63 ~ RelatorioService ~ demeterUpdate:', demeterUpdate);
+  async update(update: UpdateRelatorioDto) {
+    const { numeroRelatorio, updatedAt } = update;
+    if (numeroRelatorio) {
+      update.numeroRelatorio = +numeroRelatorio;
+    }
+    console.log('🚀 relatorios.service.ts:71: ', update);
     const updated = await this.prismaService.relatorio.update({
       where: { id: update.id },
-      data: update,
+      data: {
+        ...update,
+        updatedAt: new Date(updatedAt.slice(0, 10) + ' ' + updatedAt.slice(11, 19)),
+      },
     });
     return updated;
   }
