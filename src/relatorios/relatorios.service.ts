@@ -24,13 +24,14 @@ export class RelatorioService {
       const relatorio = await this.prismaService.relatorio.create({
         data: {
           ...relatorioInput,
+          produtorId: BigInt(produtorId),
           tecnicoId: BigInt(tecnicoId),
           numeroRelatorio: +numeroRelatorio,
-          produtor: {
+          /* produtor: {
             connect: {
               id: BigInt(produtorId),
             },
-          },
+          }, */
         },
       });
 
@@ -68,13 +69,15 @@ export class RelatorioService {
   }
 
   async update(update: UpdateRelatorioDto) {
-    const { numeroRelatorio, updatedAt } = update;
-    if (numeroRelatorio) {
-      update.numeroRelatorio = +numeroRelatorio;
-    }
+    const { id, numeroRelatorio, produtorId, tecnicoId, updatedAt } = update;
+
+    if (numeroRelatorio) update.numeroRelatorio = +numeroRelatorio;
+    if (produtorId) update.produtorId = BigInt(produtorId);
+    if (tecnicoId) update.tecnicoId = BigInt(tecnicoId);
+
     console.log('🚀 relatorios.service.ts:71: ', update);
     const updated = await this.prismaService.relatorio.update({
-      where: { id: update.id },
+      where: { id },
       data: {
         ...update,
         updatedAt: new Date(updatedAt.slice(0, 10) + ' ' + updatedAt.slice(11, 19)),
@@ -94,13 +97,13 @@ export class RelatorioService {
     return `Relatorio ${id} removed.`;
   }
 
-  async createPDF(relatorioId: string) {
+  async createPDFInput(relatorioId: string) {
     try {
       const relatorio = await this.findOne(relatorioId);
       const usuario = await this.usuarioApi.getUsuario('' + relatorio.tecnicoId);
       const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
 
-      await pdfGen({
+      return {
         ...relatorio,
         produtor: {
           nomeProdutor: produtor.nm_pessoa,
@@ -109,8 +112,7 @@ export class RelatorioService {
         },
         nomeTecnico: usuario.nome_usuario,
         matricula: usuario.matricula_usuario + '-' + usuario.digito_matricula,
-      });
-      return relatorio;
+      };
     } catch (error) {
       console.error('🚀 ~ file: relatorios.service.ts:114 ~ createPDF:', error);
       throw new InternalServerErrorException(error.message); // or throw new InternalServerErrorException(error.message);

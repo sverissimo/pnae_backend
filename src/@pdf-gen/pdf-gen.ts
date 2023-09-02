@@ -6,6 +6,7 @@ import { RelatorioPDF } from 'src/relatorios/entities/relatorio-pdf.entity';
 import { footer, header } from './layouts';
 import { formatDate } from 'src/utils/formatDate';
 import { readFile, writeFile } from 'node:fs/promises';
+import { PassThrough } from 'stream';
 
 export const pdfGen = async (relatorio: RelatorioPDF) => {
   const { produtor, pictureURI, assinaturaURI } = relatorio;
@@ -44,7 +45,7 @@ export const pdfGen = async (relatorio: RelatorioPDF) => {
   await page.emulateMediaType('screen');
   await writeFile('result.html', htmlWithPicture);
 
-  await page.pdf({
+  const pdfBuffer = await page.pdf({
     path: 'result5.pdf',
     margin: { top: '130px', right: '50px', bottom: '80px', left: '50px' },
     printBackground: true,
@@ -57,4 +58,9 @@ export const pdfGen = async (relatorio: RelatorioPDF) => {
   console.log('...done');
   await page.close();
   await browser.close();
+
+  const pdfStream = new PassThrough();
+  pdfStream.end(pdfBuffer);
+
+  return pdfStream;
 };

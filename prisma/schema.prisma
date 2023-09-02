@@ -19,7 +19,6 @@ model Produtor {
   dap            String?
   municipioId    Int?          @map("id_municipio")
   propriedades   Propriedade[]
-  relatorios     Relatorio[]
   Perfil         Perfil[]
 
   @@map("produtor")
@@ -46,7 +45,6 @@ model Relatorio {
   orientacao      String
   pictureURI      String?
   assinaturaURI   String?
-  produtor        Produtor?     @relation(fields: [produtorId], references: [id])
   files           PictureFile[]
   createdAt       DateTime?     @default(now()) @map("created_at")
   updatedAt       DateTime? //@updatedAt @map("updated_at")

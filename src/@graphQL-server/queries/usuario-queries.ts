@@ -11,3 +11,14 @@ export const usuarioQuery = gql`
     }
   }
 `;
+export const usuarioByMatriculaQuery = gql`
+  query Usuario($id: String, $matricula_usuario: String) {
+    usuario(id: $id, matricula_usuario: $matricula_usuario) {
+      id_usuario
+      matricula_usuario
+      digito_matricula
+      nome_usuario
+      login_usuario
+    }
+  }
+`;

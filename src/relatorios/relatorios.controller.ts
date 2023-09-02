@@ -12,10 +12,13 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  Res,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { FileService } from 'src/common/file.service';
 import { RelatorioService } from './relatorios.service';
+import { pdfGen } from 'src/@pdf-gen/pdf-gen';
 import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { FilesInputDto } from 'src/common/files-input.dto';
@@ -74,7 +77,7 @@ export class RelatorioController {
     return relatorio;
   }
 
-  @Get('/pdf/:id')
+  /* @Get('/pdf/:id')
   async getPDF(@Param('id') relatorioId: string) {
     try {
       const relatorio = await this.relatorioService.createPDF(relatorioId);
@@ -83,6 +86,21 @@ export class RelatorioController {
       console.log('🚀 relatorios.controller.ts:88 ~ getPDF ~ error:', error);
       throw new InternalServerErrorException(error.message); // or throw new InternalServerErrorException(error.message);
     }
+  }
+ */
+
+  @Get('/pdf/:id')
+  async generatePdf(@Param('id') id: string, @Res() res: Response) {
+    const relatorioPDFInput = await this.relatorioService.createPDFInput(id);
+    const pdfStream = await pdfGen(relatorioPDFInput);
+    const { numeroRelatorio, produtor } = relatorioPDFInput;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.pdf`,
+    );
+    pdfStream.pipe(res);
   }
 
   @Patch(':id')
