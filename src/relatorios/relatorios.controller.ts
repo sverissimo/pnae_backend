@@ -77,18 +77,6 @@ export class RelatorioController {
     return relatorio;
   }
 
-  /* @Get('/pdf/:id')
-  async getPDF(@Param('id') relatorioId: string) {
-    try {
-      const relatorio = await this.relatorioService.createPDF(relatorioId);
-      return relatorio;
-    } catch (error) {
-      console.log('🚀 relatorios.controller.ts:88 ~ getPDF ~ error:', error);
-      throw new InternalServerErrorException(error.message); // or throw new InternalServerErrorException(error.message);
-    }
-  }
- */
-
   @Get('/pdf/:id')
   async generatePdf(@Param('id') id: string, @Res() res: Response) {
     const relatorioPDFInput = await this.relatorioService.createPDFInput(id);

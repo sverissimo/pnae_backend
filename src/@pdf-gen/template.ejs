@@ -104,8 +104,11 @@
       .textBox > p {
         margin: 0;
         width: auto;
-        padding: 10px 5px;
-        /* border: 1px solid #999; */
+        padding: 10px;
+      }
+
+      .orientacaoBox {
+        padding: 15px;
       }
 
       .assinaturaContainer {
@@ -222,7 +225,7 @@
       </section>
       <section class="textBox">
         <h5>Orientação Técnica</h5>
-        <p><%= orientacao %></p>
+        <div class="orientacaoBox"><%- orientacao %></div>
       </section>
 
       <section class="textBox">
