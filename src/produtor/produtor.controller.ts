@@ -19,11 +19,6 @@ export class ProdutorController {
 
   @Get(':cpf')
   async findOne(@Param('cpf') cpfProdutor: string) {
-    console.log(
-      '🚀 ~ file: produtor.controller.ts:22 ~ ProdutorController ~ findOne ~ cpfProdutor:',
-      cpfProdutor,
-    );
-
     try {
       const produtor = await this.produtorService.findOne(cpfProdutor);
       return produtor;

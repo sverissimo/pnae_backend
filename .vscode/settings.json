@@ -36,6 +36,8 @@
     "*.resolver.ts": "nest-resolver"
   },
   "material-icon-theme.folders.associations": {
-    "@graphQl-server": "graphQl"
+    "@graphQl-server": "graphQl",
+    "@rest-api-server": "Node",
+    "@pdf-gen": "pdf"
   }
 }
