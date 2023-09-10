@@ -2,12 +2,12 @@ import { Injectable, InternalServerErrorException, NotFoundException } from '@ne
 import { Relatorio } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/common/file.service';
-import { pdfGen } from 'src/@pdf-gen/pdf-gen';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { formatCPF } from 'src/utils/formatCPF';
 import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
+import { Perfil } from 'src/perfil/entities/perfil.entity';
 
 @Injectable()
 export class RelatorioService {
@@ -102,16 +102,22 @@ export class RelatorioService {
       const relatorio = await this.findOne(relatorioId);
       const usuario = await this.usuarioApi.getUsuario('' + relatorio.tecnicoId);
       const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
+      const { perfis } = produtor;
+      const perfil = perfis[0];
+      const perfilPDFModel = new Perfil().toPDFModel(perfil);
 
       return {
-        ...relatorio,
-        produtor: {
-          nomeProdutor: produtor.nm_pessoa,
-          cpfProdutor: formatCPF(produtor.nr_cpf_cnpj),
-          caf: produtor.caf || produtor.dap,
+        relatorio: {
+          ...relatorio,
+          produtor: {
+            nomeProdutor: produtor.nm_pessoa,
+            cpfProdutor: formatCPF(produtor.nr_cpf_cnpj),
+            caf: produtor.caf || produtor.dap,
+          },
+          nomeTecnico: usuario.nome_usuario,
+          matricula: usuario.matricula_usuario + '-' + usuario.digito_matricula,
         },
-        nomeTecnico: usuario.nome_usuario,
-        matricula: usuario.matricula_usuario + '-' + usuario.digito_matricula,
+        perfilPDFModel,
       };
     } catch (error) {
       console.error('🚀 ~ file: relatorios.service.ts:114 ~ createPDF:', error);

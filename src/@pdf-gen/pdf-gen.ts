@@ -7,8 +7,14 @@ import { footer, header } from './layouts';
 import { formatDate } from 'src/utils/formatDate';
 import { readFile, writeFile } from 'node:fs/promises';
 import { PassThrough } from 'stream';
+import { PerfilPDFModel } from 'src/perfil/types/perfil-pdf-model';
 
-export const pdfGen = async (relatorio: RelatorioPDF) => {
+type CreatePdfInput = {
+  relatorio: RelatorioPDF;
+  perfilPDFModel: PerfilPDFModel;
+};
+export const pdfGen = async (pdfInputData: CreatePdfInput) => {
+  const { perfilPDFModel, relatorio } = pdfInputData;
   const { produtor, pictureURI, assinaturaURI } = relatorio;
 
   const browser = await puppeteer.launch({
@@ -27,6 +33,7 @@ export const pdfGen = async (relatorio: RelatorioPDF) => {
     const pictureBuffer = await readFile(`${imageFolder}/${pictureURI}`, 'base64');
     pictureBase64Image = pictureBuffer.toString();
   }
+
   if (assinaturaURI) {
     const assinaturaBuffer = await readFile(`${imageFolder}/${assinaturaURI}`);
     assinaturaBase64Image = assinaturaBuffer.toString('base64');
@@ -34,9 +41,12 @@ export const pdfGen = async (relatorio: RelatorioPDF) => {
 
   relatorio.data = formatDate(relatorio.createdAt);
 
+  console.log('🚀 ~ file: pdf-gen.ts:38 ~ pdfGen ~ perfilPDFModel:', perfilPDFModel);
+
   const htmlWithPicture = await ejs.renderFile(`/home/node/app/src/@pdf-gen/template.ejs`, {
     ...relatorio,
     produtor,
+    perfil: perfilPDFModel,
     assinaturaBase64Image: `data:image/jpeg;base64,${assinaturaBase64Image} `,
     pictureBase64Image: `data:image/jpeg;base64,${pictureBase64Image} `,
   });

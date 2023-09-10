@@ -1,0 +1,54 @@
+<main>
+  <section class="table">
+    <table>
+      <thead>
+        <th colspan="2" class="td-perfil-title">Perfil de Entrada</th>
+      </thead>
+      <tbody>
+        <% perfil.perfilData.forEach(function({label, value}){ %>
+        <tr>
+          <td class="td-perfil-label"><%= label %></td>
+          <td class="td-content"><%= value %></td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </section>
+
+  <br />
+  <% if(perfil.producaoNatura) { %>
+  <section class="table">
+    <table>
+      <thead>
+        <th colspan="2" class="td-perfil-title">Dados de produção in Natura</th>
+      </thead>
+      <tbody>
+        <% perfil.producaoNatura.forEach(function({label, value}){ %>
+        <tr>
+          <td class="td-perfil-label"><%= label %></td>
+          <td class="td-content"><%= value %></td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </section>
+  <br />
+  <% } %> <% if(perfil.producaoIndustrial) { %>
+  <section class="table">
+    <table>
+      <thead>
+        <th colspan="2" class="td-perfil-title">Dados de produção Industrial</th>
+      </thead>
+      <tbody>
+        <% perfil.producaoIndustrial.forEach(function({label, value}){ %>
+        <tr>
+          <td class="td-perfil-label"><%= label %></td>
+          <td class="td-content"><%= value %></td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </section>
+  <% } %>
+  <br /><br /><br />
+</main>

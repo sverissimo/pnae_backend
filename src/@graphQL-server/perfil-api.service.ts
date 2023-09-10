@@ -14,10 +14,7 @@ export class PerfilGraphQLAPI extends GraphQLAPI {
     const document = perfisPorProdutorQuery;
     const variables = { produtorId };
     const { perfisPorProdutor } = (await this.client.request({ document, variables })) as any;
-    console.log(
-      '🚀 ~ file: perfil-api.service.ts:18 ~ PerfilGraphQLAPI ~ getPerfilByProdutorId ~ perfisPorProdutor:',
-      perfisPorProdutor,
-    );
+
     return perfisPorProdutor;
   }
 
