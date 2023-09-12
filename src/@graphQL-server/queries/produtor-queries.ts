@@ -23,16 +23,24 @@ export const produtorQuery = gql`
           atividade
         }
       }
-
       perfis {
         id
-        tipo_perfil
-        id_tecnico
         id_cliente
         data_preenchimento
         data_atualizacao
+        tipo_perfil
         participa_organizacao
-        id_dados_producao_in_natura
+        grau_interesse_pnae
+        at_prf_see_propriedade {
+          atividade
+        }
+        usuario {
+          id_usuario
+          nome_usuario
+          matricula_usuario
+          digito_matricula
+          login_usuario
+        }
         nivel_tecnologico_cultivo
         sistema_producao
         condicao_posse
@@ -40,11 +48,44 @@ export const produtorQuery = gql`
         credito_rural
         fonte_captacao_agua
         forma_esgotamento_sanitario
+        atividades_usam_recursos_hidricos
+        atividades_com_regularizacao_ambiental
         possui_cadastro_car
         aderiu_pra
         ciente_iniciativas_regularizacao_pra
         realiza_escalonamento_producao
         procedimento_pos_colheita
+        dados_producao_in_natura {
+          tipo_regularizacao_uso_recursos_hidricos
+          tipo_regularizacao_ambiental
+          controla_custos_producao
+          local_comercializacao
+          valor_total_obtido_pnae
+          valor_total_obtido_outros
+          forma_entrega_produtos
+          dificuldade_fornecimento
+          informacoes_adicionais
+          at_prf_see_grupos_produtos {
+            id
+            area_utilizada
+            producao_aproximada_ultimo_ano_pnae
+            producao_aproximada_ultimo_ano_total
+            at_prf_grupo_produto {
+              nm_grupo
+            }
+            at_prf_see_produto {
+              id_produto
+              area_utilizada
+              producao_aproximada_ultimo_ano_pnae
+              producao_aproximada_ultimo_ano_total
+              at_prf_produto {
+                nm_produto
+                sg_und_medida
+              }
+            }
+          }
+        }
+        possui_agroindustria_propria
         tipo_gestao_unidade
         pessoas_processamento_alimentos
         tipo_estabelecimento
@@ -52,43 +93,33 @@ export const produtorQuery = gql`
         agroindustria_precisa_adaptacao_reforma
         possui_registro_orgao_fiscalizacao_sanitaria
         orgao_fiscalizacao_sanitaria
-        atividades_usam_recursos_hidricos
-        atividades_com_regularizacao_ambiental
-        possui_agroindustria_propria
-        grau_interesse_pnae
-        id_dados_producao_agro_industria
-        usuario {
-          nome_usuario
-          matricula_usuario
-          digito_matricula
-          login_usuario
-          id_usuario
-        }
-        at_prf_see_propriedade {
-          atividade
-          producao_dedicada_pnae
-        }
         dados_producao_agro_industria {
-          controla_custos_producao
-          dificuldade_fornecimento
-          forma_entrega_produtos
-          informacoes_adicionais
-          local_comercializacao
-          tipo_regularizacao_ambiental
           tipo_regularizacao_uso_recursos_hidricos
-          valor_total_obtido_outros
-          valor_total_obtido_pnae
-        }
-        dados_producao_in_natura {
-          controla_custos_producao
-          dificuldade_fornecimento
-          forma_entrega_produtos
-          informacoes_adicionais
-          local_comercializacao
           tipo_regularizacao_ambiental
-          tipo_regularizacao_uso_recursos_hidricos
-          valor_total_obtido_outros
+          controla_custos_producao
+          local_comercializacao
           valor_total_obtido_pnae
+          valor_total_obtido_outros
+          forma_entrega_produtos
+          dificuldade_fornecimento
+          informacoes_adicionais
+          at_prf_see_grupos_produtos {
+            id
+            producao_aproximada_ultimo_ano_pnae
+            producao_aproximada_ultimo_ano_total
+            at_prf_grupo_produto {
+              nm_grupo
+            }
+            at_prf_see_produto {
+              id_produto
+              producao_aproximada_ultimo_ano_pnae
+              producao_aproximada_ultimo_ano_total
+              at_prf_produto {
+                nm_produto
+                sg_und_medida
+              }
+            }
+          }
         }
       }
     }

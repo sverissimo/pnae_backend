@@ -14,12 +14,13 @@ export class PerfilService {
 
   async findAll() {
     const perfis = await this.graphQLAPI.getPerfis();
+
     return perfis;
   }
 
-  async findByProdutorId(produtorId: number) {
+  async findByProdutorId(produtorId: string) {
     const localPerfil = await this.prismaService.perfil.findMany({
-      where: { id_cliente: produtorId },
+      where: { id_cliente: BigInt(produtorId) },
     });
     if (localPerfil.length) {
       return localPerfil;

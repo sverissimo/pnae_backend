@@ -1,10 +1,17 @@
+<head>
+  <%- include('./styles/perfilStyles'); %>
+</head>
 <main>
-  <section class="table">
+  <section>
     <table>
       <thead>
-        <th colspan="2" class="td-perfil-title">Perfil de Entrada</th>
+        <th colspan="2" class="title">Perfil de Entrada</th>
       </thead>
       <tbody>
+        <tr>
+          <td class="td-perfil-label">Produtor</td>
+          <td class="td-content"><%= produtor.nomeProdutor %></td>
+        </tr>
         <% perfil.perfilData.forEach(function({label, value}){ %>
         <tr>
           <td class="td-perfil-label"><%= label %></td>
@@ -15,14 +22,18 @@
     </table>
   </section>
 
-  <br />
   <% if(perfil.producaoNatura) { %>
   <section class="table">
     <table>
       <thead>
-        <th colspan="2" class="td-perfil-title">Dados de produção in Natura</th>
+        <th colspan="2" class="subtitle td-perfil-subtitle">Dados de produção in Natura</th>
       </thead>
       <tbody>
+        <tr>
+          <td colspan="2" class="td-produtos-container">
+            <%- include('produtos', {grupoProdutos: gruposProdutosNatura, type:'inNatura' }) %>
+          </td>
+        </tr>
         <% perfil.producaoNatura.forEach(function({label, value}){ %>
         <tr>
           <td class="td-perfil-label"><%= label %></td>
@@ -37,9 +48,15 @@
   <section class="table">
     <table>
       <thead>
-        <th colspan="2" class="td-perfil-title">Dados de produção Industrial</th>
+        <th colspan="2" class="subtitle td-perfil-subtitle">Dados de produção Industrial</th>
       </thead>
       <tbody>
+        <tr>
+          <td colspan="2" class="td-produtos-container">
+            <%- include('produtos', {grupoProdutos: gruposProdutosIndustriais, type:'industrial' })
+            %>
+          </td>
+        </tr>
         <% perfil.producaoIndustrial.forEach(function({label, value}){ %>
         <tr>
           <td class="td-perfil-label"><%= label %></td>
@@ -50,5 +67,5 @@
     </table>
   </section>
   <% } %>
-  <br /><br /><br />
+  <br />
 </main>

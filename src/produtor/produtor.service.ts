@@ -23,20 +23,7 @@ export class ProdutorService {
 
   async findOne(cpfProdutor: string) {
     const produtor: any = await this.api.getProdutor(cpfProdutor);
-    /* const relatorios = await this.relatorioService.findMany(produtor.id_pessoa_demeter);
-    produtor.relatorios = relatorios.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })); */
-
     return produtor;
-
-    /**** TODO: Implementar isso depois (procurar na memória interna primeiro?)
-    const produtorLocal = await this.prismaService.produtor.findFirst({
-      where: {
-        cpfCnpj: '123.456.789-99',
-      },
-      if(produtorLocal) {
-        return produtorLocal
-      }
-    }); */
   }
 
   update(id: number, updateProdutorDto: UpdateProdutorDto) {

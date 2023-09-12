@@ -8,6 +8,7 @@ import { formatCPF } from 'src/utils/formatCPF';
 import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { Perfil } from 'src/perfil/entities/perfil.entity';
+import { PerfilModel } from 'src/perfil/entities/perfil.model';
 
 @Injectable()
 export class RelatorioService {
@@ -103,7 +104,9 @@ export class RelatorioService {
       const usuario = await this.usuarioApi.getUsuario('' + relatorio.tecnicoId);
       const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
       const { perfis } = produtor;
-      const perfil = perfis[0];
+      const perfil = perfis[0] as PerfilModel;
+      const { dados_producao_in_natura, dados_producao_agro_industria } = perfil;
+
       const perfilPDFModel = new Perfil().toPDFModel(perfil);
 
       return {
@@ -117,6 +120,8 @@ export class RelatorioService {
           nomeTecnico: usuario.nome_usuario,
           matricula: usuario.matricula_usuario + '-' + usuario.digito_matricula,
         },
+        dados_producao_in_natura,
+        dados_producao_agro_industria,
         perfilPDFModel,
       };
     } catch (error) {

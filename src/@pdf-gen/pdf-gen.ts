@@ -8,22 +8,33 @@ import { formatDate } from 'src/utils/formatDate';
 import { readFile, writeFile } from 'node:fs/promises';
 import { PassThrough } from 'stream';
 import { PerfilPDFModel } from 'src/perfil/types/perfil-pdf-model';
+import { Produto } from 'src/perfil/entities/produto.entity';
 
 type CreatePdfInput = {
   relatorio: RelatorioPDF;
   perfilPDFModel: PerfilPDFModel;
+  dados_producao_in_natura: any;
+  dados_producao_agro_industria: any;
 };
 export const pdfGen = async (pdfInputData: CreatePdfInput) => {
-  const { perfilPDFModel, relatorio } = pdfInputData;
+  const { perfilPDFModel, relatorio, dados_producao_agro_industria, dados_producao_in_natura } =
+    pdfInputData;
   const { produtor, pictureURI, assinaturaURI } = relatorio;
+  console.log('🚀 ~ file: pdf-gen.ts:23 ~ pdfGen ~ produtor:', produtor);
 
-  const browser = await puppeteer.launch({
-    executablePath: puppeteer.executablePath(),
-    headless: 'new',
-    args: ['--disable-gpu', '--disable-dev-shm-usage', '--disable-setuid-sandbox', '--no-sandbox'],
-  });
+  const produto = new Produto();
 
-  const page = await browser.newPage();
+  const gruposProdutosNatura = dados_producao_in_natura.at_prf_see_grupos_produtos
+    ? dados_producao_in_natura.at_prf_see_grupos_produtos.map((group) =>
+        produto.productGroupToDTO(group),
+      )
+    : null;
+
+  const gruposProdutosIndustriais = dados_producao_agro_industria.at_prf_see_grupos_produtos
+    ? dados_producao_agro_industria.at_prf_see_grupos_produtos.map((group) =>
+        produto.productGroupToDTO(group),
+      )
+    : null;
 
   const imageFolder = join(__dirname, '../..', 'data/files');
   let pictureBase64Image = '';
@@ -41,16 +52,24 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
 
   relatorio.data = formatDate(relatorio.createdAt);
 
-  console.log('🚀 ~ file: pdf-gen.ts:38 ~ pdfGen ~ perfilPDFModel:', perfilPDFModel);
-
+  console.log('🚀 ~ file: pdf-gen.ts:58 ~ pdfGen ~ perfilPDFModel:', perfilPDFModel);
   const htmlWithPicture = await ejs.renderFile(`/home/node/app/src/@pdf-gen/template.ejs`, {
-    ...relatorio,
+    relatorio: { ...relatorio },
     produtor,
     perfil: perfilPDFModel,
+    gruposProdutosNatura,
+    gruposProdutosIndustriais,
     assinaturaBase64Image: `data:image/jpeg;base64,${assinaturaBase64Image} `,
     pictureBase64Image: `data:image/jpeg;base64,${pictureBase64Image} `,
   });
 
+  const browser = await puppeteer.launch({
+    executablePath: puppeteer.executablePath(),
+    headless: 'new',
+    args: ['--disable-gpu', '--disable-dev-shm-usage', '--disable-setuid-sandbox', '--no-sandbox'],
+  });
+
+  const page = await browser.newPage();
   await page.setContent(htmlWithPicture, { waitUntil: 'domcontentloaded' });
   await page.emulateMediaType('screen');
   await writeFile('result.html', htmlWithPicture);

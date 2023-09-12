@@ -1,4 +1,4 @@
-import { GrupoProdutos } from '../types';
+import { GrupoProdutos } from './produtos';
 
 export type PerfilModel = {
   aderiu_pra: boolean;

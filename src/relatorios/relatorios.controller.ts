@@ -79,8 +79,17 @@ export class RelatorioController {
 
   @Get('/pdf/:id')
   async generatePdf(@Param('id') id: string, @Res() res: Response) {
-    const { relatorio, perfilPDFModel } = await this.relatorioService.createPDFInput(id);
-    const pdfStream = await pdfGen({ relatorio, perfilPDFModel });
+    const { relatorio, perfilPDFModel, dados_producao_agro_industria, dados_producao_in_natura } =
+      await this.relatorioService.createPDFInput(id);
+    // const html = await pdfGen({
+    const pdfStream = await pdfGen({
+      relatorio,
+      perfilPDFModel,
+      dados_producao_agro_industria,
+      dados_producao_in_natura,
+    });
+    // return res.send(pdfStream);
+
     const { numeroRelatorio, produtor } = relatorio;
 
     res.setHeader('Content-Type', 'application/pdf');

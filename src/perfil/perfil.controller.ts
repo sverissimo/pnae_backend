@@ -33,7 +33,7 @@ export class PerfilController {
   @Get()
   async findByProdutorId(@Query('produtorId') produtorId: string, @Res() res: Response) {
     try {
-      const perfis = await this.perfilService.findByProdutorId(+produtorId);
+      const perfis = await this.perfilService.findByProdutorId(produtorId);
       return res.send(perfis);
     } catch (error) {
       const { status, ...err } = error.response;

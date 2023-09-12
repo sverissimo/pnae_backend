@@ -10,7 +10,7 @@ import { GraphQLAPI } from './GraphQLAPI';
 
 @Injectable()
 export class PerfilGraphQLAPI extends GraphQLAPI {
-  async getPerfilByProdutorId(produtorId: number) {
+  async getPerfilByProdutorId(produtorId: string) {
     const document = perfisPorProdutorQuery;
     const variables = { produtorId };
     const { perfisPorProdutor } = (await this.client.request({ document, variables })) as any;
