@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { GraphQLAPI } from './GraphQLAPI';
-import { usuarioByMatriculaQuery, usuarioQuery } from './queries';
+import { getUsuariosQuery, usuarioByMatriculaQuery, usuarioQuery } from './queries';
 
 @Injectable()
 export class UsuarioGraphQLAPI extends GraphQLAPI {
   async getUsuario(id: string) {
     const document = usuarioQuery;
     const variables = { id };
-    const { usuario } = (await this.client.request({ document, variables })) as any;
-    return usuario;
+    const usuario = (await this.client.request({ document, variables })) as any;
+
+    return usuario?.usuario;
   }
 
   async getUsuarioByMatricula(matricula_usuario: string) {
@@ -16,5 +17,12 @@ export class UsuarioGraphQLAPI extends GraphQLAPI {
     const variables = { matricula_usuario };
     const { usuario } = (await this.client.request({ document, variables })) as any;
     return usuario;
+  }
+
+  async getUsuarios({ ids, matriculas }) {
+    const document = getUsuariosQuery;
+    const variables = { ids, matriculas };
+    const usuarios = (await this.client.request({ document, variables })) as any;
+    return usuarios;
   }
 }

@@ -112,13 +112,13 @@ export class RelatorioController {
     @UploadedFiles() files: FilesInputDto,
     @Body() update: Omit<UpdateRelatorioDto, 'id'>,
   ) {
-    console.log('🚀 relatoriosController.ts:88: ', update);
     try {
       const updatedRelatorio = await this.relatorioService.update({ id, ...update });
       if (!updatedRelatorio) {
         throw new NotFoundException(`Relatorio com id ${id} não encontrado.`);
       }
       if (files && Object.keys(files).length > 0) {
+        console.log('🚀 ~ file: relatorios.controller.ts:121 ~ generatePdf ~ files:', files);
         await this.fileService.update(files, id);
       }
       return updatedRelatorio;

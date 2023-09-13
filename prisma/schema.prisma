@@ -37,17 +37,18 @@ model Propriedade {
 }
 
 model Relatorio {
-  id              String        @id
-  produtorId      BigInt        @map("produtor_id")
-  tecnicoId       BigInt        @map("tecnico_id")
-  numeroRelatorio Int           @map("numero_relatorio")
-  assunto         String
-  orientacao      String
-  pictureURI      String?
-  assinaturaURI   String?
-  files           PictureFile[]
-  createdAt       DateTime?     @default(now()) @map("created_at")
-  updatedAt       DateTime? //@updatedAt @map("updated_at")
+  id                 String        @id
+  produtorId         BigInt        @map("produtor_id")
+  tecnicoId          BigInt        @map("tecnico_id")
+  numeroRelatorio    Int           @map("numero_relatorio")
+  assunto            String
+  orientacao         String
+  pictureURI         String?
+  assinaturaURI      String?
+  outroExtensionista String?       @map("outro_extensionista")
+  files              PictureFile[]
+  createdAt          DateTime?     @default(now()) @map("created_at")
+  updatedAt          DateTime? //@updatedAt @map("updated_at")
 
   @@map("relatorio")
 }

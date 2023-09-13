@@ -1,14 +1,14 @@
 //import * as fs from 'fs';
 import { join } from 'path';
+import { readFile, writeFile } from 'node:fs/promises';
+import { PassThrough } from 'stream';
 import puppeteer from 'puppeteer';
 import * as ejs from 'ejs';
 import { RelatorioPDF } from 'src/relatorios/entities/relatorio-pdf.entity';
-import { footer, header } from './layouts';
-import { formatDate } from 'src/utils/formatDate';
-import { readFile, writeFile } from 'node:fs/promises';
-import { PassThrough } from 'stream';
 import { PerfilPDFModel } from 'src/perfil/types/perfil-pdf-model';
 import { Produto } from 'src/perfil/entities/produto.entity';
+import { formatDate } from 'src/utils/formatDate';
+import { footer, header } from './layouts';
 
 type CreatePdfInput = {
   relatorio: RelatorioPDF;
@@ -20,7 +20,6 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
   const { perfilPDFModel, relatorio, dados_producao_agro_industria, dados_producao_in_natura } =
     pdfInputData;
   const { produtor, pictureURI, assinaturaURI } = relatorio;
-  console.log('🚀 ~ file: pdf-gen.ts:23 ~ pdfGen ~ produtor:', produtor);
 
   const produto = new Produto();
 
@@ -52,7 +51,6 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
 
   relatorio.data = formatDate(relatorio.createdAt);
 
-  console.log('🚀 ~ file: pdf-gen.ts:58 ~ pdfGen ~ perfilPDFModel:', perfilPDFModel);
   const htmlWithPicture = await ejs.renderFile(`/home/node/app/src/@pdf-gen/template.ejs`, {
     relatorio: { ...relatorio },
     produtor,
