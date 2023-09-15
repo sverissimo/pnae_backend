@@ -13,4 +13,14 @@ export class RestAPI {
       console.error('🚀 ~ file: perfil-api.service.ts:69 ~ PerfilGraphQLAPI:', error);
     }
   }
+  //### TODO: Implement this
+  async getReadOnlyRelatorios(ids: string[]) {
+    try {
+      const result = await fetch(`${this.url}/api/getReadOnlyRelatorios/${ids}`);
+      const data = await result.json();
+      return data;
+    } catch (error) {
+      console.error('🚀 ~ file: perfil-api.service.ts:69 ~ PerfilGraphQLAPI:', error);
+    }
+  }
 }

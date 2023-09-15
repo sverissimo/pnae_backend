@@ -45,6 +45,13 @@ export class RelatorioService {
     }
   }
 
+  async getReadOnly(relatorios: Relatorio[]) {
+    const ids = relatorios.map((r) => r.id);
+    // ### TODO: Implement this
+    // const readonly = await this.relatorioAPI.getReadOnly(ids);
+    return ids;
+  }
+
   async findAll() {
     const relatorios = await this.prismaService.relatorio.findMany({
       include: {
@@ -102,12 +109,23 @@ export class RelatorioService {
     try {
       const relatorio = await this.findOne(relatorioId);
       const { outroExtensionista } = relatorio;
-      const tecnicoIds = relatorio.tecnicoId.toString() + ',' + outroExtensionista;
+
+      const tecnicoId = relatorio.tecnicoId.toString();
+      const tecnicoIds = outroExtensionista ? tecnicoId + ',' + outroExtensionista : tecnicoId;
       const { usuarios } = (await this.usuarioApi.getUsuarios({ ids: tecnicoIds })) as {
         usuarios: Usuario[];
       };
       const usuario = usuarios.find((u) => u.id_usuario == relatorio.tecnicoId);
-      const outrosExtensionistas = usuarios.filter((u) => u.id_usuario != relatorio.tecnicoId);
+      let outrosExtensionistas: Usuario[] | undefined;
+
+      if (outroExtensionista) {
+        outrosExtensionistas = usuarios
+          .filter((u) => u.id_usuario != relatorio.tecnicoId)
+          .map((e) => ({
+            ...e,
+            matricula_usuario: e.matricula_usuario + '-' + e.digito_matricula,
+          }));
+      }
 
       const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
       const { perfis } = produtor;

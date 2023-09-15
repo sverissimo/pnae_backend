@@ -93,7 +93,7 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
         headerHtml: headerFilePath,
         footerHtml: footerFilePath,
         headerSpacing: 2.7,
-        footerSpacing: 1.7,
+        footerSpacing: 0.8,
       },
       (err, stream) => {
         unlink(headerFilePath, () => {});

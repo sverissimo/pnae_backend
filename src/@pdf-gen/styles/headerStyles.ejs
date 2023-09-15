@@ -1,25 +1,30 @@
 <style>
-  header {
-    display: flex;
-    font-size: 12px;
-    align-items: center;
-    justify-content: center;
+  .headerContainer {
+    width: 100%;
+    margin-bottom: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    border-bottom: 1px solid #ddd;
   }
-
-  .ematerLogo {
-    flex: 1;
-    margin-right: 25px;
-    width: 50%;
-    height: 50%;
-    max-width: 300px;
-    max-height: 300px;
-  }
-
-  h4 {
-    flex: 7;
+  .headerSubContainer {
+    display: -webkit-box;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    -webkit-box-align: center;
     align-self: center;
-    line-height: 16px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 7px;
+    margin-bottom: 0;
+  }
+
+  .logoContainer {
+    background-color: white;
+    margin-right: 7pt;
+  }
+  .textContainer {
+    font-size: 12px;
+  }
+  .logo {
+    max-width: 130px;
+    max-height: 80px;
   }
 </style>
