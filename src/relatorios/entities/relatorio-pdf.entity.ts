@@ -1,3 +1,5 @@
+import { Usuario } from '@prisma/client';
+
 export type RelatorioPDF = {
   id: string;
   produtorId: string | BigInt;
@@ -11,6 +13,7 @@ export type RelatorioPDF = {
   produtor?: any;
   pictureURI?: string;
   assinaturaURI?: string;
+  outrosExtensionistas?: Usuario[];
   data?: string | Date;
   createdAt: any;
   updatedAt?: any;

@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { Relatorio } from '@prisma/client';
+import { Relatorio, Usuario } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/common/file.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
@@ -101,14 +101,20 @@ export class RelatorioService {
   async createPDFInput(relatorioId: string) {
     try {
       const relatorio = await this.findOne(relatorioId);
-      const usuario = await this.usuarioApi.getUsuario('' + relatorio.tecnicoId);
+      const { outroExtensionista } = relatorio;
+      const tecnicoIds = relatorio.tecnicoId.toString() + ',' + outroExtensionista;
+      const { usuarios } = (await this.usuarioApi.getUsuarios({ ids: tecnicoIds })) as {
+        usuarios: Usuario[];
+      };
+      const usuario = usuarios.find((u) => u.id_usuario == relatorio.tecnicoId);
+      const outrosExtensionistas = usuarios.filter((u) => u.id_usuario != relatorio.tecnicoId);
+
       const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
       const { perfis } = produtor;
       const perfil = perfis[0] as PerfilModel;
       const { dados_producao_in_natura, dados_producao_agro_industria } = perfil;
 
       const perfilPDFModel = new Perfil().toPDFModel(perfil);
-
       return {
         relatorio: {
           ...relatorio,
@@ -119,6 +125,7 @@ export class RelatorioService {
           },
           nomeTecnico: usuario.nome_usuario,
           matricula: usuario.matricula_usuario + '-' + usuario.digito_matricula,
+          outrosExtensionistas,
         },
         dados_producao_in_natura,
         dados_producao_agro_industria,

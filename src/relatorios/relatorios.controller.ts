@@ -79,9 +79,10 @@ export class RelatorioController {
 
   @Get('/pdf/:id')
   async generatePdf(@Param('id') id: string, @Res() res: Response) {
+    console.time('generatePdf');
     const { relatorio, perfilPDFModel, dados_producao_agro_industria, dados_producao_in_natura } =
       await this.relatorioService.createPDFInput(id);
-    // const html = await pdfGen({
+
     const pdfStream = await pdfGen({
       relatorio,
       perfilPDFModel,
@@ -98,6 +99,7 @@ export class RelatorioController {
       `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.pdf`,
     );
     pdfStream.pipe(res);
+    console.timeEnd('generatePdf');
   }
 
   @Patch(':id')

@@ -6,6 +6,9 @@
 /data
 *.env
 result*.*
+*.pdf
+lib
+/**/old
 
 # Logs
 logs

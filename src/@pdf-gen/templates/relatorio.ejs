@@ -1,5 +1,5 @@
 <head>
-  <%- include('./styles/relatorioStyles'); %>
+  <%- include('../styles/relatorioStyles'); %>
 </head>
 <section class="table">
   <table class="relatorioTable avoid-break">
@@ -8,11 +8,11 @@
     </thead>
     <tbody>
       <tr>
-        <td class="td-label">Agricultor(a) Familiar:</td>
+        <td class="td-label">Agricultor(a) Familiar</td>
         <td class="td-content"><%= produtor.nomeProdutor %></td>
       </tr>
       <tr>
-        <td class="td-label">CPF/CNPJ:</td>
+        <td class="td-label">CPF/CNPJ</td>
         <td class="td-content"><%= produtor.cpfProdutor %></td>
       </tr>
       <tr>
@@ -20,15 +20,15 @@
         <td class="td-content"><%= produtor.caf %></td>
       </tr>
       <tr>
-        <td class="td-label">Nº da visita:</td>
+        <td class="td-label">Nº da visita</td>
         <td class="td-content"><%= numeroRelatorio%></td>
       </tr>
       <tr>
-        <td class="td-label">Município:</td>
+        <td class="td-label">Município</td>
         <td class="td-content">municipio</td>
       </tr>
       <tr>
-        <td class="td-label">Extensionista 1:</td>
+        <td class="td-label">Extensionista<%= outrosExtensionistas ? ' 1' : '' %></td>
         <td class="td-content">
           <div class="extensionista">
             <span class="nomeExtensionista"> <%= nomeTecnico %> </span>
@@ -36,6 +36,20 @@
           </div>
         </td>
       </tr>
+
+      <% if (outrosExtensionistas) { %> <% outrosExtensionistas.forEach((extensionista, i) => { %>
+      <tr>
+        <td class="td-label">Extensionista <%=i+2%></td>
+        <td class="td-content">
+          <div class="extensionista">
+            <span class="nomeExtensionista"> <%= extensionista.nome_usuario %> </span>
+            <span class="matricula">
+              <strong>Matrícula: </strong> <%= extensionista.matricula_usuario %>
+            </span>
+          </div>
+        </td>
+      </tr>
+      <% }) %> <% } %>
     </tbody>
   </table>
 </section>
@@ -51,12 +65,14 @@
 <section class="textBox avoid-break">
   <h5 class="subtitle">Assinatura do Produtor</h5>
   <div class="assinaturaContainer">
-    <img
-      id="assinaturaPlaceholder"
-      src="<%= assinaturaBase64Image %>"
-      class="assinatura"
-      alt="Assinatura do beneficiário"
-    />
+    <div class="imageContainer">
+      <img
+        id="assinaturaPlaceholder"
+        src="<%= assinaturaBase64Image %>"
+        class="assinatura"
+        alt="Assinatura do beneficiário"
+      />
+    </div>
     <div class="assinaturaText">
       <hr />
       <p>Agricultor(a) Beneficiado(a) ou Membro da Unidade Familiar *</p>

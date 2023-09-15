@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relatório PNAE - Emater/MG</title>
+    <style>
+      .headerContainer {
+        width: 100%;
+        margin-bottom: 0;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+      .headerSubContainer {
+        display: -webkit-box;
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+        -webkit-box-align: center;
+        align-self: center;
+
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 7px;
+        margin-bottom: 0;
+      }
+      .logoContainer {
+        background-color: white;
+        margin-right: 7pt;
+      }
+      .textContainer {
+        font-size: 12px;
+      }
+      .logo {
+        max-width: 130px;
+        max-height: 80px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="headerContainer">
+      <div class="headerSubContainer">
+        <div class="logoContainer">
+          <img id="logo" src="<%= logoBase64Image %>" class="logo" alt="" />
+        </div>
+        <div class="textContainer">
+          PNAE MOBILE APP
+          <br />
+          RELATÓRIO DE ASSISTÊNCIA TÉCNICA AO AGRICULTOR FAMILIAR
+          <br />
+          CONTRATO Nº 9385527/2023 - EMATER-MG e SEE
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

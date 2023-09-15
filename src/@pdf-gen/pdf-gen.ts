@@ -1,14 +1,13 @@
-//import * as fs from 'fs';
+import { unlink } from 'fs';
 import { join } from 'path';
 import { readFile, writeFile } from 'node:fs/promises';
 import { PassThrough } from 'stream';
-import puppeteer from 'puppeteer';
+import * as wkhtmltopdf from 'wkhtmltopdf';
 import * as ejs from 'ejs';
 import { RelatorioPDF } from 'src/relatorios/entities/relatorio-pdf.entity';
 import { PerfilPDFModel } from 'src/perfil/types/perfil-pdf-model';
 import { Produto } from 'src/perfil/entities/produto.entity';
 import { formatDate } from 'src/utils/formatDate';
-import { footer, header } from './layouts';
 
 type CreatePdfInput = {
   relatorio: RelatorioPDF;
@@ -16,11 +15,12 @@ type CreatePdfInput = {
   dados_producao_in_natura: any;
   dados_producao_agro_industria: any;
 };
+
 export const pdfGen = async (pdfInputData: CreatePdfInput) => {
   const { perfilPDFModel, relatorio, dados_producao_agro_industria, dados_producao_in_natura } =
     pdfInputData;
-  const { produtor, pictureURI, assinaturaURI } = relatorio;
-
+  const { numeroRelatorio, produtor, pictureURI, assinaturaURI } = relatorio;
+  const data = formatDate(relatorio.createdAt);
   const produto = new Produto();
 
   const gruposProdutosNatura = dados_producao_in_natura.at_prf_see_grupos_produtos
@@ -36,6 +36,9 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
     : null;
 
   const imageFolder = join(__dirname, '../..', 'data/files');
+  const headerImageFolder = join(__dirname, '../..', 'data');
+  const templateFolder = join('/home/node/app/src/@pdf-gen', 'templates');
+
   let pictureBase64Image = '';
   let assinaturaBase64Image = '';
 
@@ -48,11 +51,12 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
     const assinaturaBuffer = await readFile(`${imageFolder}/${assinaturaURI}`);
     assinaturaBase64Image = assinaturaBuffer.toString('base64');
   }
+  const logoBase64Image = (
+    await readFile(`${headerImageFolder}/emater_logo.jpg`, 'base64')
+  ).toString();
 
-  relatorio.data = formatDate(relatorio.createdAt);
-
-  const htmlWithPicture = await ejs.renderFile(`/home/node/app/src/@pdf-gen/template.ejs`, {
-    relatorio: { ...relatorio },
+  const htmlWithPicture = await ejs.renderFile(`${templateFolder}/main.ejs`, {
+    relatorio: { ...relatorio, data },
     produtor,
     perfil: perfilPDFModel,
     gruposProdutosNatura,
@@ -61,33 +65,54 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
     pictureBase64Image: `data:image/jpeg;base64,${pictureBase64Image} `,
   });
 
-  const browser = await puppeteer.launch({
-    executablePath: puppeteer.executablePath(),
-    headless: 'new',
-    args: ['--disable-gpu', '--disable-dev-shm-usage', '--disable-setuid-sandbox', '--no-sandbox'],
+  const headerHtml = await ejs.renderFile(`${templateFolder}/header.ejs`, {
+    logoBase64Image: `data:image/jpeg;base64,${logoBase64Image} `,
+  });
+  const footerHtml = await ejs.renderFile(`${templateFolder}/footer.ejs`, {
+    numeroRelatorio,
+    data,
+    produtor,
   });
 
-  const page = await browser.newPage();
-  await page.setContent(htmlWithPicture, { waitUntil: 'domcontentloaded' });
-  await page.emulateMediaType('screen');
-  await writeFile('result.html', htmlWithPicture);
+  const headerFilePath = `${templateFolder}/header.html`;
+  const footerFilePath = `${templateFolder}/footer.html`;
+  await writeFile(headerFilePath, headerHtml);
+  await writeFile(footerFilePath, footerHtml);
 
-  const pdfBuffer = await page.pdf({
-    path: 'result5.pdf',
-    margin: { top: '130px', right: '50px', bottom: '80px', left: '50px' },
-    printBackground: true,
-    format: 'A4',
-    headerTemplate: header,
-    footerTemplate: footer(relatorio),
-    displayHeaderFooter: true,
+  const pdfStream = new Promise((resolve, reject) => {
+    wkhtmltopdf(
+      htmlWithPicture,
+      {
+        pageSize: 'A4',
+        orientation: 'Portrait',
+        enableLocalFileAccess: true,
+        marginTop: '2.5cm',
+        marginBottom: '1.5cm',
+        marginRight: '1cm',
+        marginLeft: '1cm',
+        headerHtml: headerFilePath,
+        footerHtml: footerFilePath,
+        headerSpacing: 2.7,
+        footerSpacing: 1.7,
+      },
+      (err, stream) => {
+        unlink(headerFilePath, () => {});
+        unlink(footerFilePath, () => {});
+        if (err) {
+          console.log('🚀 ~ file: pdf-gen.ts:77 ~ pdfGen ~ err:', err);
+          reject(err);
+          return false;
+        }
+
+        const passThroughStream = new PassThrough();
+        stream.pipe(passThroughStream);
+
+        console.log('...done');
+        resolve(passThroughStream);
+        return true;
+      },
+    );
   });
 
-  console.log('...done');
-  await page.close();
-  await browser.close();
-
-  const pdfStream = new PassThrough();
-  pdfStream.end(pdfBuffer);
-
-  return pdfStream;
+  return (await pdfStream) as PassThrough;
 };

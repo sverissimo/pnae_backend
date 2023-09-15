@@ -19,5 +19,7 @@
     "noFallthroughCasesInSwitch": false,
     "moduleResolution": "Node"
   },
-  "allowJs": true
+  "allowJs": true,
+  "include": ["src/**/*.ts", "src/**/*.ejs", "src/**/*.json"],
+  "exclude": ["node_modules", "test"]
 }

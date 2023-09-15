@@ -38,7 +38,7 @@ const generatePDF = async (data: WorkerData) => {
     margin: { top: '130px', right: '50px', bottom: '80px', left: '50px' },
     printBackground: true,
     format: 'A4',
-    headerTemplate: header,
+    headerTemplate: header('INSERT_IMAGE_BASE64'),
     footerTemplate: footer(relatorio),
     displayHeaderFooter: true,
   });
