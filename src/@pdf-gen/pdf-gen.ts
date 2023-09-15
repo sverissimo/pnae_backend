@@ -35,49 +35,46 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
       )
     : null;
 
-  const imageFolder = join(__dirname, '../..', 'data/files');
-  const headerImageFolder = join(__dirname, '../..', 'data');
-  const templateFolder = join('/home/node/app/src/@pdf-gen', 'templates');
+  const headerImageFolder = join(__dirname, '../..', 'assets');
+  const imagesFolder = join(__dirname, '../..', 'data/files');
+  const templatesFolder = join(__dirname, 'templates');
 
-  let pictureBase64Image = '';
-  let assinaturaBase64Image = '';
+  const [pictureBuffer, assinaturaBuffer, logoBuffer] = await Promise.allSettled([
+    pictureURI ? readFile(`${imagesFolder}/${pictureURI}`, 'base64') : Promise.resolve(''),
+    assinaturaURI ? readFile(`${imagesFolder}/${assinaturaURI}`, 'base64') : Promise.resolve(''),
+    readFile(`${headerImageFolder}/emater_logo.jpg`, 'base64'),
+  ]);
 
-  if (pictureURI) {
-    const pictureBuffer = await readFile(`${imageFolder}/${pictureURI}`, 'base64');
-    pictureBase64Image = pictureBuffer.toString();
-  }
+  const pictureBase64Image =
+    pictureBuffer.status === 'fulfilled' ? pictureBuffer.value.toString() : '';
+  const assinaturaBase64Image =
+    assinaturaBuffer.status === 'fulfilled' ? assinaturaBuffer.value.toString() : '';
+  const logoBase64Image = logoBuffer.status === 'fulfilled' ? logoBuffer.value.toString() : '';
 
-  if (assinaturaURI) {
-    const assinaturaBuffer = await readFile(`${imageFolder}/${assinaturaURI}`);
-    assinaturaBase64Image = assinaturaBuffer.toString('base64');
-  }
-  const logoBase64Image = (
-    await readFile(`${headerImageFolder}/emater_logo.jpg`, 'base64')
-  ).toString();
+  const [headerHtml, htmlWithPicture, footerHtml] = await Promise.all([
+    ejs.renderFile(`${templatesFolder}/header.ejs`, {
+      logoBase64Image: `data:image/jpeg;base64,${logoBase64Image} `,
+    }),
+    ejs.renderFile(`${templatesFolder}/main.ejs`, {
+      relatorio: { ...relatorio, data },
+      produtor,
+      perfil: perfilPDFModel,
+      gruposProdutosNatura,
+      gruposProdutosIndustriais,
+      assinaturaBase64Image: `data:image/jpeg;base64,${assinaturaBase64Image} `,
+      pictureBase64Image: `data:image/jpeg;base64,${pictureBase64Image} `,
+    }),
+    ejs.renderFile(`${templatesFolder}/footer.ejs`, {
+      numeroRelatorio,
+      data,
+      produtor,
+    }),
+  ]);
 
-  const htmlWithPicture = await ejs.renderFile(`${templateFolder}/main.ejs`, {
-    relatorio: { ...relatorio, data },
-    produtor,
-    perfil: perfilPDFModel,
-    gruposProdutosNatura,
-    gruposProdutosIndustriais,
-    assinaturaBase64Image: `data:image/jpeg;base64,${assinaturaBase64Image} `,
-    pictureBase64Image: `data:image/jpeg;base64,${pictureBase64Image} `,
-  });
+  const headerFilePath = `${templatesFolder}/header.html`;
+  const footerFilePath = `${templatesFolder}/footer.html`;
 
-  const headerHtml = await ejs.renderFile(`${templateFolder}/header.ejs`, {
-    logoBase64Image: `data:image/jpeg;base64,${logoBase64Image} `,
-  });
-  const footerHtml = await ejs.renderFile(`${templateFolder}/footer.ejs`, {
-    numeroRelatorio,
-    data,
-    produtor,
-  });
-
-  const headerFilePath = `${templateFolder}/header.html`;
-  const footerFilePath = `${templateFolder}/footer.html`;
-  await writeFile(headerFilePath, headerHtml);
-  await writeFile(footerFilePath, footerHtml);
+  await Promise.all([writeFile(headerFilePath, headerHtml), writeFile(footerFilePath, footerHtml)]);
 
   const pdfStream = new Promise((resolve, reject) => {
     wkhtmltopdf(

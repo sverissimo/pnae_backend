@@ -1,73 +1,56 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# PNAE APP - Emater-MG
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Repositório do servidor backend
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Sumário
 
-## Description
+- [Sobre o App](#sobre-o-app)
+- [Funcionalidades](#funcionalidades)
+  - [Registro de Atendimentos](#registro-de-atendimentos)
+  - [Relatório de Visita Técnica](#relatório-de-visita-técnica)
+  - [Sincronização e Backup](#sincronização-e-backup)
+- [Como Usar](#como-usar)
+- [Capturas de Tela](#capturas-de-tela)
+- [Suporte](#suporte)
+- [Licença](#licença)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Sobre o App
 
-## Installation
+Desenvolvido para facilitar o dia a dia dos extensionistas da EMATER-MG, esse app mobile permite o registro ágil e eficiente dos atendimentos prestados aos produtores rurais no contexto do Programa Nacional de Alimentação Escolar (PNAE).
 
-```bash
-$ npm install
-```
+A EMATER-MG, em parceria com a SEE-MG, busca oferecer suporte técnico para que os produtores possam adequar suas produções e fornecer alimentos de qualidade ao PNAE, atendendo a todos os requisitos estabelecidos pelo programa.
 
-## Running the app
+## Funcionalidades
 
-```bash
-# development
-$ npm run start
+### Registro de Atendimentos
 
-# watch mode
-$ npm run start:dev
+O app oferece funcionalidades essenciais para que os extensionistas possam registrar todos os detalhes dos atendimentos, incluindo:
 
-# production mode
-$ npm run start:prod
-```
+- Captura de fotos: Documente visualmente cada visita com a funcionalidade de captura de fotos.
+- Assinatura digital: Capture a assinatura do produtor diretamente no seu dispositivo móvel.
 
-## Test
+### Relatório de Visita Técnica
 
-```bash
-# unit tests
-$ npm run test
+Crie relatórios detalhados de cada visita técnica realizada, incluindo:
 
-# e2e tests
-$ npm run test:e2e
+- Gravação e transcrição de voz: Grave as orientações técnicas fornecidas e transcreva-as automaticamente para o relatório.
+- Geração de PDF: Exporte cada relatório de atendimento em formato PDF, pronto para impressão ou envio digital.
 
-# test coverage
-$ npm run test:cov
-```
+### Sincronização e Backup
 
-## Support
+Garanta a segurança e a integridade dos dados coletados com as funcionalidades de:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- Sincronização com backend: Sincronize os dados registrados no app com o banco de dados central sempre que uma conexão Wi-Fi estiver disponível.
+- Backup offline: Salve os relatórios de visita técnica diretamente no seu dispositivo móvel, permitindo o acesso offline aos dados.
 
-## Stay in touch
+## Como Usar
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Instruções detalhadas sobre como instalar e usar o app estarão disponíveis em breve nesta seção.
 
-## License
+## Suporte
 
-Nest is [MIT licensed](LICENSE).
+Em caso de dúvidas, problemas técnicos ou sugestões, entre em contato através do [site da Emater](https://www.emater.mg.gov.br).
+
+## Licença
+
+Este projeto está licenciado sob a licença XYZ. Para mais informações, consulte o arquivo [LICENÇA](LICENSE.md) neste repositório.

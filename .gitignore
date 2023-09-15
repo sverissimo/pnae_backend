@@ -1,14 +1,16 @@
+# Environment
+*.env
+
 # compiled output
 /dist
 /node_modules
 
 #Data
 /data
-*.env
-result*.*
+/lib
 *.pdf
-lib
 /**/old
+
 
 # Logs
 logs
@@ -25,6 +27,7 @@ lerna-debug.log*
 # Tests
 /coverage
 /.nyc_output
+result*.*
 
 # IDEs and editors
 /.idea
