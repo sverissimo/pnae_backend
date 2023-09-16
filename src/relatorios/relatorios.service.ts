@@ -128,11 +128,14 @@ export class RelatorioService {
       }
 
       const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
-      const { perfis } = produtor;
+      const { perfis, propriedades } = produtor;
+
       const perfil = perfis[0] as PerfilModel;
+      const { municipio } = propriedades[0];
+      const nome_propriedade = propriedades.map((p) => p.nome_propriedade).join(', ');
       const { dados_producao_in_natura, dados_producao_agro_industria } = perfil;
 
-      const perfilPDFModel = new Perfil().toPDFModel(perfil);
+      const perfilPDFModel = new Perfil().toPDFModel({ ...perfil, nome_propriedade });
       return {
         relatorio: {
           ...relatorio,
@@ -143,8 +146,10 @@ export class RelatorioService {
           },
           nomeTecnico: usuario.nome_usuario,
           matricula: usuario.matricula_usuario + '-' + usuario.digito_matricula,
+          municipio: municipio.nm_municipio,
           outrosExtensionistas,
         },
+        nome_propriedade,
         dados_producao_in_natura,
         dados_producao_agro_industria,
         perfilPDFModel,

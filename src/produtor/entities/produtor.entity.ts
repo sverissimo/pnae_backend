@@ -2,8 +2,8 @@ import { Propriedade } from './propriedade.entity';
 
 export class Produtor {
   id: number;
-  nome: string;
-  cpfCnpj: string;
+  nomeProdutor: string;
+  cpfProdutor: string;
   tipoPessoa: string;
   sexo: string;
   dataNascimento: Date;

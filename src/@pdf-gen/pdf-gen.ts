@@ -10,15 +10,21 @@ import { Produto } from 'src/perfil/entities/produto.entity';
 import { formatDate } from 'src/utils/formatDate';
 
 type CreatePdfInput = {
-  relatorio: RelatorioPDF;
   perfilPDFModel: PerfilPDFModel;
+  relatorio: RelatorioPDF;
+  nome_propriedade: string;
   dados_producao_in_natura: any;
   dados_producao_agro_industria: any;
 };
 
 export const pdfGen = async (pdfInputData: CreatePdfInput) => {
-  const { perfilPDFModel, relatorio, dados_producao_agro_industria, dados_producao_in_natura } =
-    pdfInputData;
+  const {
+    perfilPDFModel,
+    relatorio,
+    nome_propriedade,
+    dados_producao_agro_industria,
+    dados_producao_in_natura,
+  } = pdfInputData;
   const { numeroRelatorio, produtor, pictureURI, assinaturaURI } = relatorio;
   const data = formatDate(relatorio.createdAt);
   const produto = new Produto();

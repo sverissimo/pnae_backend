@@ -3,7 +3,7 @@ import { PerfilModel } from './perfil.model';
 import { perfilFieldLabels, producaoIndustrialLabels, producaoNaturaLabels } from '../constants';
 
 export class Perfil {
-  toPDFModel(perfil: PerfilModel) {
+  toPDFModel(perfil: PerfilModel & { nome_propriedade: string }) {
     const {
       at_prf_see_propriedade,
       dados_producao_in_natura,
@@ -16,7 +16,6 @@ export class Perfil {
       label,
       value: field === 'atividade' ? atividade.replace('_', ' ') : parseValue(rest[field]),
     }));
-    console.log('🚀 ~ file: perfil.entity.ts:19 ~ Perfil ~ perfilData ~ perfilData:', perfilData);
 
     const perfilPDFModel = { perfilData };
 

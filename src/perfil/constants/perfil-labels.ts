@@ -14,6 +14,10 @@ export const perfilFieldLabels: FieldLabel[] = [
     label: 'Grau interesse PNAE',
   },
   {
+    field: 'nome_propriedade',
+    label: 'Nome da Propriedade',
+  },
+  {
     field: 'atividade',
     label: 'Atividade Desenvolvida',
   },

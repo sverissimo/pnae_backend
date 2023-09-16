@@ -15,6 +15,9 @@ export const produtorQuery = gql`
         id_pl_propriedade
         nome_propriedade
         area_total
+        municipio {
+          nm_municipio
+        }
         geo_ponto_texto
         id_municipio
         atividade_principal
