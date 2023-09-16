@@ -6,6 +6,7 @@ import { FileModule } from 'src/common/file.module';
 import { RelatorioGraphQLAPI } from 'src/@graphQL-server/relatorio-api.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
+import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 
 @Module({
   controllers: [RelatorioController],
@@ -15,6 +16,7 @@ import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
     ProdutorGraphQLAPI,
     RelatorioService,
     { provide: UsuarioGraphQLAPI, useClass: UsuarioGraphQLAPI },
+    { provide: RestAPI, useClass: RestAPI },
   ],
   imports: [FileModule],
   exports: [RelatorioService],

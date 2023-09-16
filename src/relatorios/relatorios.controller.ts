@@ -132,7 +132,7 @@ export class RelatorioController {
       return updatedRelatorio;
     } catch (error) {
       console.log('🚀 ~ file: relatorios.controller.ts:67 ~ update ~ error:', error);
-      throw new BadRequestException(error.message); // or throw new InternalServerErrorException(error.message);
+      throw error;
     }
   }
 
@@ -144,7 +144,7 @@ export class RelatorioController {
       return result;
     } catch (error) {
       console.log('🚀 ~ file: relatorios.controller.ts:67 ~ update ~ error:', error);
-      throw new BadRequestException(error.message); // or throw new InternalServerErrorException(error.message);
+      throw error;
     }
   }
 }

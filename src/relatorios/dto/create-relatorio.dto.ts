@@ -7,4 +7,6 @@ export class CreateRelatorioDto {
   orientacao: string;
   pictureURI?: string;
   assinaturaURI?: string;
+  outroExtensionista?: string;
+  readonly?: boolean;
 }

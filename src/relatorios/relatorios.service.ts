@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Relatorio, Usuario } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/common/file.service';
@@ -9,6 +14,7 @@ import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { Perfil } from 'src/perfil/entities/perfil.entity';
 import { PerfilModel } from 'src/perfil/entities/perfil.model';
+import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 
 @Injectable()
 export class RelatorioService {
@@ -17,6 +23,7 @@ export class RelatorioService {
     private readonly usuarioApi: UsuarioGraphQLAPI,
     private readonly produtorApi: ProdutorGraphQLAPI,
     private readonly fileService: FileService,
+    private readonly restAPI: RestAPI,
   ) {}
 
   async create(createRelatorioDto: CreateRelatorioDto): Promise<Relatorio> {
@@ -28,11 +35,6 @@ export class RelatorioService {
           produtorId: BigInt(produtorId),
           tecnicoId: BigInt(tecnicoId),
           numeroRelatorio: +numeroRelatorio,
-          /* produtor: {
-            connect: {
-              id: BigInt(produtorId),
-            },
-          }, */
         },
       });
 
@@ -43,13 +45,6 @@ export class RelatorioService {
       }
       throw error;
     }
-  }
-
-  async getReadOnly(relatorios: Relatorio[]) {
-    const ids = relatorios.map((r) => r.id);
-    // ### TODO: Implement this
-    // const readonly = await this.relatorioAPI.getReadOnly(ids);
-    return ids;
   }
 
   async findAll() {
@@ -63,7 +58,8 @@ export class RelatorioService {
 
   async findMany(produtorId: number) {
     const relatorios = await this.prismaService.relatorio.findMany({ where: { produtorId } });
-    return relatorios;
+    const relatoriosWithPermissions = await this.updateRelatoriosPermissions(relatorios);
+    return relatoriosWithPermissions;
   }
 
   async findOne(id: string) {
@@ -78,24 +74,36 @@ export class RelatorioService {
 
   async update(update: UpdateRelatorioDto) {
     const { id, numeroRelatorio, produtorId, tecnicoId, updatedAt } = update;
+    const { readOnly } = await this.findOne(id);
+    if (readOnly) {
+      throw new UnauthorizedException(
+        'Não é possível alterar relatório, pois já foi validado pela gerência.',
+      );
+    }
 
     if (numeroRelatorio) update.numeroRelatorio = +numeroRelatorio;
     if (produtorId) update.produtorId = BigInt(produtorId);
     if (tecnicoId) update.tecnicoId = BigInt(tecnicoId);
 
-    console.log('🚀 relatorios.service.ts:71: ', update);
+    const data = {
+      ...update,
+      updatedAt: new Date(updatedAt.slice(0, 10) + ' ' + updatedAt.slice(11, 19)),
+    };
+
     const updated = await this.prismaService.relatorio.update({
       where: { id },
-      data: {
-        ...update,
-        updatedAt: new Date(updatedAt.slice(0, 10) + ' ' + updatedAt.slice(11, 19)),
-      },
+      data,
     });
     return updated;
   }
 
   async remove(id: string) {
     const relatorio = await this.findOne(id);
+    if (relatorio.readOnly) {
+      throw new UnauthorizedException(
+        'Não é possível remover relatório, pois já foi validado pela gerência.',
+      );
+    }
     const { pictureURI, assinaturaURI } = relatorio;
     const fileIds = [pictureURI, assinaturaURI].filter((f) => !!f);
     if (fileIds.length > 0) {
@@ -103,6 +111,38 @@ export class RelatorioService {
     }
     await this.prismaService.relatorio.delete({ where: { id } });
     return `Relatorio ${id} removed.`;
+  }
+
+  async getReadOnly(relatorios: Relatorio[]) {
+    try {
+      const ids = relatorios.map((r) => r.id);
+      const readOnly = await this.restAPI.getReadOnlyRelatorios(ids);
+      return readOnly;
+    } catch (error) {
+      console.log(
+        '🚀 ~ file: relatorios.service.ts:100 ~ RelatorioService ~ getReadOnly ~ error:',
+        error,
+      );
+    }
+  }
+
+  async updateRelatoriosPermissions(relatorios: Relatorio[]) {
+    const readOnlyIds = await this.getReadOnly(relatorios);
+    const editableIds = relatorios.filter((r) => !readOnlyIds.includes(r.id)).map((r) => r.id);
+    const editableUpdates = { ids: editableIds, update: { readOnly: false } };
+    const readOnlyUpdates = { ids: readOnlyIds, update: { readOnly: true } };
+
+    await Promise.all([this.updateMany(editableUpdates), this.updateMany(readOnlyUpdates)]);
+    const response = relatorios.map((r) => ({ ...r, readOnly: readOnlyIds.includes(r.id) }));
+    return response;
+  }
+
+  private async updateMany({ ids, update }: { ids: string[]; update: Partial<Relatorio> }) {
+    const updated = await this.prismaService.relatorio.updateMany({
+      where: { id: { in: ids } },
+      data: update,
+    });
+    return updated;
   }
 
   async createPDFInput(relatorioId: string) {
