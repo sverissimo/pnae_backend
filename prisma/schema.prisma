@@ -47,6 +47,7 @@ model Relatorio {
   assinaturaURI      String?
   outroExtensionista String?       @map("outro_extensionista")
   readOnly           Boolean       @default(false) @map("read_only")
+  coordenadas        String?
   files              PictureFile[]
   createdAt          DateTime?     @default(now()) @map("created_at")
   updatedAt          DateTime? //@updatedAt @map("updated_at")

@@ -9,4 +9,5 @@ export class CreateRelatorioDto {
   assinaturaURI?: string;
   outroExtensionista?: string;
   readonly?: boolean;
+  coordenadas?: string;
 }
