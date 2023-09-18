@@ -14,7 +14,6 @@ export class PerfilService {
 
   async findAll() {
     const perfis = await this.graphQLAPI.getPerfis();
-
     return perfis;
   }
 

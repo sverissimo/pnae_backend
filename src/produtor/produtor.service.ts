@@ -4,6 +4,8 @@ import { UpdateProdutorDto } from './dto/update-produtor.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RelatorioService } from 'src/relatorios/relatorios.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
+import { Propriedade } from './entities';
+import { Perfil } from 'src/perfil/entities';
 
 @Injectable()
 export class ProdutorService {
@@ -23,7 +25,9 @@ export class ProdutorService {
 
   async findOne(cpfProdutor: string) {
     const produtor: any = await this.api.getProdutor(cpfProdutor);
-    return produtor;
+    const propriedades = produtor.propriedades.map((p) => new Propriedade(p).toDTO());
+    const perfis = produtor.perfis.map((p) => new Perfil(p).toDTO());
+    return { ...produtor, propriedades, perfis };
   }
 
   update(id: number, updateProdutorDto: UpdateProdutorDto) {

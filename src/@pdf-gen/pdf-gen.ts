@@ -6,7 +6,6 @@ import * as wkhtmltopdf from 'wkhtmltopdf';
 import * as ejs from 'ejs';
 import { RelatorioPDF } from 'src/relatorios/entities/relatorio-pdf.entity';
 import { PerfilPDFModel } from 'src/perfil/types/perfil-pdf-model';
-import { Produto } from 'src/perfil/entities/produto.entity';
 import { formatDate } from 'src/utils/formatDate';
 
 type CreatePdfInput = {
@@ -18,28 +17,10 @@ type CreatePdfInput = {
 };
 
 export const pdfGen = async (pdfInputData: CreatePdfInput) => {
-  const {
-    perfilPDFModel,
-    relatorio,
-    nome_propriedade,
-    dados_producao_agro_industria,
-    dados_producao_in_natura,
-  } = pdfInputData;
+  const { perfilPDFModel, relatorio, dados_producao_agro_industria, dados_producao_in_natura } =
+    pdfInputData;
   const { numeroRelatorio, produtor, pictureURI, assinaturaURI } = relatorio;
   const data = formatDate(relatorio.createdAt);
-  const produto = new Produto();
-
-  const gruposProdutosNatura = dados_producao_in_natura.at_prf_see_grupos_produtos
-    ? dados_producao_in_natura.at_prf_see_grupos_produtos.map((group) =>
-        produto.productGroupToDTO(group),
-      )
-    : null;
-
-  const gruposProdutosIndustriais = dados_producao_agro_industria.at_prf_see_grupos_produtos
-    ? dados_producao_agro_industria.at_prf_see_grupos_produtos.map((group) =>
-        produto.productGroupToDTO(group),
-      )
-    : null;
 
   const headerImageFolder = join(__dirname, '../..', 'assets');
   const imagesFolder = join(__dirname, '../..', 'data/files');
@@ -65,8 +46,8 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
       relatorio: { ...relatorio, data },
       produtor,
       perfil: perfilPDFModel,
-      gruposProdutosNatura,
-      gruposProdutosIndustriais,
+      gruposProdutosNatura: dados_producao_in_natura.at_prf_see_grupos_produtos,
+      gruposProdutosIndustriais: dados_producao_agro_industria.at_prf_see_grupos_produtos,
       assinaturaBase64Image: `data:image/jpeg;base64,${assinaturaBase64Image} `,
       pictureBase64Image: `data:image/jpeg;base64,${pictureBase64Image} `,
     }),

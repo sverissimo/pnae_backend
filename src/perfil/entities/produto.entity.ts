@@ -1,4 +1,4 @@
-import { GrupoProdutos, Table, GrupoProdutosDTO, ProdutoDTO, ProdutoModel } from '../types';
+import { GrupoProdutos, ProdutoDTO, ProdutoModel } from '../types';
 
 export class Produto {
   productGroupToDTO(grupoProdutos: GrupoProdutos) {

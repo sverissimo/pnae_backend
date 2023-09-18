@@ -36,7 +36,7 @@ export type GrupoProdutos = {
 
 export type GrupoProdutosDTO = {
   id: string;
-  area_utilizada: number;
+  area_utilizada?: number;
   producao_aproximada_ultimo_ano_pnae: string;
   producao_aproximada_ultimo_ano_total: string;
   at_prf_grupo_produto: GrupoDetails;

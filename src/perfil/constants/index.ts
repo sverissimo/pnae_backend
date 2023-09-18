@@ -1,3 +1,4 @@
-export { perfilFieldLabels } from './perfil-labels';
-export { producaoNaturaLabels } from './producao-natura-labels';
-export { producaoIndustrialLabels } from './producao-industrial-labels';
+export * from "./formattedValues"
+export * from "./perfil-labels"
+export * from "./producao-industrial-labels"
+export * from "./producao-natura-labels"

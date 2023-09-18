@@ -171,9 +171,11 @@ export class RelatorioService {
       const { perfis, propriedades } = produtor;
 
       const perfil = perfis[0] as PerfilModel;
+      const perfilDTO = new Perfil(perfil).toDTO();
+
       const { municipio } = propriedades[0];
       const nome_propriedade = propriedades.map((p) => p.nome_propriedade).join(', ');
-      const { dados_producao_in_natura, dados_producao_agro_industria } = perfil;
+      const { dados_producao_in_natura, dados_producao_agro_industria } = perfilDTO;
 
       const perfilPDFModel = new Perfil().toPDFModel({ ...perfil, nome_propriedade });
       return {

@@ -4,7 +4,7 @@ export type PerfilModel = {
   aderiu_pra: boolean;
   agroindustria_precisa_adaptacao_reforma: boolean;
   at_prf_see_propriedade: {
-    atividade: string;
+    atividade: 'ATIVIDADE_PRIMARIA' | 'ATIVIDADE_SECUNDARIA' | 'AMBAS';
     producao_dedicada_pnae: boolean;
   };
   atividades_com_regularizacao_ambiental: string;
@@ -41,14 +41,14 @@ export type PerfilModel = {
   data_preenchimento: string;
   fonte_captacao_agua: string;
   forma_esgotamento_sanitario: string;
-  grau_interesse_pnae: string;
+  grau_interesse_pnae: 'BAIXO' | 'MODERADO' | 'ALTO';
   id: string;
   id_cliente: string;
   id_dados_producao_agro_industria: string;
   id_dados_producao_in_natura: string;
   id_tecnico: string;
   nivel_tecnologico_cultivo: string;
-  orgao_fiscalizacao_sanitaria: null;
+  orgao_fiscalizacao_sanitaria: 'IMA' | 'VIGILANCIA_SANITARIA' | 'SIM' | 'MAPA' | 'NAO_SE_APLICA';
   participa_organizacao: boolean;
   pessoas_processamento_alimentos: number;
   possui_agroindustria_propria: null;
@@ -57,10 +57,10 @@ export type PerfilModel = {
   procedimento_pos_colheita: string;
   realiza_escalonamento_producao: boolean;
   sistema_producao: string;
-  tipo_estabelecimento: string;
-  tipo_gestao_unidade: string;
+  tipo_estabelecimento: 'PF' | 'PJ';
+  tipo_gestao_unidade: 'COLETIVA | FAMILIAR';
   tipo_perfil: string;
-  tipo_pessoa_juridica: string;
+  tipo_pessoa_juridica: 'ASSOCIACAO' | 'COOPERATIVA' | 'OUTROS';
   usuario: {
     digito_matricula: string;
     id_usuario: string;
