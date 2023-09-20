@@ -11,17 +11,6 @@ export const usuarioQuery = gql`
     }
   }
 `;
-export const usuarioByMatriculaQuery = gql`
-  query Usuario($id: String, $matricula_usuario: String) {
-    usuario(id: $id, matricula_usuario: $matricula_usuario) {
-      id_usuario
-      matricula_usuario
-      digito_matricula
-      nome_usuario
-      login_usuario
-    }
-  }
-`;
 
 export const getUsuariosQuery = gql`
   query Usuarios($ids: String, $matriculas: String) {
@@ -31,6 +20,11 @@ export const getUsuariosQuery = gql`
       digito_matricula
       nome_usuario
       login_usuario
+      perfil_demeter {
+        perfil {
+          descricao_perfil
+        }
+      }
     }
   }
 `;

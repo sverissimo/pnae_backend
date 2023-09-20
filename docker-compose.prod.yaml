@@ -1,14 +1,14 @@
 version: '3.9'
 services:
   nest-app:
-    container_name: nest-app
-    image: nest-app
+    container_name: pnae_backend
+    image: pnae_backend
     build: .
     entrypoint: "dockerize -wait tcp://postgres:5432 -timeout 20s /usr/local/bin/docker-entrypoint.sh"
     command: "npm run start:dev"
     #command: "tail -f /dev/null"
     ports:
-      - '3000:3000'
+      - '3001:3000'
     depends_on:
       - postgres_pnae
     volumes:
