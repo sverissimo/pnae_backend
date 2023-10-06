@@ -1,7 +1,7 @@
-import { unlink } from 'fs';
+import { ReadStream, createReadStream, unlink } from 'fs';
 import { join } from 'path';
 import { readFile, writeFile } from 'node:fs/promises';
-import { PassThrough } from 'stream';
+import { PassThrough, Stream } from 'stream';
 import * as wkhtmltopdf from 'wkhtmltopdf';
 import * as ejs from 'ejs';
 import { RelatorioPDF } from 'src/relatorios/entities/relatorio-pdf.entity';
@@ -57,46 +57,73 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
       produtor,
     }),
   ]);
+  await writeFile(`${templatesFolder}/tsting.html`, htmlWithPicture);
 
   const headerFilePath = `${templatesFolder}/header.html`;
   const footerFilePath = `${templatesFolder}/footer.html`;
 
   await Promise.all([writeFile(headerFilePath, headerHtml), writeFile(footerFilePath, footerHtml)]);
 
-  const pdfStream = new Promise((resolve, reject) => {
-    wkhtmltopdf(
-      htmlWithPicture,
-      {
-        pageSize: 'A4',
-        orientation: 'Portrait',
-        enableLocalFileAccess: true,
-        marginTop: '2.5cm',
-        marginBottom: '1.5cm',
-        marginRight: '1cm',
-        marginLeft: '1cm',
-        headerHtml: headerFilePath,
-        footerHtml: footerFilePath,
-        headerSpacing: 2.7,
-        footerSpacing: 0.8,
-      },
-      (err, stream) => {
-        unlink(headerFilePath, () => {});
-        unlink(footerFilePath, () => {});
-        if (err) {
-          console.log('🚀 ~ file: pdf-gen.ts:77 ~ pdfGen ~ err:', err);
-          reject(err);
-          return false;
-        }
-
-        const passThroughStream = new PassThrough();
-        stream.pipe(passThroughStream);
-
-        console.log('...done');
-        resolve(passThroughStream);
-        return true;
-      },
-    );
+  const pdfStream = wkhtmltopdf(htmlWithPicture, {
+    pageSize: 'A4',
+    orientation: 'Portrait',
+    enableLocalFileAccess: true,
+    marginTop: '2.5cm',
+    marginBottom: '1.5cm',
+    marginRight: '1cm',
+    marginLeft: '1cm',
+    headerHtml: headerFilePath,
+    footerHtml: footerFilePath,
+    headerSpacing: 2.7,
+    footerSpacing: 0.8,
   });
+  return pdfStream;
 
-  return (await pdfStream) as PassThrough;
+  // const pdfStream = new Promise((resolve, reject) => {
+  //   wkhtmltopdf(
+  //     htmlWithPicture,
+  //     {
+  //       pageSize: 'A4',
+  //       orientation: 'Portrait',
+  //       enableLocalFileAccess: true,
+  //       marginTop: '2.5cm',
+  //       marginBottom: '1.5cm',
+  //       marginRight: '1cm',
+  //       marginLeft: '1cm',
+  //       headerHtml: headerFilePath,
+  //       footerHtml: footerFilePath,
+  //       headerSpacing: 2.7,
+  //       footerSpacing: 0.8,
+  //     },
+  //     (err, stream) => {
+  //       console.log('🚀 ~ file: pdf-gen.ts:88 ~ CHECK IF CALLBACK IS BEING CALLED');
+  //       unlink(headerFilePath, () => {});
+  //       unlink(footerFilePath, () => {});
+  //       if (err) {
+  //         console.log('🚀 ~ file: pdf-gen.ts:77 ~ pdfGen ~ err:', err);
+  //         reject(err);
+  //         return false;
+  //       }
+
+  //       const passThroughStream = new PassThrough();
+  //       stream.pipe(passThroughStream);
+
+  //       stream.on('error', (err) => {
+  //         console.log('Stream Error:', err);
+  //         reject(err);
+  //       });
+
+  //       passThroughStream.on('error', (err) => {
+  //         console.log('PassThrough Stream Error:', err);
+  //         reject(err);
+  //       });
+
+  //       console.log('...done');
+  //       resolve(passThroughStream);
+  //       return true;
+  //     },
+  //   );
+  // });
+
+  // return (await pdfStream) as PassThrough;
 };

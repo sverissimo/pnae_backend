@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { join } from 'path';
+import path, { join } from 'path';
 import { promises as fs, existsSync, ReadStream, createReadStream } from 'fs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FilesInputDto } from './files-input.dto';
@@ -8,17 +8,32 @@ import { FilesInputDto } from './files-input.dto';
 export class FileService {
   constructor(private prismaService: PrismaService) {}
 
-  async getFileStream(fileUUIDName: string, filesFolder: string): Promise<ReadStream> {
+  async getFileStream(fileUUIDName: string, filesFolder: string): Promise<any> {
     const filePath = join(filesFolder, fileUUIDName);
-    if (existsSync(filePath)) {
-      return createReadStream(filePath);
-    } else {
-      throw new Error('File not found');
+    try {
+      await fs.access(filePath);
+      const info = await fs.stat(filePath);
+      const stream = createReadStream(filePath);
+      return stream;
+    } catch (error) {
+      return false;
     }
+    // const hasAcces = await fs.access(filePath);
+
+    // if (hasAcces === undefined) {
+    //   console.log(
+    //     '🚀 ~ file: file.service.ts:14 ~ FileService ~ getFileStream ~ filePath:',
+    //     filePath,
+    //   );
+    //   return createReadStream(filePath);
+    // } else {
+    //   throw new Error('File not found');
+    // }
   }
 
   async save(files: FilesInputDto, relatorioId: string) {
-    const uploadFolder = join(__dirname, '../..', '', 'data/files');
+    // const uploadFolder = join(__dirname, '../..', '', 'data/files');
+    const uploadFolder = process.env.FILES_FOLDER;
     const folderExists = existsSync(uploadFolder);
     if (!folderExists) {
       await fs.mkdir(uploadFolder);

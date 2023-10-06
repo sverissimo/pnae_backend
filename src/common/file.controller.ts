@@ -14,7 +14,9 @@ export class FileController {
     try {
       const subFolder = process.env.FILES_FOLDER;
       const fileStream = await this.fileService.getFileStream(fileId, subFolder);
-      return fileStream.pipe(res);
+      res.setHeader('Content-Type', 'image/png');
+      // res.setHeader('Content-Transfer-Encoding', 'binary');
+      fileStream.pipe(res);
     } catch (err) {
       return res.status(404).send(err.message);
     }

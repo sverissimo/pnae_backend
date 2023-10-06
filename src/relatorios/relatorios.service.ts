@@ -56,10 +56,17 @@ export class RelatorioService {
     return relatorios;
   }
 
-  async findMany(produtorId: number) {
-    const relatorios = await this.prismaService.relatorio.findMany({ where: { produtorId } });
+  async findMany(produtorId: string) {
+    const relatorios = await this.prismaService.relatorio.findMany({
+      where: { produtorId: BigInt(produtorId) },
+    });
     const relatoriosWithPermissions = await this.updateRelatoriosPermissions(relatorios);
-    return relatoriosWithPermissions;
+
+    return relatoriosWithPermissions.map((r) => ({
+      ...r,
+      createdAt: r?.createdAt?.toISOString(),
+      updatedAt: r?.updatedAt?.toISOString(),
+    }));
   }
 
   async findOne(id: string) {

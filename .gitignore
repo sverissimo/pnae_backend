@@ -1,6 +1,9 @@
 # Environment
 *.env
 
+#Certificates
+/certificates
+
 # compiled output
 /dist
 /node_modules
@@ -45,3 +48,4 @@ result*.*
 !.vscode/launch.json
 !.vscode/extensions.json
 prisma/data
+.vscode/settings.json
