@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <%- include('../styles/produtoStyles'); %>
+  </head>
+
+  <body>
+    <table class="productGroupTable">
+      <thead>
+        <tr>
+          <th colspan="5" class="subTitle2 productTableTitle">Grupos de Produtos Produzidos</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% grupoProdutos.forEach((grupo) => { %> <%- include('produtosTableHeader', {grupo, type});
+        %> <%- include('produtosTableBody', {grupo, type}); %> <% }); %>
+      </tbody>
+    </table>
+  </body>
+</html>

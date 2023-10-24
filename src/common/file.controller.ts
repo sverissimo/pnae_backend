@@ -11,15 +11,17 @@ export class FileController {
 
   @Get(':fileId')
   async download(@Param('fileId') fileId: string, @Res() res: Response) {
-    try {
-      const subFolder = process.env.FILES_FOLDER;
-      const fileStream = await this.fileService.getFileStream(fileId, subFolder);
+    const subFolder = process.env.FILES_FOLDER;
+
+    this.fileService.getFileStream(fileId, subFolder, (err, fileStream) => {
+      if (err) {
+        console.error('🚀: file.controller.ts:19:', err);
+        return res.status(404).send('Arquivo não encontrado no servidor.');
+      }
+
       res.setHeader('Content-Type', 'image/png');
-      // res.setHeader('Content-Transfer-Encoding', 'binary');
-      fileStream.pipe(res);
-    } catch (err) {
-      return res.status(404).send(err.message);
-    }
+      fileStream!.pipe(res);
+    });
   }
 
   @Delete(':fileId')

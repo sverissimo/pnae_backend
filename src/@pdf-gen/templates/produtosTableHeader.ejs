@@ -1,0 +1,12 @@
+<tr>
+  <th colspan="5" class="groupTitle"><%= grupo.nm_grupo.toLowerCase() %></th>
+</tr>
+<tr>
+  <th class="groupTableHeaders">Nome do Produto</th>
+  <th class="groupTableHeaders">Unidade de Medida</th>
+  <% if(type === 'inNatura') { %>
+  <th class="groupTableHeaders">Área Utilizada (ha)</th>
+  <% } %>
+  <th class="groupTableHeaders">Produção PNAE do Último Ano</th>
+  <th class="groupTableHeaders">Produção Total do Último Ano</th>
+</tr>

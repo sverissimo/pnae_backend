@@ -1,0 +1,20 @@
+<section class="<%= tableStyle%>">
+  <table>
+    <thead>
+      <th colspan="2" class="subtitle td-perfil-subtitle"><%= title %></th>
+    </thead>
+    <tbody>
+      <tr>
+        <td colspan="2" class="td-produtos-container">
+          <%- include('produtosTable', {grupoProdutos, type }) %>
+        </td>
+      </tr>
+      <% dadosProducao.forEach(function({label, value}){ %>
+      <tr>
+        <td class="td-perfil-label"><%= label %></td>
+        <td class="td-content"><%= value %></td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</section>

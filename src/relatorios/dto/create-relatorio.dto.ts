@@ -8,6 +8,6 @@ export class CreateRelatorioDto {
   pictureURI?: string;
   assinaturaURI?: string;
   outroExtensionista?: string;
-  readonly?: boolean;
+  readOnly?: boolean;
   coordenadas?: string;
 }

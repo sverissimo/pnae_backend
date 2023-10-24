@@ -22,50 +22,12 @@
     </table>
   </section>
 
-  <% if(perfil.producaoNatura) { %>
-  <section class="table">
-    <table>
-      <thead>
-        <th colspan="2" class="subtitle td-perfil-subtitle">Dados de produção in Natura</th>
-      </thead>
-      <tbody>
-        <tr>
-          <td colspan="2" class="td-produtos-container">
-            <%- include('produtos', {grupoProdutos: gruposProdutosNatura, type:'inNatura' }) %>
-          </td>
-        </tr>
-        <% perfil.producaoNatura.forEach(function({label, value}){ %>
-        <tr>
-          <td class="td-perfil-label"><%= label %></td>
-          <td class="td-content"><%= value %></td>
-        </tr>
-        <% }); %>
-      </tbody>
-    </table>
-  </section>
+  <% const {producaoNatura, producaoIndustrial } = perfil %> <% if(producaoNatura) { %> <%-
+  include('dadosProducao', { title: 'Dados de produção in Natura', type:'inNatura',
+  tableStyle:'table', grupoProdutos: gruposProdutosNatura, dadosProducao:producaoNatura }) %>
   <br />
-  <% } %> <% if(perfil.producaoIndustrial) { %>
-  <section class="table avoid-break">
-    <table>
-      <thead>
-        <th colspan="2" class="subtitle td-perfil-subtitle">Dados de produção Industrial</th>
-      </thead>
-      <tbody>
-        <tr>
-          <td colspan="2" class="td-produtos-container">
-            <%- include('produtos', {grupoProdutos: gruposProdutosIndustriais, type:'industrial' })
-            %>
-          </td>
-        </tr>
-        <% perfil.producaoIndustrial.forEach(function({label, value}){ %>
-        <tr>
-          <td class="td-perfil-label"><%= label %></td>
-          <td class="td-content"><%= value %></td>
-        </tr>
-        <% }); %>
-      </tbody>
-    </table>
-  </section>
-  <% } %>
+  <% } %> <% if(producaoIndustrial) { %> <%- include('dadosProducao', { type:'industrial', title:
+  'Dados de produção Industrial', tableStyle:'table avoid-break', grupoProdutos:
+  gruposProdutosIndustriais, dadosProducao:producaoIndustrial }) %> <% } %>
   <br />
 </main>

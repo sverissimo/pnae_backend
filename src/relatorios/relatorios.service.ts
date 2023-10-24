@@ -94,7 +94,7 @@ export class RelatorioService {
 
     const data = {
       ...update,
-      updatedAt: new Date(updatedAt.slice(0, 10) + ' ' + updatedAt.slice(11, 19)),
+      updatedAt: new Date(String(updatedAt)),
     };
 
     const updated = await this.prismaService.relatorio.update({
@@ -170,7 +170,9 @@ export class RelatorioService {
           .filter((u) => u.id_usuario != relatorio.tecnicoId)
           .map((e) => ({
             ...e,
-            matricula_usuario: e.matricula_usuario + '-' + e.digito_matricula,
+            matricula_usuario: e.digito_matricula
+              ? e.matricula_usuario + '-' + e.digito_matricula
+              : e.matricula_usuario,
           }));
       }
 
@@ -183,7 +185,9 @@ export class RelatorioService {
       const { municipio } = propriedades[0];
       const nome_propriedade = propriedades.map((p) => p.nome_propriedade).join(', ');
       const { dados_producao_in_natura, dados_producao_agro_industria } = perfilDTO;
-
+      const matricula = usuario.digito_matricula
+        ? usuario.matricula_usuario + '-' + usuario.digito_matricula
+        : usuario.matricula_usuario;
       const perfilPDFModel = new Perfil().toPDFModel({ ...perfil, nome_propriedade });
       return {
         relatorio: {
@@ -194,7 +198,7 @@ export class RelatorioService {
             caf: produtor.caf || produtor.dap,
           },
           nomeTecnico: usuario.nome_usuario,
-          matricula: usuario.matricula_usuario + '-' + usuario.digito_matricula,
+          matricula,
           municipio: municipio.nm_municipio,
           outrosExtensionistas,
         },

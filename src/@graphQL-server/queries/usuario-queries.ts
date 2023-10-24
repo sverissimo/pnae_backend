@@ -20,6 +20,7 @@ export const getUsuariosQuery = gql`
       digito_matricula
       nome_usuario
       login_usuario
+      id_und_empresa
       perfil_demeter {
         perfil {
           descricao_perfil

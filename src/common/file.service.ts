@@ -1,34 +1,46 @@
 import { Injectable } from '@nestjs/common';
-import path, { join } from 'path';
-import { promises as fs, existsSync, ReadStream, createReadStream } from 'fs';
+import { join } from 'path';
+import { promises as fs, existsSync, createReadStream } from 'fs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FilesInputDto } from './files-input.dto';
+import { Readable } from 'stream';
 
 @Injectable()
 export class FileService {
   constructor(private prismaService: PrismaService) {}
 
-  async getFileStream(fileUUIDName: string, filesFolder: string): Promise<any> {
+  async getFileStream(
+    fileUUIDName: string,
+    filesFolder: string,
+    callback: (err: Error | null, stream?: Readable) => void,
+  ): Promise<any> {
     const filePath = join(filesFolder, fileUUIDName);
-    try {
-      await fs.access(filePath);
-      const info = await fs.stat(filePath);
-      const stream = createReadStream(filePath);
-      return stream;
-    } catch (error) {
-      return false;
-    }
-    // const hasAcces = await fs.access(filePath);
+    const stream = createReadStream(filePath);
 
-    // if (hasAcces === undefined) {
-    //   console.log(
-    //     '🚀 ~ file: file.service.ts:14 ~ FileService ~ getFileStream ~ filePath:',
-    //     filePath,
-    //   );
-    //   return createReadStream(filePath);
-    // } else {
-    //   throw new Error('File not found');
-    // }
+    stream.on('error', (error) => {
+      console.error(`Stream error: ${error.message}`);
+      callback(new Error(error.message));
+    });
+
+    stream.on('open', () => {
+      console.log('🚀 ~ file: file.service.ts:22 - #### stream ok.');
+      callback(null, stream);
+    });
+
+    // return new Promise((resolve, reject) => {
+    //   try {
+    //     const stream = createReadStream(filePath);
+    //     stream.on('error', (error) => {
+    //       stream.destroy();
+    //       console.error(`Stream error: ${error.message}`);
+    //       reject(new Error(error.message));
+    //     });
+    //     console.log('🚀 ~ file: file.service.ts:22 - #### stream ok.');
+    //     resolve(stream);
+    //   } catch (error) {
+    //     reject(error);
+    //   }
+    // });
   }
 
   async save(files: FilesInputDto, relatorioId: string) {
@@ -95,10 +107,7 @@ export class FileService {
       description: file.fieldname === 'foto' ? 'FOTO_RELATORIO' : 'ASSINATURA_PRODUTOR',
       relatorioId: relatorioId,
     };
-    console.log(
-      '🚀 ~ file: file.service.ts:67 ~ FileService ~ createFileMetadata ~ fileMetadata:',
-      fileMetadata,
-    );
+    // console.log('🚀 ~ file: file.service.ts:67 ~ FileService :', fileMetadata);
     return fileMetadata;
   }
 

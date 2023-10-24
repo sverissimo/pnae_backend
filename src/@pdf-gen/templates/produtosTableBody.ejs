@@ -1,0 +1,25 @@
+<% let totalArea = 0, totalPNAE = 0, totalProducao = 0; %> <%
+grupo.at_prf_see_produto.forEach((produto) => { %>
+<tr class="tr-produto">
+  <td><%= produto.nm_produto %></td>
+  <td><%= produto.sg_und_medida %></td>
+  <% if(type === 'inNatura') { %>
+  <td><%= produto.area_utilizada %></td>
+  <% } %>
+  <td><%= produto.producao_aproximada_ultimo_ano_pnae %></td>
+  <td><%= produto.producao_aproximada_ultimo_ano_total %></td>
+</tr>
+<% totalArea += produto.area_utilizada; %> <% totalPNAE +=
+Number(produto.producao_aproximada_ultimo_ano_pnae); %> <% totalProducao +=
+Number(produto.producao_aproximada_ultimo_ano_total); %> <% }); %> <% if(totalArea === 0) {
+totalArea = grupo.area_utilizada; } %> <% if(totalPNAE === 0) { totalPNAE =
+Number(grupo.producao_aproximada_ultimo_ano_pnae); } %> <% if(totalProducao === 0) { totalProducao =
+Number(grupo.producao_aproximada_ultimo_ano_total); } %>
+<tr class="tr-produto total">
+  <td colspan="2">Total</td>
+  <% if(type === 'inNatura') { %>
+  <td><%= totalArea %></td>
+  <% } %>
+  <td><%= totalPNAE %></td>
+  <td><%= totalProducao %></td>
+</tr>

@@ -42,18 +42,12 @@ export class RelatorioController {
     @Body() createRelatorioDto: CreateRelatorioDto,
   ) {
     try {
-      console.log(
-        '🚀 ~ file: relatorios.controller.ts:46 ~ RelatorioController ~ createRelatorioDto:',
-        createRelatorioDto,
-      );
+      createRelatorioDto.readOnly = String(createRelatorioDto.readOnly) === 'true';
       const { id: relatorioId } = await this.relatorioService.create(createRelatorioDto);
       if (files) {
         await this.fileService.save(files, relatorioId);
       }
-      console.log(
-        '🚀 ~ file: relatorios.controller.ts:54 ~ RelatorioController ~ relatorioId:',
-        relatorioId,
-      );
+      console.log('🚀 relatorios.controller.ts:50 ~ created id ', relatorioId);
       return relatorioId;
     } catch (error) {
       console.log('🚀 ~ relatorios.controller.ts:52:', error);
@@ -78,15 +72,11 @@ export class RelatorioController {
 
   @Get()
   async findByProdutorId(@Query('produtorId') produtorId: string) {
-    console.log(
-      '🚀 ~ file: relatorios.controller.ts:73 ~ RelatorioController ~ findByProdutorId ~ produtorId:',
-      produtorId,
-    );
-    const relatorio = await this.relatorioService.findMany(produtorId);
-    if (!relatorio) {
+    const relatorios = await this.relatorioService.findMany(produtorId);
+    if (!relatorios) {
       throw new NotFoundException('Nenhum relatório encontrado');
     }
-    return relatorio;
+    return relatorios;
   }
 
   @Get('/pdf/:id')

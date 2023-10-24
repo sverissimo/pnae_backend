@@ -1,1 +1,0 @@
- docker compose -f ./emater_graphql_server/docker-compose.test.yaml -f ./pnae_backend/docker-compose.test.yaml up -d
