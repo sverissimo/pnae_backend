@@ -6,5 +6,6 @@ import { AtendimentoGraphQLAPI } from 'src/@graphQL-server/atendimento-api.servi
 @Module({
   controllers: [AtendimentoController],
   providers: [AtendimentoService, AtendimentoGraphQLAPI],
+  exports: [AtendimentoService],
 })
 export class AtendimentoModule {}

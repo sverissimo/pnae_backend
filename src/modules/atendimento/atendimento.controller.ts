@@ -9,6 +9,7 @@ export class AtendimentoController {
 
   @Post()
   async create(@Body() createAtendimentoDto: CreateAtendimentoDto) {
+    console.log('🚀 ~ file: atendimento.controller.ts:400:', createAtendimentoDto);
     const id = await this.atendimentoService.create(createAtendimentoDto);
     return id;
   }

@@ -44,7 +44,6 @@ export class FileService {
   }
 
   async save(files: FilesInputDto, relatorioId: string) {
-    // const uploadFolder = join(__dirname, '../..', '', 'data/files');
     const uploadFolder = process.env.FILES_FOLDER;
     const folderExists = existsSync(uploadFolder);
     if (!folderExists) {

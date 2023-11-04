@@ -18,6 +18,7 @@ export const produtorQuery = gql`
         municipio {
           nm_municipio
         }
+        id_und_empresa
         geo_ponto_texto
         id_municipio
         atividade_principal

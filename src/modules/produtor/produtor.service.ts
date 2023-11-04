@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { CreateProdutorDto } from './dto/create-produtor.dto';
 import { UpdateProdutorDto } from './dto/update-produtor.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { RelatorioService } from 'src/relatorios/relatorios.service';
+import { RelatorioService } from 'src/modules/relatorios/relatorios.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { Propriedade } from './entities';
-import { Perfil } from 'src/perfil/entities';
+import { Perfil } from 'src/modules/perfil/entities';
 
 @Injectable()
 export class ProdutorService {

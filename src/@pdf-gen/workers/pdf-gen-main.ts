@@ -1,7 +1,7 @@
 import { join } from 'path';
 import * as fs from 'fs/promises';
 import { Worker } from 'worker_threads';
-import { RelatorioPDF } from 'src/relatorios/entities/relatorio-pdf.entity';
+import { RelatorioPDF } from 'src/modules/relatorios/entities/relatorio-pdf.entity';
 
 export const pdfGen = async (relatorio: RelatorioPDF) => {
   const { produtor, pictureURI, assinaturaURI } = relatorio;

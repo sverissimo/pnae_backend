@@ -2,8 +2,8 @@ import { join } from 'path';
 import { readFile, writeFile } from 'node:fs/promises';
 import * as wkhtmltopdf from 'wkhtmltopdf';
 import * as ejs from 'ejs';
-import { RelatorioPDF } from 'src/relatorios/entities/relatorio-pdf.entity';
-import { PerfilPDFModel } from 'src/perfil/types/perfil-pdf-model';
+import { RelatorioPDF } from 'src/modules/relatorios/entities/relatorio-pdf.entity';
+import { PerfilPDFModel } from 'src/modules/perfil/types/perfil-pdf-model';
 import { formatDate } from 'src/utils/formatDate';
 
 type CreatePdfInput = {

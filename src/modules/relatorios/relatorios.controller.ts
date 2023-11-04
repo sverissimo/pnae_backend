@@ -22,6 +22,8 @@ import { pdfGen } from 'src/@pdf-gen/pdf-gen';
 import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { FilesInputDto } from 'src/common/files-input.dto';
+import { CheckForUpdatesInput } from 'src/common/types/CheckForUpdatesInput';
+import { Relatorio } from './entities/relatorio.entity';
 
 @Controller('relatorios')
 export class RelatorioController {
@@ -43,11 +45,14 @@ export class RelatorioController {
   ) {
     try {
       createRelatorioDto.readOnly = String(createRelatorioDto.readOnly) === 'true';
+      console.log('🚀 ~ file: relatorios.controller.ts:46:', createRelatorioDto);
+
       const { id: relatorioId } = await this.relatorioService.create(createRelatorioDto);
       if (files) {
         await this.fileService.save(files, relatorioId);
       }
       console.log('🚀 relatorios.controller.ts:50 ~ created id ', relatorioId);
+
       return relatorioId;
     } catch (error) {
       console.log('🚀 ~ relatorios.controller.ts:52:', error);
@@ -122,9 +127,12 @@ export class RelatorioController {
   ) {
     try {
       const updatedRelatorio = await this.relatorioService.update({ id, ...update });
+      console.log('🚀 - RelatorioController - update:', { id, update });
+
       if (!updatedRelatorio) {
         throw new NotFoundException(`Relatorio com id ${id} não encontrado.`);
       }
+
       if (files && Object.keys(files).length > 0) {
         console.log('🚀 ~ file: relatorios.controller.ts:121 ~ generatePdf ~ files:', files);
         await this.fileService.update(files, id);
@@ -146,4 +154,10 @@ export class RelatorioController {
     );
     return result;
   }
+
+  // @Post()
+  // async post(@Body() checkUpdateInput: CheckForUpdatesInput){
+  //   const ids = checkUpdateInput.map(el=> el.id)
+  //   const relatorios = await this.relatorioService.findMany()
+  // }
 }

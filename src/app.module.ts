@@ -2,15 +2,15 @@ import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { AppService } from './app.service';
-import { RelatorioModule } from './relatorios/relatorios.module';
+import { RelatorioModule } from './modules/relatorios/relatorios.module';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
-import { ProdutorModule } from './produtor/produtor.module';
-import { PerfilModule } from './perfil/perfil.module';
+import { ProdutorModule } from './modules/produtor/produtor.module';
+import { PerfilModule } from './modules/perfil/perfil.module';
 import { config } from './config';
-import { UsuarioController } from './usuario/usuario.controller';
+import { UsuarioController } from './modules/usuario/usuario.controller';
 import { UsuarioGraphQLAPI } from './@graphQL-server/usuario-api.service';
-import { AtendimentoModule } from './atendimento/atendimento.module';
+import { AtendimentoModule } from './modules/atendimento/atendimento.module';
 
 /* (BigInt.prototype as any).toJSON = function () {
   const int = Number.parseInt(this.toString());

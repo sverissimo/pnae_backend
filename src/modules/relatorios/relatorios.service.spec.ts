@@ -18,7 +18,9 @@ describe('RelatorioService', () => {
 
   it('Testing create new relatorio', async () => {
     const newRelatorio = {
-      produtorId: 12808,
+      id: '2',
+      produtorId: 12808n,
+      tecnicoId: 3201n,
       numeroRelatorio: 2,
       assunto: 'Ass 2 Joseli',
       orientacao: 'whatever 2',

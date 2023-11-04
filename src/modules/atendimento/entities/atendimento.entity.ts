@@ -26,7 +26,6 @@ export class Atendimento {
   id_at_acao: string;
   id_at_status: number;
   ativo: boolean;
-  usuario_validacao: string;
   id_und_empresa: string;
   link_pdf: string;
   data_criacao: string;

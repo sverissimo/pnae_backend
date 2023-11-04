@@ -5,6 +5,7 @@ export class Propriedade {
   constructor(private propriedade: PropriedadeModel) {}
 
   toDTO(): PropriedadeDTO {
+    if (!this.propriedade) return;
     const { at_prf_see_propriedade, ...rest } = this.propriedade;
     const municipio = this.propriedade.municipio?.nm_municipio;
     const { atividade, producao_dedicada_pnae } = at_prf_see_propriedade;

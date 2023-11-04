@@ -1,9 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RestAPI {
-  url: string = process.env.GRAPHQL_SERVER_URL;
-
+  url: string;
+  token: string;
+  constructor(private configService: ConfigService) {
+    this.token = this.configService.get('token');
+    this.url = this.configService.get('url');
+    1;
+  }
   async getPerfilOptions() {
     try {
       const result = await fetch(`${this.url}/api/getPerfilOptions`);
@@ -17,7 +23,11 @@ export class RestAPI {
   async getReadOnlyRelatorios(ids: string[]) {
     try {
       if (!ids || ids.length === 0) return [];
-      const result = await fetch(`${this.url}/api/getReadOnlyRelatorios/${ids}`);
+      const result = await fetch(`${this.url}/api/getReadOnlyRelatorios/${ids}`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
       const data = await result.json();
       return data;
     } catch (error) {

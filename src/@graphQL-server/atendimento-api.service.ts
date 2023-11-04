@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { GraphQLAPI } from './GraphQLAPI';
 import { createAtendimentoMutation } from './mutations/atendimento-mutations';
-import { Atendimento } from 'src/atendimento/entities/atendimento.entity';
+import { Atendimento } from 'src/modules/atendimento/entities/atendimento.entity';
 import { atendimentoQuery } from './queries/atendimento-queries';
 
 @Injectable()

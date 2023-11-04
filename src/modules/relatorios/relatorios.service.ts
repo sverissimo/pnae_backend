@@ -12,8 +12,8 @@ import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { formatCPF } from 'src/utils/formatCPF';
 import { CreateRelatorioDto } from './dto/create-relatorio.dto';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
-import { Perfil } from 'src/perfil/entities/perfil.entity';
-import { PerfilModel } from 'src/perfil/entities/perfil.model';
+import { Perfil } from 'src/modules/perfil/entities/perfil.entity';
+import { PerfilModel } from 'src/modules/perfil/entities/perfil.model';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 
 @Injectable()
@@ -27,8 +27,8 @@ export class RelatorioService {
   ) {}
 
   async create(createRelatorioDto: CreateRelatorioDto): Promise<Relatorio> {
-    const { produtorId, tecnicoId, numeroRelatorio, ...relatorioInput } = createRelatorioDto;
     try {
+      const { produtorId, tecnicoId, numeroRelatorio, ...relatorioInput } = createRelatorioDto;
       const relatorio = await this.prismaService.relatorio.create({
         data: {
           ...relatorioInput,

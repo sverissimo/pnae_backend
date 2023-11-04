@@ -1,5 +1,5 @@
 import { Usuario } from '@prisma/client';
-import { Produtor } from 'src/produtor/entities/produtor.entity';
+import { Produtor } from 'src/modules/produtor/entities/produtor.entity';
 
 export type RelatorioPDF = {
   id: string;
