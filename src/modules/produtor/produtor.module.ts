@@ -10,5 +10,6 @@ import { RelatorioModule } from 'src/modules/relatorios/relatorios.module';
   controllers: [ProdutorController],
   providers: [PrismaService, ProdutorGraphQLAPI, RelatorioGraphQLAPI, ProdutorService],
   imports: [RelatorioModule],
+  exports: [ProdutorService],
 })
 export class ProdutorModule {}

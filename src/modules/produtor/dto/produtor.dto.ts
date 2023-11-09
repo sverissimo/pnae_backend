@@ -2,11 +2,11 @@ import { Perfil, Propriedade } from '@prisma/client';
 
 export class ProdutorDTO {
   id_pessoa_demeter: bigint;
-  nm_pessoa?: string | null;
-  tp_sexo?: string | null;
-  nr_cpf_cnpj?: string | null;
-  dt_nascimento?: Date | null;
-  id_und_empresa?: string | null;
+  nm_pessoa: string | null;
+  tp_sexo: string | null;
+  nr_cpf_cnpj: string | null;
+  dt_nascimento: Date | null;
+  id_und_empresa: string | null;
   ds_email?: string | null;
   dt_update_record: Date;
   senha?: string | null;

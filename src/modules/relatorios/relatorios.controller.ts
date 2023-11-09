@@ -19,11 +19,8 @@ import { Response } from 'express';
 import { FileService } from 'src/common/file.service';
 import { RelatorioService } from './relatorios.service';
 import { pdfGen } from 'src/@pdf-gen/pdf-gen';
-import { CreateRelatorioDto } from './dto/create-relatorio.dto';
-import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { FilesInputDto } from 'src/common/files-input.dto';
-import { CheckForUpdatesInput } from 'src/common/types/CheckForUpdatesInput';
-import { Relatorio } from './entities/relatorio.entity';
+import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 
 @Controller('relatorios')
 export class RelatorioController {
@@ -39,14 +36,10 @@ export class RelatorioController {
       { name: 'assinatura', maxCount: 1 },
     ]),
   )
-  async create(
-    @UploadedFiles() files: FilesInputDto,
-    @Body() createRelatorioDto: CreateRelatorioDto,
-  ) {
+  async create(@UploadedFiles() files: FilesInputDto, @Body() createRelatorioDto: RelatorioModel) {
     try {
       createRelatorioDto.readOnly = String(createRelatorioDto.readOnly) === 'true';
       console.log('🚀 ~ file: relatorios.controller.ts:46:', createRelatorioDto);
-
       const { id: relatorioId } = await this.relatorioService.create(createRelatorioDto);
       if (files) {
         await this.fileService.save(files, relatorioId);
@@ -123,7 +116,7 @@ export class RelatorioController {
   async update(
     @Param('id') id: string,
     @UploadedFiles() files: FilesInputDto,
-    @Body() update: Omit<UpdateRelatorioDto, 'id'>,
+    @Body() update: Omit<RelatorioModel, 'id'>,
   ) {
     try {
       const updatedRelatorio = await this.relatorioService.update({ id, ...update });

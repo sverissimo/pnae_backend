@@ -1,19 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { CreateProdutorDto } from './dto/create-produtor.dto';
 import { UpdateProdutorDto } from './dto/update-produtor.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { RelatorioService } from 'src/modules/relatorios/relatorios.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { Propriedade } from './entities';
 import { Perfil } from 'src/modules/perfil/entities';
+import { ProdutorDTO } from './dto';
 
 @Injectable()
 export class ProdutorService {
-  constructor(
-    private prismaService: PrismaService,
-    private api: ProdutorGraphQLAPI,
-    private relatorioService: RelatorioService,
-  ) {}
+  constructor(private api: ProdutorGraphQLAPI) {}
 
   create(createProdutorDto: CreateProdutorDto) {
     return 'This action adds a new produtor';
@@ -23,7 +18,14 @@ export class ProdutorService {
     return `This action returns all produtor`;
   }
 
-  async findOne(cpfProdutor: string) {
+  async findOne(produtorId: string) {
+    const produtor: any = (await this.api.getProdutorById(produtorId)) as ProdutorDTO;
+    const propriedades = produtor.propriedades.map((p) => new Propriedade(p).toDTO());
+    const perfis = produtor.perfis.map((p) => new Perfil(p).toDTO());
+    return { ...produtor, propriedades, perfis };
+  }
+
+  async findByCpf(cpfProdutor: string) {
     const produtor: any = await this.api.getProdutor(cpfProdutor);
     const propriedades = produtor.propriedades.map((p) => new Propriedade(p).toDTO());
     const perfis = produtor.perfis.map((p) => new Perfil(p).toDTO());

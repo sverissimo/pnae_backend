@@ -8,6 +8,7 @@ import {
   Delete,
   NotFoundException,
   InternalServerErrorException,
+  Query,
 } from '@nestjs/common';
 import { ProdutorService } from './produtor.service';
 import { CreateProdutorDto } from './dto/create-produtor.dto';
@@ -22,15 +23,30 @@ export class ProdutorController {
     return this.produtorService.create(createProdutorDto);
   }
 
-  @Get()
+  @Get('/all')
   findAll() {
     return this.produtorService.findAll();
   }
 
-  @Get(':cpf')
-  async findOne(@Param('cpf') cpfProdutor: string) {
+  @Get(':id')
+  async findOne(@Param('id') produtorId: string) {
     try {
-      const produtor = await this.produtorService.findOne(cpfProdutor);
+      const produtor = await this.produtorService.findOne(produtorId);
+      return produtor;
+    } catch (graphQLAPIError) {
+      const { errors } = graphQLAPIError.response;
+      const error = errors[0];
+      if (error.extensions.code === 'NOT_FOUND') {
+        throw new NotFoundException('Produtor não encontrado. Verifique o CPF informado.');
+      }
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  @Get()
+  async findByCpf(@Query('cpfProdutor') cpfProdutor: string) {
+    try {
+      const produtor = await this.produtorService.findByCpf(cpfProdutor);
       return produtor;
     } catch (graphQLAPIError) {
       const { errors } = graphQLAPIError.response;

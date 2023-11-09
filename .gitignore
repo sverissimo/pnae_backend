@@ -31,6 +31,7 @@ lerna-debug.log*
 /coverage
 /.nyc_output
 result*.*
+_mockData
 
 # IDEs and editors
 /.idea

@@ -4,17 +4,20 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Relatorio, Usuario } from '@prisma/client';
+import { Usuario } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/common/file.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { formatCPF } from 'src/utils/formatCPF';
-import { CreateRelatorioDto } from './dto/create-relatorio.dto';
-import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { Perfil } from 'src/modules/perfil/entities/perfil.entity';
 import { PerfilModel } from 'src/modules/perfil/entities/perfil.model';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
+import { Relatorio } from 'src/@domain/relatorio/relatorio';
+import { RelatorioDto } from './dto/relatorio.dto';
+import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
+
+type queryObject = { ids?: string[]; produtorIds?: string[] };
 
 @Injectable()
 export class RelatorioService {
@@ -26,19 +29,13 @@ export class RelatorioService {
     private readonly restAPI: RestAPI,
   ) {}
 
-  async create(createRelatorioDto: CreateRelatorioDto): Promise<Relatorio> {
+  async create(relatorioInput: RelatorioModel) {
     try {
-      const { produtorId, tecnicoId, numeroRelatorio, ...relatorioInput } = createRelatorioDto;
-      const relatorio = await this.prismaService.relatorio.create({
-        data: {
-          ...relatorioInput,
-          produtorId: BigInt(produtorId),
-          tecnicoId: BigInt(tecnicoId),
-          numeroRelatorio: +numeroRelatorio,
-        },
+      const relatorioDto = new Relatorio(relatorioInput).toDto();
+      const createdRelatorio = await this.prismaService.relatorio.create({
+        data: relatorioDto,
       });
-
-      return relatorio;
+      return createdRelatorio;
     } catch (error) {
       if (error.code === 'P2002' && error.meta?.target?.includes('id')) {
         throw new Error('Relatório com este ID já existe');
@@ -47,26 +44,10 @@ export class RelatorioService {
     }
   }
 
-  async findAll() {
-    const relatorios = await this.prismaService.relatorio.findMany({
-      include: {
-        files: true,
-      },
-    });
-    return relatorios;
-  }
-
-  async findMany(produtorId: string) {
-    const relatorios = await this.prismaService.relatorio.findMany({
-      where: { produtorId: BigInt(produtorId) },
-    });
-    const relatoriosWithPermissions = await this.updateRelatoriosPermissions(relatorios);
-
-    return relatoriosWithPermissions.map((r) => ({
-      ...r,
-      createdAt: r?.createdAt?.toISOString(),
-      updatedAt: r?.updatedAt?.toISOString(),
-    }));
+  async createMany(relatorios: RelatorioModel[]) {
+    const data = relatorios.map((r) => new Relatorio(r).toDto());
+    await this.prismaService.relatorio.createMany({ data });
+    return 'Relatórios criados com sucesso';
   }
 
   async findOne(id: string) {
@@ -79,8 +60,48 @@ export class RelatorioService {
     return relatorio;
   }
 
-  async update(update: UpdateRelatorioDto) {
-    const { id, numeroRelatorio, produtorId, tecnicoId, updatedAt } = update;
+  async findManyById(ids: string[]) {
+    const relatorios = await this.prismaService.relatorio.findMany({
+      where: { id: { in: ids } },
+    });
+    const relatoriosWithPermissions = (await this.updateRelatoriosPermissions(relatorios)).map(
+      Relatorio.toModel,
+    );
+    return relatoriosWithPermissions;
+  }
+
+  async findMany(input: queryObject | string | string[]) {
+    let query = {};
+
+    if (typeof input === 'string') {
+      query = { produtorId: { in: [BigInt(input)] } };
+    } else if (Array.isArray(input)) {
+      query = { produtorId: { in: input.map((id) => BigInt(id)) } };
+    } else if (input.ids || input.produtorIds) {
+      const produtorIds = input.produtorIds.map((id) => BigInt(id));
+      query = { OR: [{ id: { in: input.ids } }, { produtorId: { in: produtorIds } }] };
+    }
+    const relatorios = await this.prismaService.relatorio.findMany({
+      where: query,
+    });
+
+    const relatoriosWithPermissions = (await this.updateRelatoriosPermissions(relatorios)).map(
+      Relatorio.toModel,
+    );
+    return relatoriosWithPermissions;
+  }
+
+  async findAll() {
+    const relatorios = await this.prismaService.relatorio.findMany({
+      include: {
+        files: true,
+      },
+    });
+    return relatorios;
+  }
+
+  async update(update: RelatorioModel) {
+    const { id } = update;
     const { readOnly } = await this.findOne(id);
     if (readOnly) {
       throw new UnauthorizedException(
@@ -88,15 +109,7 @@ export class RelatorioService {
       );
     }
 
-    if (numeroRelatorio) update.numeroRelatorio = +numeroRelatorio;
-    if (produtorId) update.produtorId = BigInt(produtorId);
-    if (tecnicoId) update.tecnicoId = BigInt(tecnicoId);
-
-    const data = {
-      ...update,
-      updatedAt: new Date(String(updatedAt)),
-    };
-
+    const data = new Relatorio(update).toDto();
     const updated = await this.prismaService.relatorio.update({
       where: { id },
       data,
@@ -120,7 +133,7 @@ export class RelatorioService {
     return `Relatorio ${id} removed.`;
   }
 
-  async getReadOnly(relatorios: Relatorio[]) {
+  async getReadOnly(relatorios: RelatorioDto[]) {
     try {
       const ids = relatorios.map((r) => r.id);
       const readOnly = await this.restAPI.getReadOnlyRelatorios(ids);
@@ -133,7 +146,7 @@ export class RelatorioService {
     }
   }
 
-  async updateRelatoriosPermissions(relatorios: Relatorio[]) {
+  async updateRelatoriosPermissions(relatorios: RelatorioDto[]) {
     const readOnlyIds = await this.getReadOnly(relatorios);
     const editableIds = relatorios.filter((r) => !readOnlyIds.includes(r.id)).map((r) => r.id);
     const editableUpdates = { ids: editableIds, update: { readOnly: false } };
@@ -144,7 +157,7 @@ export class RelatorioService {
     return response;
   }
 
-  private async updateMany({ ids, update }: { ids: string[]; update: Partial<Relatorio> }) {
+  private async updateMany({ ids, update }: { ids: string[]; update: Partial<RelatorioDto> }) {
     const updated = await this.prismaService.relatorio.updateMany({
       where: { id: { in: ids } },
       data: update,
