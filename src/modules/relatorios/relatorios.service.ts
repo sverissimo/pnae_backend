@@ -109,7 +109,7 @@ export class RelatorioService {
       );
     }
 
-    const data = new Relatorio(update).toDto();
+    const data = Relatorio.updateFieldsToDTO(update);
     const updated = await this.prismaService.relatorio.update({
       where: { id },
       data,

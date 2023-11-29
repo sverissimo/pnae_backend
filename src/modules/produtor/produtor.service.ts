@@ -22,7 +22,7 @@ export class ProdutorService {
     const produtor: any = (await this.api.getProdutorById(produtorId)) as ProdutorDTO;
     const propriedades = produtor.propriedades.map((p) => new Propriedade(p).toDTO());
     const perfis = produtor.perfis.map((p) => new Perfil(p).toDTO());
-    return { ...produtor, propriedades, perfis };
+    return { ...produtor, propriedades, perfis } as ProdutorDTO;
   }
 
   async findByCpf(cpfProdutor: string) {

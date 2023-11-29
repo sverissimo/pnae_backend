@@ -49,4 +49,27 @@ export class Relatorio {
     };
     return relatorioDto;
   }
+
+  static updateFieldsToDTO(relatorioModel: Partial<RelatorioModel>): Partial<RelatorioDto> {
+    const { produtorId, tecnicoId, numeroRelatorio, createdAt, updatedAt, readOnly, ...relatorio } =
+      {
+        ...relatorioModel,
+      };
+
+    const relatorioDto = {
+      ...relatorio,
+      produtorId: produtorId ? BigInt(produtorId) : undefined,
+      tecnicoId: tecnicoId ? BigInt(tecnicoId) : undefined,
+      numeroRelatorio: numeroRelatorio ? +numeroRelatorio : undefined,
+      createdAt: createdAt ? new Date(createdAt) : undefined,
+      updatedAt: updatedAt ? new Date(updatedAt) : undefined,
+      readOnly:
+        readOnly === undefined
+          ? undefined
+          : readOnly === true || String(readOnly) === 'true'
+          ? true
+          : false,
+    };
+    return relatorioDto;
+  }
 }

@@ -1,6 +1,6 @@
-import { RelatorioSyncInfo } from 'src/modules/@system/dto/check-for-updates-input.dto';
+import { RelatorioSyncInfo } from 'src/modules/@sync/dto/check-for-updates-input.dto';
 import { RelatorioModel } from './relatorio-model';
-import { SyncInfoResponse } from 'src/modules/@system/dto/sync-response';
+import { SyncInfoResponse } from 'src/modules/@sync/dto/sync-response';
 
 export class RelatorioDomainService {
   static getSyncInfo(
@@ -60,7 +60,7 @@ export class RelatorioDomainService {
       syncInfo.upToDateIds.push(clientRelatorio.id);
     }
 
-    console.log('🚀 - SystemService - updateRelatoriosData - syncInfo:', syncInfo);
+    console.log('🚀 - SyncService - updateRelatoriosData - syncInfo:', syncInfo);
     return syncInfo;
   }
 

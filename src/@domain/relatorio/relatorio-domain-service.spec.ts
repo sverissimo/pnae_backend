@@ -1,7 +1,7 @@
 import { RelatorioDomainService } from './relatorio-domain-service';
 import { RelatorioModel } from './relatorio-model';
-import { RelatorioSyncInfo } from 'src/modules/@system/dto/check-for-updates-input.dto';
-import { SyncInfoResponse } from 'src/modules/@system/dto/sync-response';
+import { RelatorioSyncInfo } from 'src/modules/@sync/dto/check-for-updates-input.dto';
+import { SyncInfoResponse } from 'src/modules/@sync/dto/sync-response';
 
 describe('RelatorioDomainService', () => {
   describe('getSyncInfo', () => {

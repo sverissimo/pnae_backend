@@ -11,6 +11,7 @@ export const produtorQuery = gql`
       nr_cpf_cnpj
       dt_nascimento
       sn_ativo
+      dt_update_record
       propriedades {
         id_pl_propriedade
         nome_propriedade

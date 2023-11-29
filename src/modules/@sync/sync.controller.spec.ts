@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SystemController } from './system.controller';
-import { SystemService } from './system.service';
+import { SyncController } from './sync.controller';
+import { SyncService } from './sync.service';
 
-describe('SystemController', () => {
-  let controller: SystemController;
+describe('SyncController', () => {
+  let controller: SyncController;
 
   // beforeEach(async () => {
   //   const module: TestingModule = await Test.createTestingModule({
-  //     controllers: [SystemController],
-  //     providers: [SystemService],
+  //     controllers: [SyncController],
+  //     providers: [SyncService],
   //   }).compile();
 
-  //   controller = module.get<SystemController>(SystemController);
+  //   controller = module.get<SyncController>(SyncController);
   // });
 
   it('should be defined', () => {

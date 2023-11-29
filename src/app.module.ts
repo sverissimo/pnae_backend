@@ -11,7 +11,7 @@ import { config } from './config';
 import { UsuarioController } from './modules/usuario/usuario.controller';
 import { UsuarioGraphQLAPI } from './@graphQL-server/usuario-api.service';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module';
-import { SystemModule } from './modules/@system/system.module';
+import { SyncModulte } from './modules/@sync/sync.module';
 
 /* (BigInt.prototype as any).toJSON = function () {
   const int = Number.parseInt(this.toString());
@@ -30,7 +30,7 @@ import { SystemModule } from './modules/@system/system.module';
     ProdutorModule,
     PerfilModule,
     AtendimentoModule,
-    SystemModule,
+    SyncModulte,
   ],
   controllers: [AppController, UsuarioController],
   providers: [AppService, UsuarioGraphQLAPI],

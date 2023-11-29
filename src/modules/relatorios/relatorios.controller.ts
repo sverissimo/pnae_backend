@@ -119,9 +119,8 @@ export class RelatorioController {
     @Body() update: Omit<RelatorioModel, 'id'>,
   ) {
     try {
-      const updatedRelatorio = await this.relatorioService.update({ id, ...update });
       console.log('🚀 - RelatorioController - update:', { id, update });
-
+      const updatedRelatorio = await this.relatorioService.update({ id, ...update });
       if (!updatedRelatorio) {
         throw new NotFoundException(`Relatorio com id ${id} não encontrado.`);
       }
