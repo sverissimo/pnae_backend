@@ -128,7 +128,7 @@ export class Perfil {
       if (value === null || value === undefined) continue;
 
       if (typeof value === 'object' && !Array.isArray(value)) {
-        value = this.getDTOValues(value);
+        value = this.getModelValues(value);
       }
       if (typeof value === 'string') {
         const values = formattedValues.find((v) => v[1] === value);

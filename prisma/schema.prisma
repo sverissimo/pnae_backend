@@ -107,15 +107,12 @@ enum Sexo {
 }
 
 model Perfil {
-  id                                           Int            @id @default(autoincrement())
-  tipo_perfil                                  String
-  id_tecnico                                   Int
-  id_cliente                                   BigInt
-  produtor                                     Produtor       @relation(fields: [id_cliente], references: [id])
+  id                                           BigInt         @id @default(autoincrement())
   data_preenchimento                           DateTime
   data_atualizacao                             DateTime
+  tipo_perfil                                  String
+  id_cliente                                   BigInt
   participa_organizacao                        Boolean
-  id_dados_producao_in_natura                  Int?
   nivel_tecnologico_cultivo                    Int?
   sistema_producao                             Int?
   condicao_posse                               Int?
@@ -139,7 +136,10 @@ model Perfil {
   atividades_com_regularizacao_ambiental       Int?
   possui_agroindustria_propria                 Boolean?
   grau_interesse_pnae                          String
+  id_tecnico                                   Int
   id_dados_producao_agro_industria             Int?           @unique()
+  id_dados_producao_in_natura                  Int?
+  produtor                                     Produtor       @relation(fields: [id_cliente], references: [id])
   dados_producao                               DadosProducao? @relation(fields: [id_dados_producao_agro_industria], references: [id])
   atividade                                    Atividade?
 
@@ -164,7 +164,7 @@ model DadosProducao {
 
 model Atividade {
   id                     Int      @id
-  id_perfil_see          Int      @unique
+  id_perfil_see          BigInt   @unique
   id_propriedade         Int      @unique
   atividade              String
   producao_dedicada_pnae Boolean?

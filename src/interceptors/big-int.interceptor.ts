@@ -9,7 +9,6 @@ export class BigIntInterceptor implements NestInterceptor {
   }
 
   private serializeBigInts = (obj: any): any => {
-    // Arrow function to preserve 'this'
     if (obj === null || obj === undefined) return obj;
     if (typeof obj === 'bigint') return obj.toString();
     if (Array.isArray(obj)) return obj.map(this.serializeBigInts);

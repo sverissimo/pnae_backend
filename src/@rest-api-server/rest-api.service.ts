@@ -12,13 +12,38 @@ export class RestAPI {
   }
   async getPerfilOptions() {
     try {
-      const result = await fetch(`${this.url}/api/getPerfilOptions`);
+      const result = await fetch(`${this.url}/api/getPerfilOptions`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+
       const data = await result.json();
       return data;
     } catch (error) {
       console.log('🚀 ~ file: rest-api.service.ts:13 ~ RestAPI ~ getPerfilOptions ~ error:', error);
     }
   }
+
+  async getGruposProdutos() {
+    try {
+      const result = await fetch(`${this.url}/api/getGruposProdutos`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      console.log(
+        '🚀 - file: rest-api.service.ts:32 - RestAPI - getGruposProdutos - result:',
+        result,
+      );
+
+      const data = await result.json();
+      return data;
+    } catch (error) {
+      console.log('🚀 ~ rest-api.service.ts:39 ~ RestAPI ~ getGruposProdutos ~ error:', error);
+    }
+  }
+
   //### TODO: Implement this
   async getReadOnlyRelatorios(ids: string[]) {
     try {

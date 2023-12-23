@@ -3,11 +3,10 @@ import { PerfilService } from './perfil.service';
 import { CreatePerfilDto } from './dto/create-perfil.dto';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { Response } from 'express';
-import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 
 @Controller('perfil')
 export class PerfilController {
-  constructor(private readonly perfilService: PerfilService, private readonly restAPI: RestAPI) {}
+  constructor(private readonly perfilService: PerfilService) {}
 
   @Post()
   async create(@Body() createPerfilDto: CreatePerfilDto, @Res() res: Response) {
@@ -26,8 +25,13 @@ export class PerfilController {
   }
 
   @Get('/options')
-  getPerfilOprions() {
-    return this.restAPI.getPerfilOptions();
+  getPerfilOptions() {
+    return this.perfilService.getPerfilOptions();
+  }
+
+  @Get('/produtos')
+  async getProdutos() {
+    return await this.perfilService.getProdutos();
   }
 
   @Get()
