@@ -7,4 +7,6 @@ export type PerfilDTO = Omit<
 > & {
   dados_producao_in_natura: DadosProducaoDTO;
   dados_producao_agro_industria: DadosProducaoDTO;
+  ativo?: boolean;
+  id_contrato?: number;
 };

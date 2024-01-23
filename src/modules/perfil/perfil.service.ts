@@ -16,12 +16,8 @@ export class PerfilService {
 
   async create(createPerfilDto: PerfilModel) {
     const perfilDTO = new Perfil(createPerfilDto).toModel();
-    console.log('🚀 - PerfilService - create - perfilDTO:', perfilDTO);
     const result = this.graphQLAPI.createPerfil(perfilDTO);
     return result;
-    // console.log('🚀 - PerfilService - create - perfilDTO:', perfilDTO);
-    // return result;
-    // return await this.graphQLAPI.createPerfil(createPerfilDto);
   }
 
   async findAll() {

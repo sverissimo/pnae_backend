@@ -1,6 +1,10 @@
 import { GrupoProdutos } from '../types';
 
 export type PerfilModel = {
+  id: string;
+  id_cliente: string;
+  id_tecnico: string;
+  id_propriedade: string;
   aderiu_pra: boolean;
   agroindustria_precisa_adaptacao_reforma: boolean;
   at_prf_see_propriedade: {
@@ -42,11 +46,8 @@ export type PerfilModel = {
   fonte_captacao_agua: string;
   forma_esgotamento_sanitario: string;
   grau_interesse_pnae: 'BAIXO' | 'MODERADO' | 'ALTO';
-  id: string;
-  id_cliente: string;
   id_dados_producao_agro_industria: string;
   id_dados_producao_in_natura: string;
-  id_tecnico: string;
   nivel_tecnologico_cultivo: string;
   orgao_fiscalizacao_sanitaria: 'IMA' | 'VIGILANCIA_SANITARIA' | 'SIM' | 'MAPA' | 'NAO_SE_APLICA';
   participa_organizacao: boolean;

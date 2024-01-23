@@ -1,43 +1,8 @@
 import { gql } from 'graphql-request';
 
 export const createPerfilMutation = gql`
-  mutation CreatePerfil($input: CreatePerfilInput) {
-    createPerfil(input: $input) {
-      data_preenchimento: DateTime
-      data_atualizacao: DateTime
-      tipo_perfil: String
-      id_cliente: BigInt
-      participa_organizacao: Boolean
-      nivel_tecnologico_cultivo: BigInt
-      sistema_producao: BigInt
-      condicao_posse: BigInt
-      dap_caf_vigente: Boolean
-      credito_rural: Boolean
-      fonte_captacao_agua: BigInt
-      forma_esgotamento_sanitario: BigInt
-      possui_cadastro_car: Boolean
-      aderiu_pra: Boolean
-      ciente_iniciativas_regularizacao_pra: Boolean
-      realiza_escalonamento_producao: Boolean
-      procedimento_pos_colheita: BigInt
-      tipo_gestao_unidade: String
-      pessoas_processamento_alimentos: Int
-      tipo_estabelecimento: String
-      tipo_pessoa_juridica: String
-      agroindustria_precisa_adaptacao_reforma: Boolean
-      possui_registro_orgao_fiscalizacao_sanitaria: Boolean
-      orgao_fiscalizacao_sanitaria: String
-      atividades_usam_recursos_hidricos: BigInt
-      atividades_com_regularizacao_ambiental: BigInt
-      possui_agroindustria_propria: Boolean
-      grau_interesse_pnae: String
-      id_tecnico: BigInt
-      # id_dados_producao_agro_industria: BigInt
-      # id_dados_producao_in_natura: BigInt
-      dados_producao_agro_industria: DadosProducaoInput
-      dados_producao_in_natura: DadosProducaoInput
-      atividade: String
-    }
+  mutation createPerfil($input: CreatePerfilInput) {
+    createPerfil(input: $input)
   }
 `;
 

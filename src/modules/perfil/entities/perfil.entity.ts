@@ -12,9 +12,13 @@ import { PerfilDTO } from '../types';
 export class Perfil {
   constructor(private perfil?: PerfilModel) {}
 
-  toModel() {
+  toModel(): PerfilDTO {
     const p = this.getModelValues(this.perfil);
-    return p;
+    return {
+      ...p,
+      ativo: true,
+      id_contrato: 1,
+    };
   }
 
   toDTO(): PerfilDTO {

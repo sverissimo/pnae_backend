@@ -14,7 +14,6 @@ export class PerfilGraphQLAPI extends GraphQLAPI {
     const document = perfisPorProdutorQuery;
     const variables = { produtorId };
     const { perfisPorProdutor } = (await this.client.request({ document, variables })) as any;
-
     return perfisPorProdutor;
   }
 
@@ -22,7 +21,7 @@ export class PerfilGraphQLAPI extends GraphQLAPI {
     try {
       const document = createPerfilMutation;
       const variables = { input };
-      const result = (await this.client.request({ document, variables })) as any;
+      const result = await this.client.request({ document, variables });
       return result;
     } catch (error) {
       throw new Error(error.message);
