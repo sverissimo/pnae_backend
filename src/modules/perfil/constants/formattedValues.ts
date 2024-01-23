@@ -16,8 +16,11 @@ export const formattedValues = [
   ['COLETIVA', 'Coletiva'],
   ['FAMILIAR', 'Familiar'],
   ['CERTIDAO_USO_INSIGNIFICANTE', 'Certidão de Uso Insignificante'],
+  ['OUTORGA', 'Outorga'],
   ['CERTIDAO_DISPENSA_LICENCIAMENTO', 'Certidão de Dispensa de Licenciamento'],
+  ['LICENCA_AMBIENTAL', 'Licença ambiental'],
   ['VIGILANCIA_SANITARIA', 'Vigilância Sanitária'],
+
   [true, 'Sim'],
   [false, 'Não'],
 ];

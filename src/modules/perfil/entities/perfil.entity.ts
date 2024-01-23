@@ -8,22 +8,27 @@ import {
 } from '../constants';
 import { Produto } from '.';
 import { PerfilDTO } from '../types';
-import { type } from 'os';
 
 export class Perfil {
   constructor(private perfil?: PerfilModel) {}
 
+  toModel() {
+    const p = this.getModelValues(this.perfil);
+    return p;
+  }
+
   toDTO(): PerfilDTO {
+    if (!this.perfil) return;
     const produto = new Produto();
     const { dados_producao_agro_industria, dados_producao_in_natura, ...rest } = this.perfil;
 
-    const gruposProdutosNatura = dados_producao_in_natura.at_prf_see_grupos_produtos
+    const gruposProdutosNatura = dados_producao_in_natura?.at_prf_see_grupos_produtos
       ? dados_producao_in_natura.at_prf_see_grupos_produtos.map((group) =>
           produto.productGroupToDTO(group),
         )
       : null;
 
-    const gruposProdutosIndustriais = dados_producao_agro_industria.at_prf_see_grupos_produtos
+    const gruposProdutosIndustriais = dados_producao_agro_industria?.at_prf_see_grupos_produtos
       ? dados_producao_agro_industria.at_prf_see_grupos_produtos.map((group) =>
           produto.productGroupToDTO(group),
         )
@@ -121,15 +126,21 @@ export class Perfil {
     }
   }
 
-  private getModelValues(perfilDTO: PerfilDTO): PerfilDTO {
+  private getModelValues(perfilDTO: PerfilModel) {
     const result = {} as PerfilDTO;
+
     for (const key in perfilDTO) {
       let value = perfilDTO[key];
       if (value === null || value === undefined) continue;
 
+      if (Array.isArray(value)) {
+        value = value.map((v) => this.getModelValues(v));
+      }
+
       if (typeof value === 'object' && !Array.isArray(value)) {
         value = this.getModelValues(value);
       }
+
       if (typeof value === 'string') {
         const values = formattedValues.find((v) => v[1] === value);
         result[key] = values ? values[0] : value;

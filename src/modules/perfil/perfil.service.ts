@@ -4,6 +4,7 @@ import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PerfilGraphQLAPI } from 'src/@graphQL-server/perfil-api.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
+import { Perfil, PerfilModel } from './entities';
 
 @Injectable()
 export class PerfilService {
@@ -13,8 +14,14 @@ export class PerfilService {
     private restAPI: RestAPI,
   ) {}
 
-  async create(createPerfilDto: CreatePerfilDto) {
-    return await this.graphQLAPI.createPerfil(createPerfilDto);
+  async create(createPerfilDto: PerfilModel) {
+    const perfilDTO = new Perfil(createPerfilDto).toModel();
+    console.log('🚀 - PerfilService - create - perfilDTO:', perfilDTO);
+    const result = this.graphQLAPI.createPerfil(perfilDTO);
+    return result;
+    // console.log('🚀 - PerfilService - create - perfilDTO:', perfilDTO);
+    // return result;
+    // return await this.graphQLAPI.createPerfil(createPerfilDto);
   }
 
   async findAll() {
@@ -50,11 +57,6 @@ export class PerfilService {
 
   getProdutos = async () => {
     const produtos = await this.restAPI.getGruposProdutos();
-    console.log(
-      '🚀 - file: perfil.service.ts:53 - PerfilService - getProdutos= - produtos:',
-      produtos,
-    );
-
     return produtos;
   };
 }

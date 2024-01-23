@@ -3,16 +3,24 @@ import { PerfilService } from './perfil.service';
 import { CreatePerfilDto } from './dto/create-perfil.dto';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { Response } from 'express';
+import { PerfilModel } from './entities';
 
 @Controller('perfil')
 export class PerfilController {
   constructor(private readonly perfilService: PerfilService) {}
 
   @Post()
-  async create(@Body() createPerfilDto: CreatePerfilDto, @Res() res: Response) {
+  async create(@Body() createPerfilDto: PerfilModel, @Res() res: Response) {
     try {
       const result = await this.perfilService.create(createPerfilDto);
-      return res.send(result);
+      console.log('🚀 - PerfilController - create - result:', result);
+
+      // console.log('🚀 - PerfilController - create - result:', JSON.stringify(result, null, 2));
+      // const result = { data: 'ok' };
+
+      res.send(result);
+
+      // return res.send(result);
     } catch (error) {
       console.log('🚀 ~ file: perfil.controller.ts:17 ~ PerfilController ~ create ~ error:', error);
       return res.status(500).send(error);

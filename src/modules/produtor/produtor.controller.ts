@@ -46,11 +46,19 @@ export class ProdutorController {
   @Get()
   async findByCpf(@Query('cpfProdutor') cpfProdutor: string) {
     try {
+      console.log('🚀 - ProdutorController - findByCpf - cpfProdutor:', cpfProdutor);
       const produtor = await this.produtorService.findByCpf(cpfProdutor);
+      console.log('🚀 - ProdutorController - findByCpf - produtor:', produtor);
+
       return produtor;
     } catch (graphQLAPIError) {
-      const { errors } = graphQLAPIError.response;
-      const error = errors[0];
+      console.log(
+        '🚀 - file: produtor.controller.ts:52 - ProdutorController - findByCpf - graphQLAPIError:',
+        graphQLAPIError,
+      );
+
+      const { errors } = graphQLAPIError?.response;
+      const error = errors && errors[0];
       if (error.extensions.code === 'NOT_FOUND') {
         throw new NotFoundException('Produtor não encontrado. Verifique o CPF informado.');
       }
