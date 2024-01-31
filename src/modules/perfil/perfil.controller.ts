@@ -11,10 +11,9 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { PerfilService } from './perfil.service';
-import { CreatePerfilDto } from './dto/create-perfil.dto';
-import { UpdatePerfilDto } from './dto/update-perfil.dto';
+import { UpdatePerfilDto } from '../../@domain/perfil/dto/update-perfil.dto';
 import { Response } from 'express';
-import { PerfilModel } from './entities';
+import { PerfilModel } from '../../@domain/perfil';
 
 @Controller('perfil')
 export class PerfilController {
@@ -51,6 +50,11 @@ export class PerfilController {
   @Get('/produtos')
   async getProdutos() {
     return await this.perfilService.getProdutos();
+  }
+
+  @Get('/contractInfo')
+  async getContractInfo() {
+    return await this.perfilService.getContractInfo();
   }
 
   @Get()

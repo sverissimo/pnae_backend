@@ -3,7 +3,7 @@ import { CreateProdutorDto } from './dto/create-produtor.dto';
 import { UpdateProdutorDto } from './dto/update-produtor.dto';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { Propriedade } from './entities';
-import { Perfil } from 'src/modules/perfil/entities';
+import { Perfil } from 'src/@domain/perfil';
 import { ProdutorDTO } from './dto';
 
 @Injectable()

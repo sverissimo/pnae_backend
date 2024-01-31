@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CreatePerfilDto } from './dto/create-perfil.dto';
-import { UpdatePerfilDto } from './dto/update-perfil.dto';
+import { UpdatePerfilDto } from '../../@domain/perfil/dto/update-perfil.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PerfilGraphQLAPI } from 'src/@graphQL-server/perfil-api.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
-import { Perfil, PerfilModel } from './entities';
+import { Perfil } from '../../@domain/perfil';
+import { CreatePerfilInputDto } from 'src/@domain/perfil/dto/create-perfil.dto';
 
 @Injectable()
 export class PerfilService {
@@ -14,9 +14,10 @@ export class PerfilService {
     private restAPI: RestAPI,
   ) {}
 
-  async create(createPerfilDto: PerfilModel) {
-    const perfilDTO = new Perfil(createPerfilDto).toModel();
-    const result = this.graphQLAPI.createPerfil(perfilDTO);
+  async create(createPerfilInputDto: CreatePerfilInputDto) {
+    const createPerfilOutputDTO = new Perfil(createPerfilInputDto).inputDTOToOutputDTO();
+
+    const result = this.graphQLAPI.createPerfil(createPerfilOutputDTO);
     return result;
   }
 
@@ -54,5 +55,10 @@ export class PerfilService {
   getProdutos = async () => {
     const produtos = await this.restAPI.getGruposProdutos();
     return produtos;
+  };
+
+  getContractInfo = async () => {
+    const contractInfo = await this.restAPI.getContractInfo();
+    return contractInfo;
   };
 }

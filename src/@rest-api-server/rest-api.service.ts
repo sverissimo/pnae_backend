@@ -32,15 +32,25 @@ export class RestAPI {
           Authorization: `Bearer ${this.token}`,
         },
       });
-      console.log(
-        '🚀 - file: rest-api.service.ts:32 - RestAPI - getGruposProdutos - result:',
-        result,
-      );
-
       const data = await result.json();
       return data;
     } catch (error) {
       console.log('🚀 ~ rest-api.service.ts:39 ~ RestAPI ~ getGruposProdutos ~ error:', error);
+    }
+  }
+
+  async getContractInfo() {
+    try {
+      const result = await fetch(`${this.url}/api/getContractInfo`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+
+      const data = await result.json();
+      return data;
+    } catch (error) {
+      console.log('🚀 ~ file: rest-api.service.ts:57 ~ RestAPI ~ getPerfilOptions ~ error:', error);
     }
   }
 

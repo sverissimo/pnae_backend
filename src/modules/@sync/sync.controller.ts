@@ -17,6 +17,7 @@ export class SyncController {
   async syncProdutor(@Body() produtorSyncInput: ProdutorSyncInput) {
     try {
       const updates = await this.syncService.getProdutorSyncInfo(produtorSyncInput);
+
       return updates;
     } catch (error) {
       if (error.message.includes('Não encontrado')) {
@@ -28,7 +29,7 @@ export class SyncController {
 
   @Post('relatorios')
   async syncRelatorios(@Body() updatesInput: CheckForUpdatesInputDto) {
-    console.log('🚀 - SyncController - updateRelatoriosData - updatesInput:', updatesInput);
+    // console.log('🚀 - SyncController - updateRelatoriosData - updatesInput:', updatesInput);
     const updates = await this.syncService.updateRelatoriosData(updatesInput);
     return updates;
   }

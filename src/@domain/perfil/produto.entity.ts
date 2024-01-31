@@ -1,4 +1,4 @@
-import { GrupoProdutos, ProdutoDTO, ProdutoModel } from '../types';
+import { GrupoProdutos, ProdutoDTO, ProdutoModel } from '../../modules/perfil/types';
 
 export class Produto {
   productGroupToDTO(grupoProdutos: GrupoProdutos) {

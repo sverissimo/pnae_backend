@@ -5,19 +5,19 @@ import {
   perfilFieldLabels,
   producaoIndustrialLabels,
   producaoNaturaLabels,
-} from '../constants';
+} from '../../modules/perfil/constants';
 import { Produto } from '.';
-import { PerfilDTO } from '../types';
+import { PerfilDTO } from '../../modules/perfil/types';
+import { CreatePerfilInputDto, CreatePerfilOutputDto } from './dto/create-perfil.dto';
 
 export class Perfil {
-  constructor(private perfil?: PerfilModel) {}
+  constructor(private perfil?: PerfilModel | CreatePerfilInputDto) {}
 
-  toModel(): PerfilDTO {
-    const p = this.getModelValues(this.perfil);
+  inputDTOToOutputDTO(): CreatePerfilOutputDto {
+    const p = this.getOutputDTOValues(this.perfil);
     return {
       ...p,
       ativo: true,
-      id_contrato: 1,
     };
   }
 
@@ -50,7 +50,7 @@ export class Perfil {
       },
     };
 
-    return this.getDTOValues(perfilDTO);
+    return this.getDTOValues(perfilDTO as PerfilDTO);
   }
 
   toPDFModel(perfil: PerfilModel & { nome_propriedade: string }) {
@@ -130,19 +130,19 @@ export class Perfil {
     }
   }
 
-  private getModelValues(perfilDTO: PerfilModel) {
-    const result = {} as PerfilDTO;
+  private getOutputDTOValues(perfilDTO: CreatePerfilInputDto) {
+    const result = {} as CreatePerfilOutputDto;
 
     for (const key in perfilDTO) {
       let value = perfilDTO[key];
       if (value === null || value === undefined) continue;
 
       if (Array.isArray(value)) {
-        value = value.map((v) => this.getModelValues(v));
+        value = value.map((v) => this.getOutputDTOValues(v));
       }
 
       if (typeof value === 'object' && !Array.isArray(value)) {
-        value = this.getModelValues(value);
+        value = this.getOutputDTOValues(value);
       }
 
       if (typeof value === 'string') {

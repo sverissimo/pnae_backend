@@ -48,10 +48,8 @@ export const perfisPorProdutorQuery = gql`
       aderiu_pra
       ciente_iniciativas_regularizacao_pra
       realiza_escalonamento_producao
-
       procedimento_pos_colheita
 
-      procedimento_pos_colheita
       dados_producao_in_natura {
         tipo_regularizacao_uso_recursos_hidricos
         tipo_regularizacao_ambiental
@@ -83,6 +81,7 @@ export const perfilQuery = gql`
     perfil {
       id
       id_cliente
+      id_contrato
       tipo_perfil
       participa_organizacao
       grau_interesse_pnae

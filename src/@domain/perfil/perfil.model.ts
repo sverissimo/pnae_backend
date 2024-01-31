@@ -1,10 +1,11 @@
-import { GrupoProdutos } from '../types';
+import { GrupoProdutos } from '../../modules/perfil/types';
 
 export type PerfilModel = {
   id: string;
   id_cliente: string;
   id_tecnico: string;
   id_propriedade: string;
+  id_contrato: number;
   aderiu_pra: boolean;
   agroindustria_precisa_adaptacao_reforma: boolean;
   at_prf_see_propriedade: {

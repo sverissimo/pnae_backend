@@ -31,6 +31,7 @@ export const produtorQuery = gql`
       perfis {
         id
         id_cliente
+        id_contrato
         data_preenchimento
         data_atualizacao
         tipo_perfil
