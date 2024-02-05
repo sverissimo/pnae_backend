@@ -23,14 +23,7 @@ export class PerfilController {
   async create(@Body() createPerfilDto: PerfilModel) {
     try {
       const result = await this.perfilService.create(createPerfilDto);
-      console.log('🚀 - PerfilController - create - result:', result);
-
-      // console.log('🚀 - PerfilController - create - result:', JSON.stringify(result, null, 2));
-      // const result = { data: 'ok' };
-
-      return result || 'Something went wrogn';
-
-      // return res.send(result);
+      return result;
     } catch (error) {
       console.log('🚀 ~ file: perfil.controller.ts:17 ~ PerfilController ~ create ~ error:', error);
       throw new InternalServerErrorException(error.message);

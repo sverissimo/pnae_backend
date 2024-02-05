@@ -192,6 +192,7 @@ export class RelatorioService {
       const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
       const { perfis, propriedades } = produtor;
 
+      // *************** TODO: Refactor to get right perfil  ***************
       const perfil = perfis[0] as PerfilModel;
       const perfilDTO = new Perfil(perfil).toDTO();
 

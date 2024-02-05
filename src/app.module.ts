@@ -1,6 +1,4 @@
-import { join } from 'path';
 import { Module } from '@nestjs/common';
-import { ServeStaticModule } from '@nestjs/serve-static';
 import { AppService } from './app.service';
 import { RelatorioModule } from './modules/relatorios/relatorios.module';
 import { ConfigModule } from '@nestjs/config';
@@ -12,20 +10,11 @@ import { UsuarioController } from './modules/usuario/usuario.controller';
 import { UsuarioGraphQLAPI } from './@graphQL-server/usuario-api.service';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module';
 import { SyncModulte } from './modules/@sync/sync.module';
+import { UsuarioLdapService } from './modules/usuario/usuario.ldap.service';
 
-/* (BigInt.prototype as any).toJSON = function () {
-  const int = Number.parseInt(this.toString());
-  return int ?? this.toString();
-};
- */
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [config] }),
-    /* ServeStaticModule.forRoot({
-      //rootPath: join(__dirname, '../client', 'src'),
-      rootPath: join(__dirname, '../client', 'src'),
-      exclude: ['/api/(.*)'],
-    }), */
     RelatorioModule,
     ProdutorModule,
     PerfilModule,
@@ -33,6 +22,6 @@ import { SyncModulte } from './modules/@sync/sync.module';
     SyncModulte,
   ],
   controllers: [AppController, UsuarioController],
-  providers: [AppService, UsuarioGraphQLAPI],
+  providers: [AppService, UsuarioGraphQLAPI, UsuarioLdapService],
 })
 export class AppModule {}
