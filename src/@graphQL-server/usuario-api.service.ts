@@ -10,9 +10,13 @@ type GetUsuariosQuery = {
 @Injectable()
 export class UsuarioGraphQLAPI extends GraphQLAPI {
   async getUsuarios({ ids, matriculas }: GetUsuariosQuery) {
-    const document = getUsuariosQuery;
-    const variables = { ids, matriculas };
-    const usuarios = (await this.client.request({ document, variables })) as any;
-    return usuarios;
+    try {
+      const document = getUsuariosQuery;
+      const variables = { ids, matriculas };
+      const usuarios = (await this.client.request({ document, variables })) as any;
+      return usuarios;
+    } catch (error) {
+      throw error;
+    }
   }
 }

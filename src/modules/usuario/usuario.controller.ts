@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  InternalServerErrorException,
   NotFoundException,
   Param,
   Post,
@@ -59,11 +60,20 @@ export class UsuarioController {
       if (!user.matricula_usuario || !user.password) {
         throw new NotFoundException('Usuário não encontrado');
       }
-
       const { matricula_usuario, password } = user;
-      const authenticated = await this.userLdapService.authenticate(matricula_usuario, password);
+      const login = matricula_usuario.length === 4 ? 'C' + matricula_usuario : matricula_usuario;
 
-      return authenticated;
+      const authenticated = await this.userLdapService.authenticate(login, password);
+
+      if (authenticated) {
+        const user = await this.api.getUsuarios({ matriculas: login });
+
+        if (!user?.usuarios?.length) throw new InternalServerErrorException();
+
+        const usuariosWithPermissions = getPerfisUsuarios(user?.usuarios);
+        const [usuario] = usuariosWithPermissions;
+        return usuario;
+      }
     } catch (error) {
       if (error instanceof UserNotFoundError) {
         throw new NotFoundException(error.message);

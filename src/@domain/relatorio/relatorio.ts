@@ -15,6 +15,12 @@ export class Relatorio {
     if (!tecnicoId) {
       throw new Error('Técnico não pode ser vazio');
     }
+    if (!this.relatorio.numeroRelatorio) {
+      throw new Error('Número do relatório não pode ser vazio');
+    }
+    if (!this.relatorio.contratoId) {
+      throw new Error('Contrato não pode ser vazio');
+    }
   }
 
   toModel(): RelatorioModel {
@@ -36,17 +42,26 @@ export class Relatorio {
   }
 
   toDto(): RelatorioDto {
-    const { produtorId, tecnicoId, numeroRelatorio, createdAt, updatedAt, ...relatorio } =
-      this.relatorio;
+    const {
+      produtorId,
+      tecnicoId,
+      contratoId,
+      numeroRelatorio,
+      createdAt,
+      updatedAt,
+      ...relatorio
+    } = this.relatorio;
     const relatorioDto = {
       ...relatorio,
       produtorId: BigInt(produtorId),
       tecnicoId: BigInt(tecnicoId),
-      numeroRelatorio: +numeroRelatorio,
+      numeroRelatorio: Number(numeroRelatorio),
+      contratoId: Number(contratoId),
       createdAt: createdAt ? new Date(createdAt) : undefined,
       updatedAt: updatedAt ? new Date(updatedAt) : undefined,
       readOnly: relatorio.readOnly === true || String(relatorio.readOnly) === 'true' ? true : false,
     };
+
     return relatorioDto;
   }
 

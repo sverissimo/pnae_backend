@@ -35,6 +35,7 @@ export class RelatorioService {
       const createdRelatorio = await this.prismaService.relatorio.create({
         data: relatorioDto,
       });
+
       return createdRelatorio;
     } catch (error) {
       if (error.code === 'P2002' && error.meta?.target?.includes('id')) {
@@ -54,6 +55,7 @@ export class RelatorioService {
     const relatorio = await this.prismaService.relatorio.findUnique({
       where: { id: id },
     });
+
     if (!relatorio) {
       throw new NotFoundException('Nenhum relatório encontrado');
     }
@@ -168,7 +170,7 @@ export class RelatorioService {
   async createPDFInput(relatorioId: string) {
     try {
       const relatorio = await this.findOne(relatorioId);
-      const { outroExtensionista } = relatorio;
+      const { outroExtensionista, contratoId: relatorioContratoId } = relatorio;
 
       const tecnicoId = relatorio.tecnicoId.toString();
       const tecnicoIds = outroExtensionista ? tecnicoId + ',' + outroExtensionista : tecnicoId;
@@ -192,8 +194,12 @@ export class RelatorioService {
       const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
       const { perfis, propriedades } = produtor;
 
-      // *************** TODO: Refactor to get right perfil  ***************
-      const perfil = perfis[0] as PerfilModel;
+      const perfil = perfis.find(
+        (p: PerfilModel) =>
+          p.id_contrato === (relatorioContratoId || 1) && p.tipo_perfil === 'ENTRADA',
+      ) as PerfilModel;
+      console.log('🚀 - RelatorioService - createPDFInput - perfil:', !!perfil);
+
       const perfilDTO = new Perfil(perfil).toDTO();
 
       const { municipio } = propriedades[0];

@@ -13,6 +13,7 @@
 /lib
 *.pdf
 /**/old
+/db
 
 
 # Logs

@@ -2,6 +2,7 @@ export type RelatorioModel = {
   id: string;
   produtorId: string;
   tecnicoId: string;
+  contratoId: number;
   numeroRelatorio: number;
   assunto: string;
   orientacao: string;

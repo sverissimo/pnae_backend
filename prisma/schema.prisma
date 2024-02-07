@@ -40,6 +40,7 @@ model Relatorio {
   id                 String        @id
   produtorId         BigInt        @map("produtor_id")
   tecnicoId          BigInt        @map("tecnico_id")
+  contratoId         Int           @map("id_contrato")
   numeroRelatorio    Int           @map("numero_relatorio")
   assunto            String
   orientacao         String

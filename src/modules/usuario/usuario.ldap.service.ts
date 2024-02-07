@@ -58,7 +58,6 @@ export class UsuarioLdapService {
                 }
               });
             } else {
-              console.error('User not found.');
               await this.close(client);
               reject(new UserNotFoundError('Usuário não encontrado'));
             }

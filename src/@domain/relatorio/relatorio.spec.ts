@@ -1,6 +1,5 @@
 import { Relatorio } from './relatorio';
 import { RelatorioModel } from './relatorio-model';
-import relatorios from '../../../_mockData/relatorios.json';
 
 describe('Relatorio domain', () => {
   // const relatorioModel: RelatorioModel = { ...relatorioModel };
@@ -8,6 +7,7 @@ describe('Relatorio domain', () => {
     id: '8cf3bcec-bfb7-450b-95f5-dc667b80be45',
     produtorId: '91025',
     tecnicoId: '2681',
+    contratoId: 1,
     numeroRelatorio: 99,
     assunto: 'Ass99',
     orientacao: '<div>ndndkw djjd. en</div>',
@@ -35,6 +35,16 @@ describe('Relatorio domain', () => {
     expect(() => new Relatorio(relatorio)).toThrow('Técnico não pode ser vazio');
   });
 
+  it('should throw an error if numeroRelatorio is not defined', () => {
+    const relatorio = { ...relatorioModel, numeroRelatorio: undefined };
+    expect(() => new Relatorio(relatorio)).toThrow('Número do relatório não pode ser vazio');
+  });
+
+  it('should throw an error if contratoId is not defined', () => {
+    const relatorio = { ...relatorioModel, contratoId: undefined };
+    expect(() => new Relatorio(relatorio)).toThrow('Contrato não pode ser vazio');
+  });
+
   it('should return the RelatorioModel object', () => {
     const relatorio = new Relatorio(relatorioModel);
     expect(relatorio.toModel()).toEqual(relatorioModel);
@@ -55,6 +65,7 @@ describe('Relatorio domain', () => {
         id: '8cf3bcec-bfb7-450b-95f5-dc667b80be45',
         produtorId: BigInt(91025),
         tecnicoId: BigInt(2681),
+        contratoId: 1,
         numeroRelatorio: 99,
         assunto: 'Ass99',
         orientacao: '<div>ndndkw djjd. en</div>',

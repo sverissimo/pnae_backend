@@ -36,11 +36,12 @@ export class RelatorioController {
       { name: 'assinatura', maxCount: 1 },
     ]),
   )
-  async create(@UploadedFiles() files: FilesInputDto, @Body() createRelatorioDto: RelatorioModel) {
+  async create(@UploadedFiles() files: FilesInputDto, @Body() relatorio: RelatorioModel) {
     try {
-      createRelatorioDto.readOnly = String(createRelatorioDto.readOnly) === 'true';
-      console.log('🚀 ~ file: relatorios.controller.ts:46:', createRelatorioDto);
-      const { id: relatorioId } = await this.relatorioService.create(createRelatorioDto);
+      relatorio.readOnly = String(relatorio.readOnly) === 'true';
+
+      const { id: relatorioId } = await this.relatorioService.create(relatorio);
+
       if (files) {
         await this.fileService.save(files, relatorioId);
       }
