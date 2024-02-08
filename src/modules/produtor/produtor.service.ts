@@ -27,7 +27,6 @@ export class ProdutorService {
 
   async findByCpf(cpfProdutor: string) {
     const produtor: any = await this.api.getProdutor(cpfProdutor);
-    console.log('🚀 - ProdutorService - findByCpf - produtor:', produtor);
 
     const propriedades = produtor.propriedades.map((p) => new Propriedade(p).toDTO());
     const perfis = produtor.perfis.map((p) => new Perfil(p).toDTO());

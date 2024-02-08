@@ -1,5 +1,10 @@
 import { GrupoProdutos } from '../../modules/perfil/types';
 
+export type at_prf_see_propriedade = {
+  atividade: 'ATIVIDADE_PRIMARIA' | 'ATIVIDADE_SECUNDARIA' | 'AMBAS';
+  producao_dedicada_pnae?: boolean;
+};
+
 export type PerfilModel = {
   id: string;
   id_cliente: string;
@@ -8,13 +13,10 @@ export type PerfilModel = {
   id_contrato: number;
   aderiu_pra: boolean;
   agroindustria_precisa_adaptacao_reforma: boolean;
-  at_prf_see_propriedade: {
-    atividade: 'ATIVIDADE_PRIMARIA' | 'ATIVIDADE_SECUNDARIA' | 'AMBAS';
-    producao_dedicada_pnae: boolean;
-  };
+  at_prf_see_propriedade: at_prf_see_propriedade[];
   atividades_com_regularizacao_ambiental: string;
   atividades_usam_recursos_hidricos: string;
-  cient_iniciativas_regularizacao_pra: boolean;
+  ciente_iniciativas_regularizacao_pra: boolean;
   condicao_posse: string;
   credito_rural: boolean;
   dados_producao_agro_industria: {
@@ -53,7 +55,7 @@ export type PerfilModel = {
   orgao_fiscalizacao_sanitaria: 'IMA' | 'VIGILANCIA_SANITARIA' | 'SIM' | 'MAPA' | 'NAO_SE_APLICA';
   participa_organizacao: boolean;
   pessoas_processamento_alimentos: number;
-  possui_agroindustria_propria: null;
+  possui_agroindustria_propria?: boolean;
   possui_cadastro_car: boolean;
   possui_registro_orgao_fiscalizacao_sanitaria: boolean;
   procedimento_pos_colheita: string;

@@ -1,5 +1,5 @@
 export type CreateGrupoProdutosInputDTO = {
-  id: string;
+  id?: string;
   area_utilizada?: number;
   producao_aproximada_ultimo_ano_pnae?: string;
   producao_aproximada_ultimo_ano_total?: string;

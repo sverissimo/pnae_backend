@@ -1,4 +1,3 @@
-import { parseValue } from 'src/utils/parseFormValues';
 import { PerfilModel } from './perfil.model';
 import {
   formattedValues,
@@ -6,7 +5,7 @@ import {
   producaoIndustrialLabels,
   producaoNaturaLabels,
 } from '../../modules/perfil/constants';
-import { Produto } from '.';
+import { Produto, at_prf_see_propriedade } from '.';
 import { PerfilDTO } from '../../modules/perfil/types';
 import { CreatePerfilInputDto, CreatePerfilOutputDto } from './dto/create-perfil.dto';
 
@@ -14,7 +13,7 @@ export class Perfil {
   constructor(private perfil?: PerfilModel | CreatePerfilInputDto) {}
 
   inputDTOToOutputDTO(): CreatePerfilOutputDto {
-    const p = this.getOutputDTOValues(this.perfil);
+    const p = this.getOutputDTOValues(this.perfil as CreatePerfilInputDto);
     return {
       ...p,
       ativo: true,
@@ -24,7 +23,14 @@ export class Perfil {
   toDTO(): PerfilDTO {
     if (!this.perfil) return;
     const produto = new Produto();
-    const { dados_producao_agro_industria, dados_producao_in_natura, ...rest } = this.perfil;
+    const {
+      dados_producao_agro_industria,
+      dados_producao_in_natura,
+      at_prf_see_propriedade,
+      ...rest
+    } = this.perfil as PerfilModel;
+
+    const atividade = this.atividadesArrayToValue(at_prf_see_propriedade);
 
     const gruposProdutosNatura = dados_producao_in_natura?.at_prf_see_grupos_produtos
       ? dados_producao_in_natura.at_prf_see_grupos_produtos.map((group) =>
@@ -40,6 +46,7 @@ export class Perfil {
 
     const perfilDTO = {
       ...rest,
+      at_prf_see_propriedade: { atividade },
       dados_producao_in_natura: {
         ...dados_producao_in_natura,
         at_prf_see_grupos_produtos: gruposProdutosNatura,
@@ -60,7 +67,8 @@ export class Perfil {
       dados_producao_agro_industria,
       ...rest
     } = perfil;
-    const { atividade } = at_prf_see_propriedade;
+
+    const atividade = this.atividadesArrayToValue(at_prf_see_propriedade);
 
     const perfilData = perfilFieldLabels.map(({ field, label }) => ({
       label,
@@ -153,5 +161,17 @@ export class Perfil {
       }
     }
     return result;
+  }
+
+  private atividadesArrayToValue(at_prf_see_propriedades: at_prf_see_propriedade[]) {
+    const atividade = at_prf_see_propriedades.reduce((acc, curr) => {
+      if (acc === 'AMBAS') return acc;
+      if (acc === 'ATIVIDADE_PRIMARIA' && curr.atividade === 'ATIVIDADE_SECUNDARIA') return 'AMBAS';
+      if (acc === 'ATIVIDADE_SECUNDARIA' && curr.atividade === 'ATIVIDADE_PRIMARIA') return 'AMBAS';
+
+      return curr.atividade;
+    }, at_prf_see_propriedades[0].atividade);
+
+    return atividade as 'ATIVIDADE_PRIMARIA' | 'ATIVIDADE_SECUNDARIA' | 'AMBAS';
   }
 }

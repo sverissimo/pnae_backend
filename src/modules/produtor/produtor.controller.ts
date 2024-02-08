@@ -46,10 +46,7 @@ export class ProdutorController {
   @Get()
   async findByCpf(@Query('cpfProdutor') cpfProdutor: string) {
     try {
-      console.log('🚀 - ProdutorController - findByCpf - cpfProdutor:', cpfProdutor);
       const produtor = await this.produtorService.findByCpf(cpfProdutor);
-      console.log('🚀 - ProdutorController - findByCpf - produtor:', produtor);
-
       return produtor;
     } catch (graphQLAPIError) {
       console.log(
