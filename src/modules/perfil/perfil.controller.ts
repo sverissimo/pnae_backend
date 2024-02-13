@@ -13,14 +13,14 @@ import {
 import { PerfilService } from './perfil.service';
 import { UpdatePerfilDto } from '../../@domain/perfil/dto/update-perfil.dto';
 import { Response } from 'express';
-import { PerfilModel } from '../../@domain/perfil';
+import { CreatePerfilInputDto } from 'src/@domain/perfil/dto/create-perfil.dto';
 
 @Controller('perfil')
 export class PerfilController {
   constructor(private readonly perfilService: PerfilService) {}
 
   @Post()
-  async create(@Body() createPerfilDto: PerfilModel) {
+  async create(@Body() createPerfilDto: CreatePerfilInputDto) {
     try {
       const result = await this.perfilService.create(createPerfilDto);
       return result;

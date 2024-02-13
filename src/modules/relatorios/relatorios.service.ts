@@ -194,11 +194,21 @@ export class RelatorioService {
       const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
       const { perfis, propriedades } = produtor;
 
+      if (!propriedades || !propriedades.length) {
+        throw new NotFoundException(
+          `Nenhuma propriedade encontrada para o produtor ${produtor.nm_pessoa}`,
+        );
+      }
+      if (!perfis || !perfis.length) {
+        throw new NotFoundException(
+          `Nenhum Perfil encontrado para o produtor ${produtor.nm_pessoa}`,
+        );
+      }
+
       const perfil = perfis.find(
         (p: PerfilModel) =>
           p.id_contrato === (relatorioContratoId || 1) && p.tipo_perfil === 'ENTRADA',
       ) as PerfilModel;
-      console.log('🚀 - RelatorioService - createPDFInput - perfil:', !!perfil);
 
       const perfilDTO = new Perfil(perfil).toDTO();
 
