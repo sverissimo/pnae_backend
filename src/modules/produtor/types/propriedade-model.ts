@@ -1,4 +1,5 @@
-import { Produtor } from '@prisma/client';
+import { Produtor } from '../entities';
+
 type Municipio = {
   nm_municipio: string;
 };

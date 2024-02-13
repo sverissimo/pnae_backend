@@ -1,4 +1,3 @@
-import { Relatorio } from '@prisma/client';
 import {
   createRelatorioMutation,
   deleteRelatorioMutation,
@@ -9,6 +8,7 @@ import {
 import { Injectable } from '@nestjs/common';
 import { GraphQLAPI } from './GraphQLAPI';
 import { APIService } from './APIService';
+import { Relatorio } from 'src/@domain/relatorio/relatorio';
 
 @Injectable()
 export class RelatorioGraphQLAPI extends GraphQLAPI implements APIService<Relatorio> {

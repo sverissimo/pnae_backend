@@ -4,7 +4,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Usuario } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/common/file.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
@@ -16,6 +15,7 @@ import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 import { Relatorio } from 'src/@domain/relatorio/relatorio';
 import { RelatorioDto } from './dto/relatorio.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
+import { Usuario } from '../usuario/entity/usuario-model';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 

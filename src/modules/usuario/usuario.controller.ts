@@ -9,11 +9,11 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { Usuario } from '@prisma/client';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { getPerfisUsuarios } from 'src/utils';
 import { UsuarioLdapService } from './usuario.ldap.service';
 import { UserNotFoundError } from './errors/user-not-found.error';
+import { Usuario } from './entity/usuario-model';
 
 @Controller('usuario')
 export class UsuarioController {

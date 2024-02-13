@@ -1,4 +1,5 @@
-import { Perfil, Propriedade } from '@prisma/client';
+import { Propriedade } from 'src/modules/produtor/entities';
+import { Perfil } from '../perfil';
 
 export class Produtor {
   id_pessoa_demeter: bigint;
