@@ -7,51 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Produtor {
-  id             BigInt        @id @map("id_pessoa_demeter")
-  nome           String        @map("nm_pessoa")
-  cpfCnpj        String        @unique @map("nr_cpf_cnpj")
-  tipoPessoa     TipoPessoa    @map("tp_pessoa")
-  sexo           TipoSexo?     @map("tp_sexo")
-  dataNascimento String?       @map("dt_nascimento")
-  situacao       Int           @map("sn_ativo")
-  caf            String?
-  dap            String?
-  municipioId    Int?          @map("id_municipio")
-  propriedades   Propriedade[]
-  Perfil         Perfil[]
-
-  @@map("produtor")
-}
-
-model Propriedade {
-  id              Int       @id
-  produtorId      BigInt    @map("produtor_id")
-  nomePropriedade String    @map("nome_propriedade")
-  coordenadas     String?   @map("geo_ponto_texto")
-  area            String?   @map("area_total")
-  municipioId     Int?      @map("id_municipio")
-  produtor        Produtor? @relation(fields: [produtorId], references: [id])
-
-  @@map("propriedade")
-}
-
 model Relatorio {
   id                 String        @id
   produtorId         BigInt        @map("produtor_id")
   tecnicoId          BigInt        @map("tecnico_id")
-  contratoId         Int           @map("id_contrato")
   numeroRelatorio    Int           @map("numero_relatorio")
   assunto            String
   orientacao         String
   pictureURI         String?
   assinaturaURI      String?
+  createdAt          DateTime?     @default(now()) @map("created_at")
+  updatedAt          DateTime?
   outroExtensionista String?       @map("outro_extensionista")
   readOnly           Boolean       @default(false) @map("read_only")
   coordenadas        String?
+  contratoId         Int           @map("id_contrato") @db.SmallInt
   files              PictureFile[]
-  createdAt          DateTime?     @default(now()) @map("created_at")
-  updatedAt          DateTime? //@updatedAt @map("updated_at")
 
   @@map("relatorio")
 }
@@ -62,28 +33,11 @@ model PictureFile {
   size        Int
   mimeType    String
   description PictureDescription
-  //relatorio   Relatorio?         @relation(fields: [relatorioId], references: [id])
-  relatorio   Relatorio?         @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
   relatorioId String             @map("relatorio_id")
   uploadDate  DateTime?          @default(now()) @map("upload_date")
+  relatorio   Relatorio          @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
 
   @@map("arquivos")
-}
-
-model Usuario {
-  id_usuario        BigInt  @id(map: "pk_usuario") @default(autoincrement())
-  login_usuario     String  @unique(map: "uq_usuario_login") @db.VarChar(255)
-  nome_usuario      String? @db.VarChar(255)
-  email_usuario     String? @db.VarChar(255)
-  celular_usuario   String? @db.VarChar(255)
-  cpf_usuario       String? @db.VarChar(14)
-  matricula_usuario String? @db.Char(5)
-  digito_matricula  String? @db.Char(1)
-  id_und_empresa    String? @db.Char(5)
-  id_cargo          String? @db.Char(4)
-  sexo_usuario      String? @db.Char(1)
-
-  @@map("usuario")
 }
 
 enum TipoPessoa {
@@ -105,71 +59,4 @@ enum Sexo {
   MASCULINO
   FEMININO
   NAO_INFORMADO
-}
-
-model Perfil {
-  id                                           BigInt         @id @default(autoincrement())
-  data_preenchimento                           DateTime
-  data_atualizacao                             DateTime
-  tipo_perfil                                  String
-  id_cliente                                   BigInt
-  participa_organizacao                        Boolean
-  nivel_tecnologico_cultivo                    Int?
-  sistema_producao                             Int?
-  condicao_posse                               Int?
-  dap_caf_vigente                              Boolean?
-  credito_rural                                Boolean?
-  fonte_captacao_agua                          Int?
-  forma_esgotamento_sanitario                  Int?
-  possui_cadastro_car                          Boolean?
-  aderiu_pra                                   Boolean?
-  ciente_iniciativas_regularizacao_pra         Boolean?
-  realiza_escalonamento_producao               Boolean?
-  procedimento_pos_colheita                    Int?
-  tipo_gestao_unidade                          String?
-  pessoas_processamento_alimentos              Int?
-  tipo_estabelecimento                         String?
-  tipo_pessoa_juridica                         String?
-  agroindustria_precisa_adaptacao_reforma      Boolean?
-  possui_registro_orgao_fiscalizacao_sanitaria Boolean?
-  orgao_fiscalizacao_sanitaria                 String?
-  atividades_usam_recursos_hidricos            Int?
-  atividades_com_regularizacao_ambiental       Int?
-  possui_agroindustria_propria                 Boolean?
-  grau_interesse_pnae                          String
-  id_tecnico                                   Int
-  id_dados_producao_agro_industria             Int?           @unique()
-  id_dados_producao_in_natura                  Int?
-  produtor                                     Produtor       @relation(fields: [id_cliente], references: [id])
-  dados_producao                               DadosProducao? @relation(fields: [id_dados_producao_agro_industria], references: [id])
-  atividade                                    Atividade?
-
-  @@map("perfil")
-}
-
-model DadosProducao {
-  id                                       Int     @id //@default(autoincrement())
-  controla_custos_producao                 Boolean
-  dificuldade_fornecimento                 Int
-  forma_entrega_produtos                   Int
-  informacoes_adicionais                   String?
-  local_comercializacao                    Int
-  perfil                                   Perfil?
-  tipo_regularizacao_ambiental             String
-  tipo_regularizacao_uso_recursos_hidricos String
-  valor_total_obtido_outros                Int
-  valor_total_obtido_pnae                  Int
-
-  @@map("dados_producao")
-}
-
-model Atividade {
-  id                     Int      @id
-  id_perfil_see          BigInt   @unique
-  id_propriedade         Int      @unique
-  atividade              String
-  producao_dedicada_pnae Boolean?
-  perfil                 Perfil   @relation(fields: [id_perfil_see], references: [id])
-
-  @@map("atividade")
 }
