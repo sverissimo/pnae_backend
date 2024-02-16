@@ -13,7 +13,6 @@ export class ProdutorService {
   create(createProdutorDto: CreateProdutorDto) {
     return 'This action adds a new produtor';
   }
-
   findAll() {
     return `This action returns all produtor`;
   }
@@ -27,10 +26,14 @@ export class ProdutorService {
 
   async findByCpf(cpfProdutor: string) {
     const produtor: any = await this.api.getProdutor(cpfProdutor);
-
     const propriedades = produtor.propriedades.map((p) => new Propriedade(p).toDTO());
     const perfis = produtor.perfis.map((p) => new Perfil(p).toDTO());
+
     return { ...produtor, propriedades, perfis };
+  }
+
+  async getUnidadeEmpresa(produtorId: string) {
+    return await this.api.getProdutorUnidadeEmpresaId(produtorId);
   }
 
   update(id: number, updateProdutorDto: UpdateProdutorDto) {

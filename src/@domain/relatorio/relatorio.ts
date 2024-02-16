@@ -66,10 +66,18 @@ export class Relatorio {
   }
 
   static updateFieldsToDTO(relatorioModel: Partial<RelatorioModel>): Partial<RelatorioDto> {
-    const { produtorId, tecnicoId, numeroRelatorio, createdAt, updatedAt, readOnly, ...relatorio } =
-      {
-        ...relatorioModel,
-      };
+    const {
+      produtorId,
+      tecnicoId,
+      numeroRelatorio,
+      createdAt,
+      updatedAt,
+      readOnly,
+      contratoId,
+      ...relatorio
+    } = {
+      ...relatorioModel,
+    };
 
     const relatorioDto = {
       ...relatorio,
@@ -78,6 +86,7 @@ export class Relatorio {
       numeroRelatorio: numeroRelatorio ? +numeroRelatorio : undefined,
       createdAt: createdAt ? new Date(createdAt) : undefined,
       updatedAt: updatedAt ? new Date(updatedAt) : undefined,
+      contratoId: contratoId ? Number(contratoId) : undefined,
       readOnly:
         readOnly === undefined
           ? undefined

@@ -39,18 +39,16 @@ export class RelatorioController {
   async create(@UploadedFiles() files: FilesInputDto, @Body() relatorio: RelatorioModel) {
     try {
       relatorio.readOnly = String(relatorio.readOnly) === 'true';
-
       const { id: relatorioId } = await this.relatorioService.create(relatorio);
 
       if (files) {
-        await this.fileService.save(files, relatorioId);
+        await this.fileService.save(files, relatorio);
       }
       console.log('🚀 relatorios.controller.ts:50 ~ created id ', relatorioId);
-
       return relatorioId;
     } catch (error) {
       console.log('🚀 ~ relatorios.controller.ts:52:', error);
-      return error;
+      throw error;
     }
   }
   @Get('/all')
@@ -80,31 +78,36 @@ export class RelatorioController {
 
   @Get('/pdf/:id')
   async generatePdf(@Param('id') id: string, @Res() res: Response) {
-    const {
-      relatorio,
-      perfilPDFModel,
-      nome_propriedade,
-      dados_producao_agro_industria,
-      dados_producao_in_natura,
-    } = await this.relatorioService.createPDFInput(id);
+    try {
+      const {
+        relatorio,
+        perfilPDFModel,
+        nome_propriedade,
+        dados_producao_agro_industria,
+        dados_producao_in_natura,
+      } = await this.relatorioService.createPDFInput(id);
 
-    const { numeroRelatorio, produtor } = relatorio;
+      const { numeroRelatorio, produtor } = relatorio;
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.pdf`,
-    );
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.pdf`,
+      );
 
-    const pdfStream = await pdfGen({
-      relatorio,
-      perfilPDFModel,
-      nome_propriedade,
-      dados_producao_agro_industria,
-      dados_producao_in_natura,
-    });
-    pdfStream.pipe(res);
-    console.log('🚀 ...done ');
+      const pdfStream = await pdfGen({
+        relatorio,
+        perfilPDFModel,
+        nome_propriedade,
+        dados_producao_agro_industria,
+        dados_producao_in_natura,
+      });
+      pdfStream.pipe(res);
+      console.log('🚀 ...done ');
+    } catch (error) {
+      console.log('🚀 - RelatorioController - generatePdf - error:', error);
+      throw new InternalServerErrorException('Erro ao gerar PDF');
+    }
   }
 
   @Patch(':id')
@@ -120,15 +123,15 @@ export class RelatorioController {
     @Body() update: Omit<RelatorioModel, 'id'>,
   ) {
     try {
-      console.log('🚀 - RelatorioController - update:', { id, update });
-      const updatedRelatorio = await this.relatorioService.update({ id, ...update });
+      const relatorioUpdate = { id, ...update };
+      const updatedRelatorio = await this.relatorioService.update(relatorioUpdate);
+
       if (!updatedRelatorio) {
         throw new NotFoundException(`Relatorio com id ${id} não encontrado.`);
       }
 
       if (files && Object.keys(files).length > 0) {
-        console.log('🚀 ~ file: relatorios.controller.ts:121 ~ generatePdf ~ files:', files);
-        await this.fileService.update(files, id);
+        await this.fileService.update(files, relatorioUpdate);
       }
       return updatedRelatorio;
     } catch (error) {

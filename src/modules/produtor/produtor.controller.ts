@@ -28,6 +28,16 @@ export class ProdutorController {
     return this.produtorService.findAll();
   }
 
+  @Get('/unidade-empresa/:id')
+  async getUnidadeEmpresa(@Param('id') produtorId: string) {
+    try {
+      return await this.produtorService.getUnidadeEmpresa(produtorId);
+    } catch (error) {
+      console.log('🚀 ~ file: produtor.controller.ts:42 ~ ProdutorController ~ error', error);
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id') produtorId: string) {
     try {
@@ -45,6 +55,8 @@ export class ProdutorController {
 
   @Get()
   async findByCpf(@Query('cpfProdutor') cpfProdutor: string) {
+    console.log('🚀 - ProdutorController - findByCpf - cpfProdutor:', cpfProdutor);
+
     try {
       const produtor = await this.produtorService.findByCpf(cpfProdutor);
       return produtor;

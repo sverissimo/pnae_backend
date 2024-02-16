@@ -5,15 +5,11 @@ import { join } from 'path';
 
 @Controller('files')
 export class FileController {
-  constructor(private fileService: FileService) {
-    this.fileService = fileService;
-  }
+  constructor(private fileService: FileService) {}
 
   @Get(':fileId')
   async download(@Param('fileId') fileId: string, @Res() res: Response) {
-    const subFolder = process.env.FILES_FOLDER;
-
-    this.fileService.getFileStream(fileId, subFolder, (err, fileStream) => {
+    this.fileService.getFileStream(fileId, (err, fileStream) => {
       if (err) {
         console.error('🚀: file.controller.ts:19:', err);
         return res.status(404).send('Arquivo não encontrado no servidor.');
@@ -27,10 +23,7 @@ export class FileController {
   @Delete(':fileId')
   async deleteFile(@Param('fileId') fileId: string, @Res() res: Response) {
     try {
-      const filesFolder = process.env.FILES_FOLDER;
-      const filePath = join(filesFolder, fileId);
-      await this.fileService.deleteFile(filePath);
-      //await this.fileService.remove(fileId, subFolder);
+      await this.fileService.remove(fileId);
       res.status(204).end();
     } catch (error) {
       res.status(404).send(error.message);

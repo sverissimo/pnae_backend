@@ -126,11 +126,13 @@ export class RelatorioService {
         'Não é possível remover relatório, pois já foi validado pela gerência.',
       );
     }
+
     const { pictureURI, assinaturaURI } = relatorio;
     const fileIds = [pictureURI, assinaturaURI].filter((f) => !!f);
     if (fileIds.length > 0) {
-      await this.fileService.remove(fileIds, process.env.FILES_FOLDER);
+      await this.fileService.remove(fileIds, relatorio);
     }
+
     await this.prismaService.relatorio.delete({ where: { id } });
     return `Relatorio ${id} removed.`;
   }
@@ -226,6 +228,7 @@ export class RelatorioService {
             nomeProdutor: produtor.nm_pessoa,
             cpfProdutor: formatCPF(produtor.nr_cpf_cnpj),
             caf: produtor.caf || produtor.dap,
+            id_und_empresa: produtor.id_und_empresa,
           },
           nomeTecnico: usuario.nome_usuario,
           matricula,

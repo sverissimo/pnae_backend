@@ -4,17 +4,27 @@ import { promises as fs, existsSync, createReadStream } from 'fs';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FilesInputDto } from './files-input.dto';
 import { Readable } from 'stream';
+import { ProdutorService } from 'src/modules/produtor/produtor.service';
+import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
+import { Relatorio } from '@prisma/client';
 
 @Injectable()
 export class FileService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(private prismaService: PrismaService, private produtorService: ProdutorService) {}
 
   async getFileStream(
     fileUUIDName: string,
-    filesFolder: string,
     callback: (err: Error | null, stream?: Readable) => void,
   ): Promise<any> {
-    const filePath = join(filesFolder, fileUUIDName);
+    const relatorio = await this.prismaService.relatorio.findFirst({
+      where: { OR: [{ pictureURI: fileUUIDName }, { assinaturaURI: fileUUIDName }] },
+      select: { produtorId: true, contratoId: true },
+    });
+
+    const { produtorId, contratoId } = relatorio;
+    const folder = await this.getFolderPath({ produtorId: String(produtorId), contratoId });
+
+    const filePath = join(folder, fileUUIDName);
     const stream = createReadStream(filePath);
 
     stream.on('error', (error) => {
@@ -26,44 +36,32 @@ export class FileService {
       console.log('🚀 ~ file: file.service.ts:22 - #### stream ok.');
       callback(null, stream);
     });
-
-    // return new Promise((resolve, reject) => {
-    //   try {
-    //     const stream = createReadStream(filePath);
-    //     stream.on('error', (error) => {
-    //       stream.destroy();
-    //       console.error(`Stream error: ${error.message}`);
-    //       reject(new Error(error.message));
-    //     });
-    //     console.log('🚀 ~ file: file.service.ts:22 - #### stream ok.');
-    //     resolve(stream);
-    //   } catch (error) {
-    //     reject(error);
-    //   }
-    // });
   }
 
-  async save(files: FilesInputDto, relatorioId: string) {
-    const uploadFolder = process.env.FILES_FOLDER;
+  async save(files: FilesInputDto, relatorio: Partial<RelatorioModel>) {
+    const uploadFolder = await this.getFolderPath(relatorio);
     const folderExists = existsSync(uploadFolder);
     if (!folderExists) {
-      await fs.mkdir(uploadFolder);
+      await fs.mkdir(uploadFolder, { recursive: true });
     }
 
     for (const key in files) {
       if (files[key]) {
         for (const file of files[key]) {
-          const fileMetadata = this.createFileMetadata(file, relatorioId);
+          const fileMetadata = this.createFileMetadata(file, relatorio.id);
           const { id: fileId } = await this.saveMetadata(fileMetadata);
           await fs.writeFile(`${uploadFolder}/${fileId}`, file.buffer);
         }
       }
     }
+    return uploadFolder;
   }
 
-  async update(files: FilesInputDto, relatorioId: string) {
+  async update(files: FilesInputDto, relatorio: RelatorioModel) {
+    const { id: relatorioId } = relatorio;
     const oldFiles = await this.prismaService.pictureFile.findMany({ where: { relatorioId } });
-    await this.save(files, relatorioId);
+    const uploadFolder = await this.save(files, relatorio);
+
     if (oldFiles.length) {
       const fileIdsToDelete = oldFiles
         .filter((file) => {
@@ -73,16 +71,15 @@ export class FileService {
           );
         })
         .map((file) => file.id);
-      await this.remove(fileIdsToDelete, join(__dirname, '../..', '', 'data/files'));
+      await this.prismaService.pictureFile.deleteMany({ where: { id: { in: fileIdsToDelete } } });
+      await Promise.all(
+        fileIdsToDelete.map((fileId) => this.deleteFile(join(uploadFolder, fileId))),
+      );
     }
   }
 
-  async remove(fileIds: string | string[], filesFolder: string) {
-    console.log('🚀 ~ file: file.service.ts:49 ~ FileService ~ remove ~ fileIds:', {
-      fileIds,
-      filesFolder,
-    });
-    if (!fileIds || !filesFolder) {
+  async remove(fileIds: string | string[], relatorio?: Partial<Relatorio>) {
+    if (!fileIds) {
       throw new Error('Id and filesFolder needed.');
     }
     if (typeof fileIds === 'string') {
@@ -91,10 +88,30 @@ export class FileService {
 
     await this.prismaService.pictureFile.deleteMany({ where: { id: { in: fileIds } } });
     for (const id of fileIds) {
+      const rel =
+        relatorio ||
+        (await this.prismaService.relatorio.findFirst({
+          where: { OR: [{ pictureURI: { in: fileIds } }, { assinaturaURI: { in: fileIds } }] },
+          select: { produtorId: true, contratoId: true, pictureURI: true, assinaturaURI: true },
+        }));
+
+      const { produtorId, contratoId } = rel;
+      const filesFolder = await this.getFolderPath({ produtorId: String(produtorId), contratoId });
       const filePath = join(filesFolder, id);
       await this.deleteFile(filePath);
     }
     return true;
+  }
+
+  async getFolderPath(relatorio: Partial<RelatorioModel>) {
+    const { produtorId, contratoId } = relatorio;
+    const { nr_cpf_cnpj, id_und_empresa } = await this.produtorService.getUnidadeEmpresa(
+      produtorId,
+    );
+
+    const baseFolder = process.env.FILES_FOLDER;
+    const folderName = join(baseFolder, `contrato_${contratoId}`, id_und_empresa, nr_cpf_cnpj);
+    return folderName;
   }
 
   private createFileMetadata(file: Express.Multer.File, relatorioId: string) {

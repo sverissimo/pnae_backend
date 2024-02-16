@@ -1,10 +1,11 @@
-import { Produtor } from 'src/modules/produtor/entities/produtor.entity';
+import { Produtor } from 'src/@domain/produtor/produtor';
 import { Usuario } from 'src/modules/usuario/entity/usuario-model';
 
 export type RelatorioPDF = {
   id: string;
   produtorId: string | BigInt;
   tecnicoId: string | BigInt;
+  contratoId: number;
   nomeProdutor?: string;
   nomeTecnico: string;
   matricula: string;

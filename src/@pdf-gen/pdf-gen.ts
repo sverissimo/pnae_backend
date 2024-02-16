@@ -17,12 +17,20 @@ type CreatePdfInput = {
 export const pdfGen = async (pdfInputData: CreatePdfInput) => {
   const { perfilPDFModel, relatorio, dados_producao_agro_industria, dados_producao_in_natura } =
     pdfInputData;
-  const { numeroRelatorio, produtor, pictureURI, assinaturaURI } = relatorio;
+  const { numeroRelatorio, produtor, pictureURI, assinaturaURI, contratoId } = relatorio;
   const data = formatDate(relatorio.createdAt);
 
+  const { cpfProdutor, id_und_empresa } = produtor as any;
+
   const headerImageFolder = join(__dirname, '../..', 'assets');
-  const imagesFolder = join(__dirname, '../..', 'data/files');
   const templatesFolder = join(__dirname, 'templates');
+
+  const imagesFolder = join(
+    process.env.FILES_FOLDER,
+    `contrato_${contratoId}`,
+    id_und_empresa,
+    cpfProdutor.replace(/\D/g, ''),
+  );
 
   const [pictureBuffer, assinaturaBuffer, logoBuffer] = await Promise.allSettled([
     pictureURI ? readFile(`${imagesFolder}/${pictureURI}`, 'base64') : Promise.resolve(''),

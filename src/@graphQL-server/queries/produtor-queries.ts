@@ -12,6 +12,7 @@ export const produtorQuery = gql`
       dt_nascimento
       sn_ativo
       dt_update_record
+      id_und_empresa
       propriedades {
         id_pl_propriedade
         nome_propriedade
@@ -128,6 +129,15 @@ export const produtorQuery = gql`
           }
         }
       }
+    }
+  }
+`;
+
+export const produtorUnidadeEmpresaQuery = gql`
+  query GetUnidadeEmpresa($produtorId: Int) {
+    getUnidadeEmpresa(produtorId: $produtorId) {
+      nr_cpf_cnpj
+      id_und_empresa
     }
   }
 `;

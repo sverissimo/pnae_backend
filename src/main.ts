@@ -5,8 +5,8 @@ import { AppModule } from './app.module';
 import { BigIntInterceptor } from './interceptors/big-int.interceptor';
 
 async function bootstrap() {
-  const keyPath = path.join(__dirname, '..', 'certificates', 'key.pem');
-  const certPath = path.join(__dirname, '..', 'certificates', 'emater.crt');
+  const keyPath = path.join(__dirname, '..', 'certificates', 'csr-key-emater.pem');
+  const certPath = path.join(__dirname, '..', 'certificates', 'STAR_emater_mg_gov_br.combined.crt');
   const env = process.env.NODE_ENV;
 
   const httpsOptions = {
