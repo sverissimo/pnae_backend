@@ -1,25 +1,29 @@
 version: '3.9'
 services:
-  nest-app:
-    container_name: pnae_backend
-    image: pnae_backend
+  pnae_backend_dev:
+    container_name: pnae_backend_dev
+    image: pnae_backend_dev
     build:
       context: .
-      dockerfile: Dockerfile.test
-    entrypoint: "dockerize -wait tcp://postgres_pnae:5432 -timeout 20s /usr/local/bin/docker-entrypoint.sh"
+      dockerfile: Dockerfile.dev
+    env_file:
+      - development.env
+    environment:
+      - NODE_ENV=development
+    entrypoint: "dockerize -wait tcp://postgres_pnae_dev:5432 -timeout 20s /usr/local/bin/docker-entrypoint.sh"
     command: "npm run start:dev"
-    # command: "tail -f /dev/null"
     ports:
       - '3001:3000'
     depends_on:
       - postgres_pnae
     volumes:
       - ./:/home/node/app
+      - ${HOST_FOLDER}/data_dev:${FILES_FOLDER}
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
   postgres_pnae:
-    container_name: postgres_pnae
+    container_name: postgres_pnae_dev
     image: postgres:15
     ports:
       - '5433:5432'

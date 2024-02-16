@@ -6,13 +6,10 @@ import {
   Patch,
   Param,
   Delete,
-  Query,
-  Res,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { PerfilService } from './perfil.service';
 import { UpdatePerfilDto } from '../../@domain/perfil/dto/update-perfil.dto';
-import { Response } from 'express';
 import { CreatePerfilInputDto } from 'src/@domain/perfil/dto/create-perfil.dto';
 
 @Controller('perfil')
@@ -48,23 +45,6 @@ export class PerfilController {
   @Get('/contractInfo')
   async getContractInfo() {
     return await this.perfilService.getContractInfo();
-  }
-
-  @Get()
-  async findByProdutorId(@Query('produtorId') produtorId: string, @Res() res: Response) {
-    try {
-      const perfis = await this.perfilService.findByProdutorId(produtorId);
-      return res.send(perfis);
-    } catch (error) {
-      const { status, ...err } = error.response;
-      return res.status(500).send(err);
-    }
-  }
-
-  @Get(':id')
-  async findOne(@Param('id') id: string) {
-    const localPerfil = await this.perfilService.findOne(+id);
-    return localPerfil;
   }
 
   @Patch(':id')
