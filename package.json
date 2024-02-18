@@ -31,6 +31,7 @@
     "graphql-request": "^6.1.0",
     "jsonwebtoken": "^9.0.1",
     "ldapjs": "^3.0.7",
+    "nest-winston": "^1.9.4",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "wkhtmltopdf": "^0.4.0"
