@@ -11,10 +11,14 @@ import {
 import { PerfilService } from './perfil.service';
 import { UpdatePerfilDto } from '../../@domain/perfil/dto/update-perfil.dto';
 import { CreatePerfilInputDto } from 'src/@domain/perfil/dto/create-perfil.dto';
+import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
 
 @Controller('perfil')
 export class PerfilController {
-  constructor(private readonly perfilService: PerfilService) {}
+  constructor(
+    private readonly perfilService: PerfilService,
+    private readonly logger: WinstonLoggerService,
+  ) {}
 
   @Post()
   async create(@Body() createPerfilDto: CreatePerfilInputDto) {
@@ -22,7 +26,7 @@ export class PerfilController {
       const result = await this.perfilService.create(createPerfilDto);
       return result;
     } catch (error) {
-      console.log('🚀 ~ file: perfil.controller.ts:17 ~ PerfilController ~ create ~ error:', error);
+      this.logger.error('🚀 ~ PerfilController - create:32 ~  error:' + error.message, error.trace);
       throw new InternalServerErrorException(error.message);
     }
   }

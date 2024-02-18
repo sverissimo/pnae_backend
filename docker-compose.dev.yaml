@@ -19,6 +19,7 @@ services:
     volumes:
       - ./:/home/node/app
       - ${HOST_FOLDER}/data_dev:${FILES_FOLDER}
+      - ../logs/dev:/${LOGS_FOLDER}
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

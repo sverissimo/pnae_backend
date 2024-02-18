@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { FileService } from 'src/common/file.service';
+import { FileService } from 'src/common/files/file.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { formatCPF } from 'src/utils/formatCPF';
@@ -241,7 +241,8 @@ export class RelatorioService {
         perfilPDFModel,
       };
     } catch (error) {
-      console.error('🚀 ~ file: relatorios.service.ts:114 ~ createPDF:', error);
+      // console.error('🚀 ~ file: relatorios.service.ts:244 ~ createPDF:', error);
+      console.log(error);
       throw new InternalServerErrorException(error.message); // or throw new InternalServerErrorException(error.message);
     }
   }

@@ -2,12 +2,13 @@ import { Module } from '@nestjs/common';
 import { RelatorioService } from './relatorios.service';
 import { RelatorioController } from './relatorios.controller';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { FileModule } from 'src/common/file.module';
+import { FileModule } from 'src/common/files/file.module';
 import { RelatorioGraphQLAPI } from 'src/@graphQL-server/relatorio-api.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 import { AtendimentoModule } from 'src/modules/atendimento/atendimento.module';
+import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
 
 @Module({
   controllers: [RelatorioController],
@@ -18,6 +19,7 @@ import { AtendimentoModule } from 'src/modules/atendimento/atendimento.module';
     RelatorioService,
     { provide: UsuarioGraphQLAPI, useClass: UsuarioGraphQLAPI },
     { provide: RestAPI, useClass: RestAPI },
+    { provide: WinstonLoggerService, useClass: WinstonLoggerService },
   ],
   imports: [FileModule, AtendimentoModule],
   exports: [RelatorioService],

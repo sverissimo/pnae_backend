@@ -13,10 +13,14 @@ import {
 import { ProdutorService } from './produtor.service';
 import { CreateProdutorDto } from './dto/create-produtor.dto';
 import { UpdateProdutorDto } from './dto/update-produtor.dto';
+import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
 
 @Controller('produtor')
 export class ProdutorController {
-  constructor(private readonly produtorService: ProdutorService) {}
+  constructor(
+    private readonly produtorService: ProdutorService,
+    private readonly logger: WinstonLoggerService,
+  ) {}
 
   @Post()
   create(@Body() createProdutorDto: CreateProdutorDto) {
@@ -33,7 +37,10 @@ export class ProdutorController {
     try {
       return await this.produtorService.getUnidadeEmpresa(produtorId);
     } catch (error) {
-      console.log('🚀 ~ file: produtor.controller.ts:42 ~ ProdutorController ~ error', error);
+      this.logger.error(
+        '🚀 ~ file:  ProdutorController 41 - findOne - graphQLAPIError:' + error.message,
+        error.trace,
+      );
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -44,6 +51,10 @@ export class ProdutorController {
       const produtor = await this.produtorService.findOne(produtorId);
       return produtor;
     } catch (graphQLAPIError) {
+      this.logger.error(
+        '🚀 ~ file:  ProdutorController 57 - findOne - graphQLAPIError:' + graphQLAPIError.message,
+        graphQLAPIError.trace,
+      );
       const { errors } = graphQLAPIError.response;
       const error = errors[0];
       if (error.extensions.code === 'NOT_FOUND') {
@@ -61,13 +72,9 @@ export class ProdutorController {
       const produtor = await this.produtorService.findByCpf(cpfProdutor);
       return produtor;
     } catch (graphQLAPIError) {
-      console.log(
-        '🚀 - file: produtor.controller.ts:52 - ProdutorController - findByCpf - graphQLAPIError:',
-        graphQLAPIError,
-      );
-
       const { errors } = graphQLAPIError?.response;
       const error = errors && errors[0];
+      this.logger.error('ProdutorController 77 - ' + error.message, error.trace);
       if (error.extensions.code === 'NOT_FOUND') {
         throw new NotFoundException('Produtor não encontrado. Verifique o CPF informado.');
       }

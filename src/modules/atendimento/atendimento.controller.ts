@@ -2,21 +2,28 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { AtendimentoService } from './atendimento.service';
 import { CreateAtendimentoDto } from './dto/create-atendimento.dto';
 import { UpdateAtendimentoDto } from './dto/update-atendimento.dto';
+import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
 
 @Controller('atendimento')
 export class AtendimentoController {
-  constructor(private readonly atendimentoService: AtendimentoService) {}
+  constructor(
+    private readonly atendimentoService: AtendimentoService,
+    private readonly logger: WinstonLoggerService,
+  ) {}
 
   @Post()
   async create(@Body() createAtendimentoDto: CreateAtendimentoDto) {
-    console.log('🚀 ~ file: atendimento.controller.ts:400:', createAtendimentoDto);
-    const id = await this.atendimentoService.create(createAtendimentoDto);
-    return id;
+    try {
+      const id = await this.atendimentoService.create(createAtendimentoDto);
+      return id;
+    } catch (error) {
+      this.logger.error('AtendimentoController:20 ~ create:' + error.message, error.trace);
+      throw error;
+    }
   }
 
   @Get()
   async findAll() {
-    console.log('*** fetching... !');
     return await this.atendimentoService.findAll();
   }
 

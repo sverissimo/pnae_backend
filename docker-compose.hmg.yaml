@@ -10,12 +10,11 @@ services:
         - HOST_GID=${HOST_GID}
     env_file:
       - homolog.env
-    # ports:
-    #   - "3100:3100"
     entrypoint: "dockerize -wait tcp://postgres_pnae_hmg:5432 -timeout 20s /usr/local/bin/docker-entrypoint.sh"
     command: "npm run start:prod"
     volumes:
       - /home/pnae/pnae_app/data_hmg:/home/node/data_hmg
+      - /home/pnae/pnae_app/logs/hmg:/home/node/logs
     deploy:
       replicas: 3
       resources:

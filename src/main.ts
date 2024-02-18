@@ -3,6 +3,7 @@ import * as path from 'path';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BigIntInterceptor } from './interceptors/big-int.interceptor';
+import { WinstonLoggerService } from './common/logging/winston-logger.service';
 
 async function bootstrap() {
   const keyPath = path.join(__dirname, '..', 'certificates', 'csr-key-emater.pem');
@@ -15,11 +16,12 @@ async function bootstrap() {
   };
 
   const PORT = process.env.PORT || 3000;
+  const logger = { logger: new WinstonLoggerService() };
 
   const app =
     env === 'production'
-      ? await NestFactory.create(AppModule)
-      : await NestFactory.create(AppModule, { httpsOptions });
+      ? await NestFactory.create(AppModule, logger)
+      : await NestFactory.create(AppModule, { httpsOptions, ...logger });
 
   app.enableCors();
   app.useGlobalInterceptors(new BigIntInterceptor());

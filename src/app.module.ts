@@ -11,6 +11,8 @@ import { UsuarioGraphQLAPI } from './@graphQL-server/usuario-api.service';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module';
 import { SyncModulte } from './modules/@sync/sync.module';
 import { UsuarioLdapService } from './modules/usuario/usuario.ldap.service';
+import { WinstonLoggerService } from './common/logging/winston-logger.service';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -22,6 +24,14 @@ import { UsuarioLdapService } from './modules/usuario/usuario.ldap.service';
     SyncModulte,
   ],
   controllers: [AppController, UsuarioController],
-  providers: [AppService, UsuarioGraphQLAPI, UsuarioLdapService],
+  providers: [
+    AppService,
+    UsuarioGraphQLAPI,
+    UsuarioLdapService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: WinstonLoggerService,
+    },
+  ],
 })
 export class AppModule {}

@@ -40,8 +40,7 @@ RUN npx prisma generate
 RUN usermod -u 1001 node && groupmod -g 1001 node
 ENV NPM_CONFIG_CACHE=/home/node/.npm
 RUN mkdir -p /home/node/.npm && chown -R node:node /home/node/.npm
-# VOLUME /home/node/data_hmg
-# RUN mkdir -p /home/node/data_hmg && chown -R node:node /home/node/data_hmg
+RUN mkdir -p /home/node/logs && chown -R node:node /home/node/logs
 
 USER node
 # RUN chown -R 1001:1002 /home/node/.npm

@@ -34,10 +34,7 @@ export class UsuarioController {
         ids: id,
         matriculas: matricula.length === 4 ? 'C' + matricula : matricula,
       });
-      console.log(
-        '🚀 ~ file: usuario.controller.ts:29 ~ UsuarioController ~ find ~ comissionados:',
-        comissionados,
-      );
+
       if (!comissionados?.length) {
         throw new NotFoundException('Usuário não encontrado');
       }

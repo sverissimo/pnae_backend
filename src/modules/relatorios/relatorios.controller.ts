@@ -16,17 +16,19 @@ import {
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
-import { FileService } from 'src/common/file.service';
+import { FileService } from 'src/common/files/file.service';
 import { RelatorioService } from './relatorios.service';
 import { pdfGen } from 'src/@pdf-gen/pdf-gen';
-import { FilesInputDto } from 'src/common/files-input.dto';
+import { FilesInputDto } from 'src/common/files/files-input.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
+import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
 
 @Controller('relatorios')
 export class RelatorioController {
   constructor(
     private readonly relatorioService: RelatorioService,
     private readonly fileService: FileService,
+    private readonly logger: WinstonLoggerService,
   ) {}
 
   @Post()
@@ -47,7 +49,10 @@ export class RelatorioController {
       console.log('🚀 relatorios.controller.ts:50 ~ created id ', relatorioId);
       return relatorioId;
     } catch (error) {
-      console.log('🚀 ~ relatorios.controller.ts:52:', error);
+      this.logger.error(
+        '🚀 ~ file: relatorios.controller.ts:53 ~ create ~ error:' + error.message,
+        error.trace,
+      );
       throw error;
     }
   }
@@ -69,11 +74,19 @@ export class RelatorioController {
 
   @Get()
   async findByProdutorId(@Query('produtorId') produtorId: string) {
-    const relatorios = await this.relatorioService.findMany(produtorId);
-    if (!relatorios) {
-      throw new NotFoundException('Nenhum relatório encontrado');
+    try {
+      const relatorios = await this.relatorioService.findMany(produtorId);
+      if (!relatorios) {
+        throw new NotFoundException('Nenhum relatório encontrado');
+      }
+      return relatorios;
+    } catch (error) {
+      this.logger.error(
+        '🚀 ~ file: relatorios.controller.ts:85 ~ get ~ error:' + error.message,
+        error.trace,
+      );
+      throw new InternalServerErrorException(error.message);
     }
-    return relatorios;
   }
 
   @Get('/pdf/:id')
@@ -105,7 +118,10 @@ export class RelatorioController {
       pdfStream.pipe(res);
       console.log('🚀 ...done ');
     } catch (error) {
-      console.log('🚀 - RelatorioController - generatePdf - error:', error);
+      this.logger.error(
+        '🚀 ~ file: relatorios.controller.ts:118 ~ genPDF ~ error:' + error.message,
+        error.trace,
+      );
       throw new InternalServerErrorException('Erro ao gerar PDF');
     }
   }
@@ -135,25 +151,26 @@ export class RelatorioController {
       }
       return updatedRelatorio;
     } catch (error) {
-      console.log('🚀 ~ file: relatorios.controller.ts:67 ~ update ~ error:', error);
+      this.logger.error(
+        '🚀 ~ file: relatorios.controller.ts:147 ~ update ~ error:' + error.message,
+        error.trace,
+      );
       throw error;
     }
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string) {
-    if (!id) throw new BadRequestException('Id inválido');
-    const result = await this.relatorioService.remove(id);
-    console.log(
-      '🚀 ~ file: relatorios.controller.ts:150 ~ RelatorioController ~ remove ~ result:',
-      result,
-    );
-    return result;
+    try {
+      if (!id) throw new BadRequestException('Id inválido');
+      const result = await this.relatorioService.remove(id);
+      return result;
+    } catch (error) {
+      this.logger.error(
+        '🚀 ~ file: relatorios.controller.ts:161 ~ update ~ error:' + error.message,
+        error.trace,
+      );
+      throw error;
+    }
   }
-
-  // @Post()
-  // async post(@Body() checkUpdateInput: CheckForUpdatesInput){
-  //   const ids = checkUpdateInput.map(el=> el.id)
-  //   const relatorios = await this.relatorioService.findMany()
-  // }
 }

@@ -1,4 +1,4 @@
-import { FieldLabel } from 'src/common/types';
+import { FieldLabel } from 'src/common/files/types';
 
 export const producaoNaturaLabels: FieldLabel[] = [
   /* {
