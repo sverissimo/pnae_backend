@@ -6,7 +6,7 @@ import { FilesInputDto } from './files-input.dto';
 import { Readable } from 'stream';
 import { ProdutorService } from 'src/modules/produtor/produtor.service';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
-import { Relatorio } from '@prisma/client';
+import { Relatorio } from 'src/modules/relatorios/entities/relatorio.entity';
 
 @Injectable()
 export class FileService {

@@ -1,24 +1,28 @@
 version: '3.9'
 services:
   pnae_backend_hmg:
-    container_name: pnae_backend_hmg
     image: pnae_backend_hmg
     build:
       context: .
-      dockerfile: ./Dockerfile.prod
+      dockerfile: ./Dockerfile.hmg
       args:
         - HOST_UID=${HOST_UID}
         - HOST_GID=${HOST_GID}
     env_file:
-      - production.env
-    environment:
-      - NODE_ENV=production
-    ports:
-      - "3100:3100"
+      - homolog.env
+    # ports:
+    #   - "3100:3100"
     entrypoint: "dockerize -wait tcp://postgres_pnae_hmg:5432 -timeout 20s /usr/local/bin/docker-entrypoint.sh"
     command: "npm run start:prod"
     volumes:
-      - ${HOST_FOLDER}/data_hmg:${FILES_FOLDER}
+      - /home/pnae/pnae_app/data_hmg:/home/node/data_hmg
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2048M
+    restart: "on-failure"
     networks:
       - pnae_hmg_default
     depends_on:
@@ -29,12 +33,10 @@ services:
     image: postgres:16
     ports:
       - '5434:5432'
+    env_file:
+      - homolog.env
     volumes:
       - postgres_data_hmg:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_DB: ${POSTGRES_DB}
     networks:
       - pnae_hmg_default
   # prisma-migrate:
@@ -42,7 +44,7 @@ services:
   #   container_name: prisma_migrate
   #   command: npx prisma db push
   #   env_file:
-  #     - .env
+  #     - homolog.env
   #   depends_on:
   #     - postgres_pnae_hmg
   #   networks:

@@ -24,17 +24,25 @@ RUN apt-get update && \
     apt-get install -y /tmp/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb && \
     rm -rf /var/lib/apt/lists/* /tmp/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb
 
+
 COPY --from=builder /home/node/app/dist ./dist
 COPY --from=builder /home/node/app/certificates ./certificates
-COPY --from=builder /home/node/app/production.env ./.env
+COPY --from=builder /home/node/app/homolog.env ./.env
 COPY --from=builder /home/node/app/prisma ./prisma
 
-RUN chown -R node:node /home/node/
+RUN chown -R node:node /home/node/app
 
 COPY package*.json ./
 RUN npm ci --omit=dev
 
 RUN npx prisma generate
 
+RUN usermod -u 1001 node && groupmod -g 1001 node
+ENV NPM_CONFIG_CACHE=/home/node/.npm
+RUN mkdir -p /home/node/.npm && chown -R node:node /home/node/.npm
+# VOLUME /home/node/data_hmg
+# RUN mkdir -p /home/node/data_hmg && chown -R node:node /home/node/data_hmg
+
 USER node
+# RUN chown -R 1001:1002 /home/node/.npm
 # CMD npm run start:prod

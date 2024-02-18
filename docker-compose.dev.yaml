@@ -25,6 +25,8 @@ services:
   postgres_pnae:
     container_name: postgres_pnae_dev
     image: postgres:15
+    env_file:
+      - development.env
     ports:
       - '5433:5432'
     volumes:
