@@ -36,6 +36,7 @@ services:
       - homolog.env
     volumes:
       - postgres_data_hmg:/var/lib/postgresql/data
+    restart: always
     networks:
       - pnae_hmg_default
   # prisma-migrate:

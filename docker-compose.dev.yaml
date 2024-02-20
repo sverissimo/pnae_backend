@@ -15,15 +15,15 @@ services:
     ports:
       - '3001:3000'
     depends_on:
-      - postgres_pnae
+      - postgres_pnae_dev
     volumes:
       - ./:/home/node/app
       - ${HOST_FOLDER}/data_dev:${FILES_FOLDER}
       - ../logs/dev:/${LOGS_FOLDER}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    networks:
+      - pnae_dev_default
 
-  postgres_pnae:
+  postgres_pnae_dev:
     container_name: postgres_pnae_dev
     image: postgres:15
     env_file:
@@ -36,6 +36,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_DB: ${POSTGRES_DB}
+    networks:
+      - pnae_dev_default
+
 volumes:
   pg_data:
+    external: true
+networks:
+  pnae_dev_default:
     external: true
