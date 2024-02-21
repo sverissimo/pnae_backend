@@ -43,5 +43,4 @@ RUN mkdir -p /home/node/.npm && chown -R node:node /home/node/.npm
 RUN mkdir -p /home/node/logs && chown -R node:node /home/node/logs
 
 USER node
-# RUN chown -R 1001:1002 /home/node/.npm
 # CMD npm run start:prod

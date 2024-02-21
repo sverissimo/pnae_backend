@@ -1,7 +1,6 @@
 version: '3.9'
 services:
   pnae_backend_prod:
-    container_name: pnae_backend_prod
     image: pnae_backend_prod
     build:
       context: .
@@ -11,15 +10,18 @@ services:
         - HOST_GID=${HOST_GID}
     env_file:
       - production.env
-    environment:
-      - NODE_ENV=production
-    ports:
-      - "3200:3200"
     entrypoint: "dockerize -wait tcp://postgres_pnae_prod:5432 -timeout 20s /usr/local/bin/docker-entrypoint.sh"
     command: "npm run start:prod"
-
     volumes:
-      - ${HOST_FOLDER}/data:${FILES_FOLDER}
+      - /home/pnae/pnae_app/data:/home/node/data
+      - /home/pnae/pnae_app/logs/prod:/home/node/logs
+    deploy:
+      replicas: 6
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2048M
+    restart: always
     networks:
       - pnae_prod_default
     depends_on:
@@ -29,11 +31,12 @@ services:
     container_name: postgres_pnae_prod
     image: postgres:16
     ports:
-      - '5434:5432'
-    volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
+      - '5435:5432'
     env_file:
       - production.env
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    restart: always
     networks:
       - pnae_prod_default
   # prisma-migrate:

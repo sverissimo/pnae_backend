@@ -16,11 +16,11 @@ services:
       - /home/pnae/pnae_app/data_hmg:/home/node/data_hmg
       - /home/pnae/pnae_app/logs/hmg:/home/node/logs
     deploy:
-      replicas: 3
+      replicas: 1
       resources:
         limits:
-          cpus: '1'
-          memory: 2048M
+          cpus: '7.8'
+          memory: 4096M
     restart: "on-failure"
     networks:
       - pnae_hmg_default
