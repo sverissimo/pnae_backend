@@ -60,7 +60,7 @@ export class RelatorioDomainService {
       syncInfo.upToDateIds.push(clientRelatorio.id);
     }
 
-    console.log('🚀 - SyncService - updateRelatoriosData - syncInfo:', syncInfo);
+    // console.log('🚀 - SyncService - updateRelatoriosData - syncInfo:', syncInfo);
     return syncInfo;
   }
 

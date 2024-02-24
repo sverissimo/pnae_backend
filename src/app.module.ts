@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppService } from './app.service';
 import { RelatorioModule } from './modules/relatorios/relatorios.module';
 import { ConfigModule } from '@nestjs/config';
@@ -13,6 +13,7 @@ import { SyncModulte } from './modules/@sync/sync.module';
 import { UsuarioLdapService } from './modules/usuario/usuario.ldap.service';
 import { WinstonLoggerService } from './common/logging/winston-logger.service';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { AuthMiddleware } from './auth/auth.middleware';
 
 @Module({
   imports: [
@@ -34,4 +35,8 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
     },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(AuthMiddleware).forRoutes('*');
+  }
+}

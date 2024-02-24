@@ -122,6 +122,9 @@ export class RelatorioController {
         '🚀 ~ file: relatorios.controller.ts:118 ~ genPDF ~ error:' + error.message,
         error.trace,
       );
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       throw new InternalServerErrorException('Erro ao gerar PDF');
     }
   }

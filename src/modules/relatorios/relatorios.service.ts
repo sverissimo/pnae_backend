@@ -170,8 +170,12 @@ export class RelatorioService {
   }
 
   async createPDFInput(relatorioId: string) {
+    const relatorio = await this.findOne(relatorioId);
+    if (!relatorio) {
+      throw new NotFoundException('Relatório não encontrado');
+    }
+
     try {
-      const relatorio = await this.findOne(relatorioId);
       const { outroExtensionista, contratoId: relatorioContratoId } = relatorio;
 
       const tecnicoId = relatorio.tecnicoId.toString();
