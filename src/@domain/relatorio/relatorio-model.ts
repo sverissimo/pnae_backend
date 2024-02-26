@@ -8,6 +8,7 @@ export type RelatorioModel = {
   orientacao: string;
   pictureURI: string;
   assinaturaURI: string;
+  atendimentoId?: string;
   outroExtensionista?: string;
   coordenadas?: string;
   readOnly: boolean;

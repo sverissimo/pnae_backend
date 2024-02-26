@@ -18,6 +18,7 @@ model Relatorio {
   assinaturaURI      String?
   createdAt          DateTime?     @default(now()) @map("created_at")
   updatedAt          DateTime?
+  atendimentoId      BigInt?       @map("id_at_atendimento")
   outroExtensionista String?       @map("outro_extensionista")
   readOnly           Boolean       @default(false) @map("read_only")
   coordenadas        String?
@@ -40,23 +41,7 @@ model PictureFile {
   @@map("arquivos")
 }
 
-enum TipoPessoa {
-  F
-  J
-}
-
-enum TipoSexo {
-  F
-  M
-}
-
 enum PictureDescription {
   FOTO_RELATORIO
   ASSINATURA_PRODUTOR
-}
-
-enum Sexo {
-  MASCULINO
-  FEMININO
-  NAO_INFORMADO
 }

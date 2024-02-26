@@ -28,12 +28,20 @@ export class Relatorio {
   }
 
   static toModel(relatorioDto: RelatorioDto): RelatorioModel {
-    const { produtorId, tecnicoId, numeroRelatorio, createdAt, updatedAt, ...relatorio } =
-      relatorioDto;
+    const {
+      produtorId,
+      tecnicoId,
+      atendimentoId,
+      numeroRelatorio,
+      createdAt,
+      updatedAt,
+      ...relatorio
+    } = relatorioDto;
     const relatorioModel = {
       ...relatorio,
       produtorId: String(produtorId),
       tecnicoId: String(tecnicoId),
+      atendimentoId: atendimentoId ? String(atendimentoId) : undefined,
       numeroRelatorio: +numeroRelatorio,
       createdAt: createdAt ? createdAt.toISOString() : undefined,
       updatedAt: updatedAt ? updatedAt.toISOString() : undefined,
@@ -47,6 +55,7 @@ export class Relatorio {
       tecnicoId,
       contratoId,
       numeroRelatorio,
+      atendimentoId,
       createdAt,
       updatedAt,
       ...relatorio
@@ -57,6 +66,7 @@ export class Relatorio {
       tecnicoId: BigInt(tecnicoId),
       numeroRelatorio: Number(numeroRelatorio),
       contratoId: Number(contratoId),
+      atendimentoId: atendimentoId ? BigInt(atendimentoId) : undefined,
       createdAt: createdAt ? new Date(createdAt) : undefined,
       updatedAt: updatedAt ? new Date(updatedAt) : undefined,
       readOnly: relatorio.readOnly === true || String(relatorio.readOnly) === 'true' ? true : false,
@@ -74,6 +84,7 @@ export class Relatorio {
       updatedAt,
       readOnly,
       contratoId,
+      atendimentoId,
       ...relatorio
     } = {
       ...relatorioModel,
@@ -83,6 +94,7 @@ export class Relatorio {
       ...relatorio,
       produtorId: produtorId ? BigInt(produtorId) : undefined,
       tecnicoId: tecnicoId ? BigInt(tecnicoId) : undefined,
+      atendimentoId: atendimentoId ? BigInt(atendimentoId) : undefined,
       numeroRelatorio: numeroRelatorio ? +numeroRelatorio : undefined,
       createdAt: createdAt ? new Date(createdAt) : undefined,
       updatedAt: updatedAt ? new Date(updatedAt) : undefined,

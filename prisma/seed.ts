@@ -5,8 +5,9 @@ import { join } from 'path';
 const prisma = new PrismaClient();
 
 async function main() {
+  console.log('Skipping seed for now...');
   // const data = JSON.parse(fs.readFileSync(join(__dirname, 'data', 'fakeData.json'), 'utf-8'));
-  const data = JSON.parse(fs.readFileSync(join(__dirname, 'data', 'pictureFiles.json'), 'utf-8'));
+  // const data = JSON.parse(fs.readFileSync(join(__dirname, 'data', 'pictureFiles.json'), 'utf-8'));
 
   // // Insert produtores
   // await prisma.produtor.createMany({
@@ -35,12 +36,12 @@ async function main() {
   // });
 
   // Insert pictureFiles
-  await prisma.pictureFile.createMany({
-    data: data.map((p) => ({
-      ...p,
-      uploadDate: new Date(p.uploadDate),
-    })),
-  });
+  // await prisma.pictureFile.createMany({
+  //   data: data.map((p) => ({
+  //     ...p,
+  //     uploadDate: new Date(p.uploadDate),
+  //   })),
+  // });
 
   // // Insert tecnicos
   // await prisma.usuario.createMany({

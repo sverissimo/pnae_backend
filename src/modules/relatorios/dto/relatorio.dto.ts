@@ -8,6 +8,7 @@ export class RelatorioDto {
   orientacao: string;
   pictureURI: string;
   assinaturaURI: string;
+  atendimentoId?: bigint;
   outroExtensionista?: string;
   readOnly: boolean;
   coordenadas?: string;

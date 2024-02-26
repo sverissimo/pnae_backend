@@ -1,6 +1,23 @@
 import { gql } from 'graphql-request';
 
 export const atendimentoQuery = gql`
+  query Atendimento($id: BigInt) {
+    atendimento(id: $id) {
+      id_at_atendimento
+      id_at_acao
+      id_at_status
+      ativo
+      id_und_empresa
+      link_pdf
+      data_criacao
+      data_atualizacao
+      data_inicio_atendimento
+      data_fim_atendimento
+    }
+  }
+`;
+
+export const atendimentosQuery = gql`
   query {
     atendimentos {
       id_at_atendimento
@@ -22,6 +39,12 @@ export const createAtendimentoMutation = gql`
     createAtendimento(createAtendimentoInput: $input) {
       id_at_atendimento
     }
+  }
+`;
+
+export const updateAtendimentoMutation = gql`
+  mutation updateAtendimento($input: UpdateAtendimentoInput!) {
+    updateAtendimento(input: $input)
   }
 `;
 

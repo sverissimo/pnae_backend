@@ -29,7 +29,7 @@ export class AtendimentoController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.atendimentoService.findOne(+id);
+    return this.atendimentoService.findOne(id);
   }
 
   @Patch(':id')
@@ -39,6 +39,6 @@ export class AtendimentoController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.atendimentoService.remove(+id);
+    return this.atendimentoService.logicRemove(id);
   }
 }

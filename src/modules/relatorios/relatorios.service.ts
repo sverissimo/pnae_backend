@@ -16,6 +16,7 @@ import { Relatorio } from 'src/@domain/relatorio/relatorio';
 import { RelatorioDto } from './dto/relatorio.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { Usuario } from '../usuario/entity/usuario-model';
+import { AtendimentoService } from '../atendimento/atendimento.service';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -25,6 +26,7 @@ export class RelatorioService {
     private readonly prismaService: PrismaService,
     private readonly usuarioApi: UsuarioGraphQLAPI,
     private readonly produtorApi: ProdutorGraphQLAPI,
+    private readonly atendimentoService: AtendimentoService,
     private readonly fileService: FileService,
     private readonly restAPI: RestAPI,
   ) {}
@@ -127,12 +129,10 @@ export class RelatorioService {
       );
     }
 
-    const { pictureURI, assinaturaURI } = relatorio;
-    const fileIds = [pictureURI, assinaturaURI].filter((f) => !!f);
-    if (fileIds.length > 0) {
-      await this.fileService.remove(fileIds, relatorio);
-    }
+    const atendimentoId = relatorio?.atendimentoId?.toString();
+    atendimentoId && (await this.atendimentoService.logicRemove(atendimentoId));
 
+    await this.removeFiles(relatorio);
     await this.prismaService.relatorio.delete({ where: { id } });
     return `Relatorio ${id} removed.`;
   }
@@ -159,14 +159,6 @@ export class RelatorioService {
     await Promise.all([this.updateMany(editableUpdates), this.updateMany(readOnlyUpdates)]);
     const response = relatorios.map((r) => ({ ...r, readOnly: readOnlyIds.includes(r.id) }));
     return response;
-  }
-
-  private async updateMany({ ids, update }: { ids: string[]; update: Partial<RelatorioDto> }) {
-    const updated = await this.prismaService.relatorio.updateMany({
-      where: { id: { in: ids } },
-      data: update,
-    });
-    return updated;
   }
 
   async createPDFInput(relatorioId: string) {
@@ -249,5 +241,21 @@ export class RelatorioService {
       console.log(error);
       throw new InternalServerErrorException(error.message); // or throw new InternalServerErrorException(error.message);
     }
+  }
+
+  private async removeFiles(relatorio: RelatorioDto) {
+    const { pictureURI, assinaturaURI } = relatorio;
+    const fileIds = [pictureURI, assinaturaURI].filter((f) => !!f);
+    if (fileIds.length > 0) {
+      await this.fileService.remove(fileIds, relatorio);
+    }
+  }
+
+  private async updateMany({ ids, update }: { ids: string[]; update: Partial<RelatorioDto> }) {
+    const updated = await this.prismaService.relatorio.updateMany({
+      where: { id: { in: ids } },
+      data: update,
+    });
+    return updated;
   }
 }

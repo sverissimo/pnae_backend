@@ -11,9 +11,11 @@ export class AtendimentoService {
   async create(createAtendimentoDto: CreateAtendimentoDto) {
     const atendimento = new Atendimento(createAtendimentoDto);
 
-    console.log('🚀 ~ file: atendimento.service.ts:13 ~atendimento:', atendimento);
-    const atendimentoId = await this.graphQLAPI.createAtendimento(atendimento);
-    return atendimentoId;
+    const result = (await this.graphQLAPI.createAtendimento(atendimento)) as unknown as {
+      id_at_atendimento: string;
+    };
+
+    return result.id_at_atendimento;
   }
 
   async findAll() {
@@ -21,15 +23,15 @@ export class AtendimentoService {
     return atendimentos;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} atendimento`;
+  async findOne(id: string) {
+    return await this.graphQLAPI.findOne(id);
   }
 
   update(id: number, updateAtendimentoDto: UpdateAtendimentoDto) {
     return `This action updates a #${id} atendimento`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} atendimento`;
+  async logicRemove(id: string) {
+    await this.graphQLAPI.update({ id_at_atendimento: id, ativo: false });
   }
 }
