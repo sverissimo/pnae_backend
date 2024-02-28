@@ -9,10 +9,17 @@ export const producaoIndustrialLabels: FieldLabel[] = [
     field: 'tipo_gestao_unidade',
     label: 'Tipo de Gestão da Unidade',
   },
+
+  {
+    field: 'pessoas_processamento_alimentos',
+    label: 'Pessoas no Processamento de Alimentos',
+  },
+
   {
     field: 'tipo_estabelecimento',
     label: 'Tipo de Estabelecimento',
   },
+
   {
     field: 'tipo_pessoa_juridica',
     label: 'Tipo de Pessoa Jurídica',
@@ -20,6 +27,14 @@ export const producaoIndustrialLabels: FieldLabel[] = [
   {
     field: 'agroindustria_precisa_adaptacao_reforma',
     label: 'Agroindústria Precisa de Adaptação/Reforma',
+  },
+  {
+    field: 'possui_registro_orgao_fiscalizacao_sanitaria',
+    label: 'Possui Registro em Órgão de Fiscalização Sanitária',
+  },
+  {
+    field: 'orgao_fiscalizacao_sanitaria',
+    label: 'Órgão de Fiscalização Sanitária',
   },
   {
     field: 'controla_custos_producao',
