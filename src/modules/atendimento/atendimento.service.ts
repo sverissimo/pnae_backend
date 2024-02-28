@@ -24,7 +24,35 @@ export class AtendimentoService {
   }
 
   async findOne(id: string) {
-    return await this.graphQLAPI.findOne(id);
+    const atendimento = await this.graphQLAPI.findOne(id);
+    const { at_cli_atend_prop, at_atendimento_usuario } = atendimento;
+    atendimento.at_cli_atend_prop = at_cli_atend_prop && at_cli_atend_prop[0];
+    atendimento.at_atendimento_usuario = at_atendimento_usuario && at_atendimento_usuario[0];
+    return atendimento;
+  }
+
+  async updateIfNecessary(atendimentoId: string) {
+    const atendimento = await this.findOne(atendimentoId);
+    if (!atendimento?.sn_pendencia) {
+      return;
+    }
+
+    await this.graphQLAPI.update({ id_at_atendimento: atendimentoId, ativo: false });
+
+    const { id_und_empresa, link_pdf, at_cli_atend_prop, at_atendimento_usuario } = atendimento;
+    const { id_usuario } = at_atendimento_usuario;
+    const { id_pessoa_demeter, id_pl_propriedade } = at_cli_atend_prop;
+
+    const createAtendimentoDTO: CreateAtendimentoDto = {
+      id_usuario,
+      id_und_empresa,
+      link_pdf,
+      id_pessoa_demeter,
+      id_pl_propriedade,
+      id_at_anterior: atendimentoId,
+    };
+
+    await this.create(createAtendimentoDTO);
   }
 
   update(id: number, updateAtendimentoDto: UpdateAtendimentoDto) {

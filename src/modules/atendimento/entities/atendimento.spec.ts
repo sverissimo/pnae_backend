@@ -38,7 +38,7 @@ describe('Atendimento entity', () => {
       expect(atendimento.data_atualizacao).toHaveLength(24);
       expect(atendimento.data_inicio_atendimento).toHaveLength(24);
       expect(atendimento.data_fim_atendimento).toHaveLength(24);
-      expect(atendimento.atendimento_usuario).toEqual({
+      expect(atendimento.at_atendimento_usuario).toEqual({
         id_usuario: input.id_usuario,
         id_und_empresa: input.id_und_empresa,
       });
@@ -60,7 +60,7 @@ describe('Atendimento entity', () => {
       const id = '123';
       atendimento.addAtendimentoId(id);
       expect(atendimento.id_at_atendimento).toEqual(id);
-      expect(atendimento.atendimento_usuario?.id_at_atendimento).toEqual(id);
+      expect(atendimento.at_atendimento_usuario?.id_at_atendimento).toEqual(id);
       expect(atendimento.atendimento_indicador?.id_at_atendimento).toEqual(id);
       expect(atendimento.at_cli_atend_prop?.id_at_atendimento).toEqual(id);
     });
@@ -85,7 +85,7 @@ describe('Atendimento entity', () => {
   });
 
   describe('getAtendimentoUsuario', () => {
-    it('should return atendimento_usuario object', () => {
+    it('should return at_atendimento_usuario object', () => {
       const atendimento = new Atendimento(input);
       const expected = {
         id_usuario: input.id_usuario,

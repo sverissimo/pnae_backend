@@ -32,15 +32,17 @@ export class Atendimento {
   data_inicio_atendimento: string;
   data_fim_atendimento: string;
   data_atualizacao: string;
+  sn_pendencia: number;
 
-  atendimento_usuario?: at_atendimento_usuario;
+  at_atendimento_usuario?: at_atendimento_usuario;
   atendimento_indicador?: at_atendimento_indicador;
   at_cli_atend_prop?: at_cli_atend_prop;
 
   constructor(input: CreateAtendimentoDto) {
-    this.id_at_acao = '2';
+    this.id_at_acao = '1';
     this.id_at_status = 1;
     this.ativo = true;
+    this.sn_pendencia = 0;
     const createdAt = new Date().toISOString();
 
     this.id_und_empresa = input.id_und_empresa;
@@ -50,7 +52,7 @@ export class Atendimento {
     this.data_inicio_atendimento = createdAt;
     this.data_fim_atendimento = createdAt;
 
-    this.atendimento_usuario = {
+    this.at_atendimento_usuario = {
       id_usuario: input.id_usuario,
       id_und_empresa: input.id_und_empresa,
     };
@@ -68,18 +70,19 @@ export class Atendimento {
   }
   addAtendimentoId(id: string) {
     this.id_at_atendimento = id;
-    this.atendimento_usuario.id_at_atendimento = id;
+    this.at_atendimento_usuario.id_at_atendimento = id;
     this.atendimento_indicador.id_at_atendimento = id;
     this.at_cli_atend_prop.id_at_atendimento = id;
   }
 
   getAtendimento() {
-    const { atendimento_usuario, atendimento_indicador, at_cli_atend_prop, ...atendimento } = this;
+    const { at_atendimento_usuario, atendimento_indicador, at_cli_atend_prop, ...atendimento } =
+      this;
     return atendimento;
   }
 
   getAtendimentoUsuario() {
-    return this.atendimento_usuario;
+    return this.at_atendimento_usuario;
   }
 
   getAtendimentoIndicador() {

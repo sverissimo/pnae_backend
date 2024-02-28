@@ -28,8 +28,12 @@ export class AtendimentoController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.atendimentoService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    try {
+      return await this.atendimentoService.findOne(id);
+    } catch (error) {
+      console.log('🚀 - AtendimentoController - findOne - (error:', error);
+    }
   }
 
   @Patch(':id')

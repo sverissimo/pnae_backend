@@ -13,6 +13,13 @@ export const atendimentoQuery = gql`
       data_atualizacao
       data_inicio_atendimento
       data_fim_atendimento
+      at_cli_atend_prop {
+        id_pessoa_demeter
+        id_pl_propriedade
+      }
+      at_atendimento_usuario {
+        id_usuario
+      }
     }
   }
 `;
@@ -62,7 +69,7 @@ export const updateAtendimentoMutation = gql`
 //       data_atualizacao
 //       data_inicio_atendimento
 //       data_fim_atendimento
-//       atendimento_usuario {
+//       at_atendimento_usuario {
 //         id_usuario
 //         id_at_atendimento
 //         id_und_empresa
