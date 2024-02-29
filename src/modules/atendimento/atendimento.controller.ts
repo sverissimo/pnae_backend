@@ -38,7 +38,7 @@ export class AtendimentoController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateAtendimentoDto: UpdateAtendimentoDto) {
-    return this.atendimentoService.update(+id, updateAtendimentoDto);
+    return this.atendimentoService.update(id, updateAtendimentoDto);
   }
 
   @Delete(':id')

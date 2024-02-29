@@ -9,13 +9,10 @@ export class AtendimentoService {
   constructor(private graphQLAPI: AtendimentoGraphQLAPI) {}
 
   async create(createAtendimentoDto: CreateAtendimentoDto) {
-    const atendimento = new Atendimento(createAtendimentoDto);
+    const atendimento = Atendimento.create(createAtendimentoDto);
 
-    const result = (await this.graphQLAPI.createAtendimento(atendimento)) as unknown as {
-      id_at_atendimento: string;
-    };
-
-    return result.id_at_atendimento;
+    const newAtendimentoId: string = await this.graphQLAPI.createAtendimento(atendimento);
+    return newAtendimentoId;
   }
 
   async findAll() {
@@ -31,35 +28,44 @@ export class AtendimentoService {
     return atendimento;
   }
 
-  async updateIfNecessary(atendimentoId: string) {
+  async updateIfNecessary(atendimentoId: string, numero_relatorio: string) {
     const atendimento = await this.findOne(atendimentoId);
+    // console.log('🚀 - AtendimentoService - updateIfNecessary - atendimento:', atendimento);
+
     if (!atendimento?.sn_pendencia) {
       return;
     }
-
-    await this.graphQLAPI.update({ id_at_atendimento: atendimentoId, ativo: false });
 
     const { id_und_empresa, link_pdf, at_cli_atend_prop, at_atendimento_usuario } = atendimento;
     const { id_usuario } = at_atendimento_usuario;
     const { id_pessoa_demeter, id_pl_propriedade } = at_cli_atend_prop;
 
-    const createAtendimentoDTO: CreateAtendimentoDto = {
+    const atendimentoDTO: CreateAtendimentoDto = {
       id_usuario,
       id_und_empresa,
       link_pdf,
       id_pessoa_demeter,
       id_pl_propriedade,
+      numero_relatorio,
       id_at_anterior: atendimentoId,
     };
 
-    await this.create(createAtendimentoDTO);
+    await this.logicRemove(atendimentoId);
+    const newAtendimento = Atendimento.recreate(atendimentoDTO);
+    const newAtendimentoId = await this.graphQLAPI.createAtendimento(newAtendimento);
+    console.log(
+      '🚀 - AtendimentoService - updateIfNecessary - newAtendimentoId:',
+      newAtendimentoId,
+    );
+
+    return newAtendimentoId;
   }
 
-  update(id: number, updateAtendimentoDto: UpdateAtendimentoDto) {
-    return `This action updates a #${id} atendimento`;
+  async update(id: string, updateAtendimentoDto: UpdateAtendimentoDto) {
+    await this.graphQLAPI.update({ id_at_atendimento: id, ...updateAtendimentoDto });
   }
 
   async logicRemove(id: string) {
-    await this.graphQLAPI.update({ id_at_atendimento: id, ativo: false });
+    await this.update(id, { ativo: false });
   }
 }

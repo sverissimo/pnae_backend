@@ -44,13 +44,14 @@ export class Atendimento {
   data_fim_atendimento: string;
   data_atualizacao: string;
   sn_pendencia: number;
+  id_at_anterior?: string;
 
   at_atendimento_usuario?: at_atendimento_usuario;
   at_atendimento_indicador?: at_atendimento_indicador;
   at_cli_atend_prop?: at_cli_atend_prop;
   at_atendimento_indi_camp_acess?: at_atendimento_indi_camp_acess[];
 
-  constructor(input: CreateAtendimentoDto) {
+  private constructor(input: CreateAtendimentoDto) {
     this.id_at_acao = '1';
     this.id_at_status = 1;
     this.ativo = true;
@@ -63,7 +64,7 @@ export class Atendimento {
       id_und_empresa,
       id_usuario,
       link_pdf,
-      numero_relatorio,
+      id_at_anterior,
     } = input;
 
     this.id_und_empresa = id_und_empresa;
@@ -72,6 +73,7 @@ export class Atendimento {
     this.data_atualizacao = createdAt;
     this.data_inicio_atendimento = createdAt;
     this.data_fim_atendimento = createdAt;
+    this.id_at_anterior = id_at_anterior || undefined;
 
     this.at_atendimento_usuario = {
       id_usuario,
@@ -88,18 +90,25 @@ export class Atendimento {
       id_at_indicador: '4026',
       id_und_empresa,
     };
-
-    this.at_atendimento_indi_camp_acess = this.createIndicadoresCampoAssessorio(numero_relatorio);
   }
 
-  addAtendimentoId(id: string) {
-    this.id_at_atendimento = id;
-    this.at_atendimento_usuario.id_at_atendimento = id;
-    this.at_atendimento_indicador.id_at_atendimento = id;
-    this.at_cli_atend_prop.id_at_atendimento = id;
+  static create(input: CreateAtendimentoDto) {
+    const instance = new Atendimento(input);
+    instance.at_atendimento_indi_camp_acess = instance.createIndicadoresCampoAssessorio(
+      input.numero_relatorio,
+    );
+    return instance;
   }
 
-  createIndicadoresCampoAssessorio(numero_relatorio): at_atendimento_indi_camp_acess[] {
+  static recreate(input: CreateAtendimentoDto) {
+    const instance = new Atendimento(input);
+    instance.at_atendimento_indi_camp_acess = instance.updateIndicadoresCampoAssessorio(
+      input.numero_relatorio,
+    );
+    return instance;
+  }
+
+  private createIndicadoresCampoAssessorio(numero_relatorio): at_atendimento_indi_camp_acess[] {
     return [
       {
         id_at_indicador_camp_acessorio: '13896',
@@ -114,26 +123,18 @@ export class Atendimento {
     ];
   }
 
-  getAtendimento() {
-    const {
-      at_atendimento_usuario,
-      at_atendimento_indicador,
-      at_cli_atend_prop,
-      at_atendimento_indi_camp_acess,
-      ...atendimento
-    } = this;
-    return atendimento;
-  }
-
-  getAtendimentoUsuario() {
-    return this.at_atendimento_usuario;
-  }
-
-  getAtendimentoIndicador() {
-    return this.at_atendimento_indicador;
-  }
-
-  getAtendimentoCliAtendProp() {
-    return this.at_cli_atend_prop;
+  private updateIndicadoresCampoAssessorio(numero_relatorio): at_atendimento_indi_camp_acess[] {
+    return [
+      {
+        id_at_indicador_camp_acessorio: '13896',
+        valor_campo_acessorio: 'Sim',
+        id_und_empresa: this.id_und_empresa,
+      },
+      {
+        id_at_indicador_camp_acessorio: '13895',
+        valor_campo_acessorio: String(numero_relatorio),
+        id_und_empresa: this.id_und_empresa,
+      },
+    ];
   }
 }

@@ -28,8 +28,17 @@ export class AtendimentoGraphQLAPI extends GraphQLAPI {
   async createAtendimento(createAtendimentoInput: Atendimento) {
     const document = createAtendimentoMutation;
     const variables = { input: createAtendimentoInput };
-    const result = await this.client.request({ document, variables });
-    return result;
+    const { id_at_atendimento }: { id_at_atendimento: string } = await this.client.request({
+      document,
+      variables,
+    });
+
+    console.log(
+      '🚀 - AtendimentoGraphQLAPI - createAtendimento - id_at_atendimento:',
+      id_at_atendimento,
+    );
+
+    return id_at_atendimento;
   }
 
   async update(updateAtendimentoInput: Partial<Atendimento>) {

@@ -13,6 +13,7 @@ export const atendimentoQuery = gql`
       data_atualizacao
       data_inicio_atendimento
       data_fim_atendimento
+      sn_pendencia
       at_cli_atend_prop {
         id_pessoa_demeter
         id_pl_propriedade

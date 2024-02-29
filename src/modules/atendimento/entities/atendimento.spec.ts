@@ -30,7 +30,7 @@ describe('Atendimento entity', () => {
   });
   describe('constructor', () => {
     it('should set default values', () => {
-      const atendimento = new Atendimento(input);
+      const atendimento = Atendimento.create(input);
       expect(atendimento.id_at_acao).toEqual('1');
       expect(atendimento.id_at_status).toEqual(1);
       expect(atendimento.ativo).toEqual(true);
@@ -56,21 +56,9 @@ describe('Atendimento entity', () => {
     });
   });
 
-  describe('addAtendimentoId', () => {
-    it('should set id_at_atendimento and update related objects', () => {
-      const atendimento = new Atendimento(input);
-      const id = '123';
-      atendimento.addAtendimentoId(id);
-      expect(atendimento.id_at_atendimento).toEqual(id);
-      expect(atendimento.at_atendimento_usuario?.id_at_atendimento).toEqual(id);
-      expect(atendimento.at_atendimento_indicador?.id_at_atendimento).toEqual(id);
-      expect(atendimento.at_cli_atend_prop?.id_at_atendimento).toEqual(id);
-    });
-  });
-
   describe('getAtendimento', () => {
     it('should return atendimento object without related objects', () => {
-      const atendimento = new Atendimento(input);
+      const atendimento = Atendimento.create(input);
       const expected = {
         id_at_acao: '1',
         id_at_status: 1,
@@ -83,52 +71,77 @@ describe('Atendimento entity', () => {
         data_fim_atendimento: input.data_criacao,
         sn_pendencia: 0,
       };
-      expect(atendimento.getAtendimento()).toEqual(expected);
+
+      const {
+        at_atendimento_usuario,
+        at_atendimento_indicador,
+        at_cli_atend_prop,
+        at_atendimento_indi_camp_acess,
+        ...at
+      } = atendimento;
+
+      expect(at).toEqual(expected);
     });
   });
 
   describe('getAtendimentoUsuario', () => {
     it('should return at_atendimento_usuario object', () => {
-      const atendimento = new Atendimento(input);
+      const atendimento = Atendimento.create(input);
       const expected = {
         id_usuario: input.id_usuario,
         id_und_empresa: input.id_und_empresa,
       };
-      expect(atendimento.getAtendimentoUsuario()).toEqual(expected);
+      expect(atendimento.at_atendimento_usuario).toEqual(expected);
     });
   });
 
   describe('getAtendimentoIndicador', () => {
     it('should return at_atendimento_indicador object', () => {
-      const atendimento = new Atendimento(input);
+      const atendimento = Atendimento.create(input);
       const expected = {
         id_at_indicador: '4026',
         id_und_empresa: input.id_und_empresa,
       };
-      expect(atendimento.getAtendimentoIndicador()).toEqual(expected);
+      expect(atendimento.at_atendimento_indicador).toEqual(expected);
     });
   });
 
   describe('getAtendimentoCliAtendProp', () => {
     it('should return at_cli_atend_prop object', () => {
-      const atendimento = new Atendimento(input);
+      const atendimento = Atendimento.create(input);
       const expected = {
         id_pessoa_demeter: input.id_pessoa_demeter,
         id_pl_propriedade: input.id_pl_propriedade,
         id_und_empresa: input.id_und_empresa,
       };
-      expect(atendimento.getAtendimentoCliAtendProp()).toEqual(expected);
+      expect(atendimento.at_cli_atend_prop).toEqual(expected);
     });
   });
 
   describe('createIndicadoresCampoAssessorio', () => {
     it('should return an array of at_atendimento_indi_camp_acess objects', () => {
-      const atendimento = new Atendimento(input);
+      const atendimento = Atendimento.create(input);
       const campo1 = atendimento.at_atendimento_indi_camp_acess[0];
       const campo2 = atendimento.at_atendimento_indi_camp_acess[1];
 
       expect(campo1.id_at_indicador_camp_acessorio).toEqual('13896');
       expect(campo1.valor_campo_acessorio).toEqual('Não');
+      expect(campo1.id_und_empresa).toEqual(atendimento.id_und_empresa);
+
+      expect(campo2.id_at_indicador_camp_acessorio).toEqual('13895');
+      expect(campo2.valor_campo_acessorio).toEqual(input.numero_relatorio);
+      expect(campo2.id_und_empresa).toEqual(atendimento.id_und_empresa);
+    });
+  });
+
+  describe('updateIndicadoresCampoAssessorio', () => {
+    it('should return an array of at_atendimento_indi_camp_acess objects', () => {
+      const atendimento = Atendimento.recreate(input);
+      const campo1 = atendimento.at_atendimento_indi_camp_acess[0];
+      const campo2 = atendimento.at_atendimento_indi_camp_acess[1];
+
+      expect(campo1.id_at_indicador_camp_acessorio).toEqual('13896');
+      expect(campo1.valor_campo_acessorio).toEqual('Sim');
       expect(campo1.id_und_empresa).toEqual(atendimento.id_und_empresa);
 
       expect(campo2.id_at_indicador_camp_acessorio).toEqual('13895');

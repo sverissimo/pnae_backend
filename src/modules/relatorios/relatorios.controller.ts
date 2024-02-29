@@ -13,6 +13,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Res,
+  Header,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
@@ -22,6 +23,7 @@ import { pdfGen } from 'src/@pdf-gen/pdf-gen';
 import { FilesInputDto } from 'src/common/files/files-input.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import * as archiver from 'archiver';
 
 @Controller('relatorios')
 export class RelatorioController {
@@ -129,6 +131,61 @@ export class RelatorioController {
     }
   }
 
+  // @Header('Content-Type', 'application/pdf')
+  // @Header('Content-Disposition', 'attachment; filename="relatorios.pdf"')
+  @Get('/zip/:id')
+  async generateZip(@Param('id') id: string, @Res() res: Response) {
+    try {
+      const {
+        relatorio,
+        perfilPDFModel,
+        nome_propriedade,
+        dados_producao_agro_industria,
+        dados_producao_in_natura,
+      } = await this.relatorioService.createPDFInput(id);
+
+      const { numeroRelatorio, produtor } = relatorio;
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.zip`,
+      );
+
+      const archive = archiver('zip', {
+        zlib: { level: 9 }, // Compression level
+      });
+
+      for (let i = 0; i < 3; i++) {
+        const chunks = [];
+        const pdfStream = await pdfGen({
+          relatorio,
+          perfilPDFModel,
+          nome_propriedade,
+          dados_producao_agro_industria,
+          dados_producao_in_natura,
+        });
+
+        await new Promise<void>((resolve, reject) => {
+          pdfStream.on('data', (chunk) => chunks.push(chunk));
+          pdfStream.on('end', () => {
+            const completePdfFile = Buffer.concat(chunks);
+            archive.append(completePdfFile, { name: `relatório${i}.pdf` });
+            resolve();
+          });
+          pdfStream.on('error', reject);
+        });
+      }
+
+      archive.pipe(res);
+      archive.finalize();
+      console.log('🚀 ...done ');
+    } catch (error) {
+      console.log('🚀 - RelatorioController - generateZip - error:', error);
+      res.send('Erro ao gerar zip');
+    }
+  }
+
   @Patch(':id')
   @UseInterceptors(
     FileFieldsInterceptor([
@@ -143,16 +200,12 @@ export class RelatorioController {
   ) {
     try {
       const relatorioUpdate = { id, ...update };
-      const updatedRelatorio = await this.relatorioService.update(relatorioUpdate);
-
-      if (!updatedRelatorio) {
-        throw new NotFoundException(`Relatorio com id ${id} não encontrado.`);
-      }
+      const newAtendimentoId = await this.relatorioService.update(relatorioUpdate);
 
       if (files && Object.keys(files).length > 0) {
         await this.fileService.update(files, relatorioUpdate);
       }
-      return updatedRelatorio;
+      return newAtendimentoId;
     } catch (error) {
       this.logger.error(
         '🚀 ~ file: relatorios.controller.ts:147 ~ update ~ error:' + error.message,

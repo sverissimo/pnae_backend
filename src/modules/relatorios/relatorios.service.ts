@@ -17,6 +17,8 @@ import { RelatorioDto } from './dto/relatorio.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { Usuario } from '../usuario/entity/usuario-model';
 import { AtendimentoService } from '../atendimento/atendimento.service';
+import { pdfGen } from 'src/@pdf-gen/pdf-gen';
+import * as archiver from 'archiver';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -105,7 +107,9 @@ export class RelatorioService {
   }
 
   async update(update: RelatorioModel) {
-    const { id } = update;
+    console.log('🚀 - RelatorioService - update - update:', update);
+
+    const { id, atendimentoId, numeroRelatorio } = update;
     const { readOnly } = await this.findOne(id);
     if (readOnly) {
       throw new UnauthorizedException(
@@ -113,12 +117,19 @@ export class RelatorioService {
       );
     }
 
-    const data = Relatorio.updateFieldsToDTO(update);
-    const updated = await this.prismaService.relatorio.update({
+    const newAtendimentoId = await this.atendimentoService.updateIfNecessary(
+      atendimentoId,
+      String(numeroRelatorio),
+    );
+    console.log('🚀 - RelatorioService - update - newAtendimentoId:', newAtendimentoId);
+
+    const data = Relatorio.updateFieldsToDTO({ ...update, atendimentoId: newAtendimentoId });
+    await this.prismaService.relatorio.update({
       where: { id },
       data,
     });
-    return updated;
+
+    return newAtendimentoId;
   }
 
   async remove(id: string) {
@@ -241,6 +252,49 @@ export class RelatorioService {
       console.log(error);
       throw new InternalServerErrorException(error.message); // or throw new InternalServerErrorException(error.message);
     }
+  }
+
+  async createZipStream(relatorioId) {
+    const pdfStream = await this.createPDFStream(relatorioId);
+
+    const archive = archiver('zip', {
+      zlib: { level: 9 }, // Compression level
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      const chunks = [];
+      pdfStream.on('data', (chunk) => chunks.push(chunk));
+      pdfStream.on('end', () => {
+        // Combine all chunks to get the complete PDF file
+        const completePdfFile = Buffer.concat(chunks);
+        // Add the PDF to the archive
+        archive.append(completePdfFile, { name: `relatório.pdf` });
+        resolve();
+      });
+      pdfStream.on('error', reject);
+    });
+
+    return pdfStream;
+  }
+
+  private async createPDFStream(relatorioId: string) {
+    const {
+      relatorio,
+      perfilPDFModel,
+      nome_propriedade,
+      dados_producao_agro_industria,
+      dados_producao_in_natura,
+    } = await this.createPDFInput(relatorioId);
+
+    const pdfStream = await pdfGen({
+      relatorio,
+      perfilPDFModel,
+      nome_propriedade,
+      dados_producao_agro_industria,
+      dados_producao_in_natura,
+    });
+
+    return pdfStream;
   }
 
   private async removeFiles(relatorio: RelatorioDto) {
