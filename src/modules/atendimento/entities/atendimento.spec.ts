@@ -7,6 +7,8 @@ const input = {
   link_pdf: 'http://teste-pnae-mobile-app.com',
   id_pessoa_demeter: '1707715',
   id_pl_propriedade: '59327',
+  sn_pendencia: 0,
+  numero_relatorio: '123',
 };
 
 describe('Atendimento entity', () => {
@@ -29,7 +31,7 @@ describe('Atendimento entity', () => {
   describe('constructor', () => {
     it('should set default values', () => {
       const atendimento = new Atendimento(input);
-      expect(atendimento.id_at_acao).toEqual('2');
+      expect(atendimento.id_at_acao).toEqual('1');
       expect(atendimento.id_at_status).toEqual(1);
       expect(atendimento.ativo).toEqual(true);
       expect(atendimento.id_und_empresa).toEqual(input.id_und_empresa);
@@ -47,7 +49,7 @@ describe('Atendimento entity', () => {
         id_pl_propriedade: input.id_pl_propriedade,
         id_und_empresa: input.id_und_empresa,
       });
-      expect(atendimento.atendimento_indicador).toEqual({
+      expect(atendimento.at_atendimento_indicador).toEqual({
         id_at_indicador: '4026',
         id_und_empresa: input.id_und_empresa,
       });
@@ -61,7 +63,7 @@ describe('Atendimento entity', () => {
       atendimento.addAtendimentoId(id);
       expect(atendimento.id_at_atendimento).toEqual(id);
       expect(atendimento.at_atendimento_usuario?.id_at_atendimento).toEqual(id);
-      expect(atendimento.atendimento_indicador?.id_at_atendimento).toEqual(id);
+      expect(atendimento.at_atendimento_indicador?.id_at_atendimento).toEqual(id);
       expect(atendimento.at_cli_atend_prop?.id_at_atendimento).toEqual(id);
     });
   });
@@ -70,7 +72,7 @@ describe('Atendimento entity', () => {
     it('should return atendimento object without related objects', () => {
       const atendimento = new Atendimento(input);
       const expected = {
-        id_at_acao: '2',
+        id_at_acao: '1',
         id_at_status: 1,
         ativo: true,
         id_und_empresa: input.id_und_empresa,
@@ -79,6 +81,7 @@ describe('Atendimento entity', () => {
         data_atualizacao: input.data_criacao,
         data_inicio_atendimento: input.data_criacao,
         data_fim_atendimento: input.data_criacao,
+        sn_pendencia: 0,
       };
       expect(atendimento.getAtendimento()).toEqual(expected);
     });
@@ -96,7 +99,7 @@ describe('Atendimento entity', () => {
   });
 
   describe('getAtendimentoIndicador', () => {
-    it('should return atendimento_indicador object', () => {
+    it('should return at_atendimento_indicador object', () => {
       const atendimento = new Atendimento(input);
       const expected = {
         id_at_indicador: '4026',
@@ -115,6 +118,22 @@ describe('Atendimento entity', () => {
         id_und_empresa: input.id_und_empresa,
       };
       expect(atendimento.getAtendimentoCliAtendProp()).toEqual(expected);
+    });
+  });
+
+  describe('createIndicadoresCampoAssessorio', () => {
+    it('should return an array of at_atendimento_indi_camp_acess objects', () => {
+      const atendimento = new Atendimento(input);
+      const campo1 = atendimento.at_atendimento_indi_camp_acess[0];
+      const campo2 = atendimento.at_atendimento_indi_camp_acess[1];
+
+      expect(campo1.id_at_indicador_camp_acessorio).toEqual('13896');
+      expect(campo1.valor_campo_acessorio).toEqual('Não');
+      expect(campo1.id_und_empresa).toEqual(atendimento.id_und_empresa);
+
+      expect(campo2.id_at_indicador_camp_acessorio).toEqual('13895');
+      expect(campo2.valor_campo_acessorio).toEqual(input.numero_relatorio);
+      expect(campo2.id_und_empresa).toEqual(atendimento.id_und_empresa);
     });
   });
 });

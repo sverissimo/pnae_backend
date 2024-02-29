@@ -5,4 +5,5 @@ export class CreateAtendimentoDto {
   id_pessoa_demeter: string;
   id_pl_propriedade: string;
   id_at_anterior?: string;
+  numero_relatorio?: string;
 }
