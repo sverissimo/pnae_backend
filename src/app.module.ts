@@ -14,6 +14,7 @@ import { UsuarioLdapService } from './modules/usuario/usuario.ldap.service';
 import { WinstonLoggerService } from './common/logging/winston-logger.service';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthMiddleware } from './auth/auth.middleware';
+import { AuthController } from './auth/auth.controller';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { AuthMiddleware } from './auth/auth.middleware';
     AtendimentoModule,
     SyncModulte,
   ],
-  controllers: [AppController, UsuarioController],
+  controllers: [AppController, UsuarioController, AuthController],
   providers: [
     AppService,
     UsuarioGraphQLAPI,

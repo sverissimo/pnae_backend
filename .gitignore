@@ -51,3 +51,4 @@ _mockData
 !.vscode/extensions.json
 prisma/data
 .vscode/settings.json
+src/modules/relatorios/dataSample.json

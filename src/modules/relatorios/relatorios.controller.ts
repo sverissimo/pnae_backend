@@ -23,7 +23,6 @@ import { pdfGen } from 'src/@pdf-gen/pdf-gen';
 import { FilesInputDto } from 'src/common/files/files-input.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
-import * as archiver from 'archiver';
 
 @Controller('relatorios')
 export class RelatorioController {
@@ -136,46 +135,14 @@ export class RelatorioController {
   @Get('/zip/:id')
   async generateZip(@Param('id') id: string, @Res() res: Response) {
     try {
-      const {
-        relatorio,
-        perfilPDFModel,
-        nome_propriedade,
-        dados_producao_agro_industria,
-        dados_producao_in_natura,
-      } = await this.relatorioService.createPDFInput(id);
-
-      const { numeroRelatorio, produtor } = relatorio;
-
       res.setHeader('Content-Type', 'application/zip');
-      res.setHeader(
-        'Content-Disposition',
-        `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.zip`,
-      );
+      res.setHeader('Content-Disposition', `inline; filename=relatorio_1.zip`);
 
-      const archive = archiver('zip', {
-        zlib: { level: 9 }, // Compression level
-      });
+      const relatorios = await this.relatorioService.findAll();
+      const relatoriosIds = relatorios.map((relatorio) => relatorio.id);
+      console.log(relatoriosIds);
 
-      for (let i = 0; i < 3; i++) {
-        const chunks = [];
-        const pdfStream = await pdfGen({
-          relatorio,
-          perfilPDFModel,
-          nome_propriedade,
-          dados_producao_agro_industria,
-          dados_producao_in_natura,
-        });
-
-        await new Promise<void>((resolve, reject) => {
-          pdfStream.on('data', (chunk) => chunks.push(chunk));
-          pdfStream.on('end', () => {
-            const completePdfFile = Buffer.concat(chunks);
-            archive.append(completePdfFile, { name: `relatório${i}.pdf` });
-            resolve();
-          });
-          pdfStream.on('error', reject);
-        });
-      }
+      const archive = await this.relatorioService.createZipFile(relatoriosIds);
 
       archive.pipe(res);
       archive.finalize();

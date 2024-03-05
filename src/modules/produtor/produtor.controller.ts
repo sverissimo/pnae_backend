@@ -82,6 +82,16 @@ export class ProdutorController {
     }
   }
 
+  @Post('/findMany')
+  async findMany(@Body() ids: string[]) {
+    try {
+      return await this.produtorService.findManyById(ids);
+    } catch (error) {
+      this.logger.error('ProdutorController 92 - ' + error.message, error.trace);
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateProdutorDto: UpdateProdutorDto) {
     return this.produtorService.update(+id, updateProdutorDto);

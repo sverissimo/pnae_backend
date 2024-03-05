@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { produtorQuery, produtorUnidadeEmpresaQuery } from './queries';
+import { produtorQuery, produtorUnidadeEmpresaQuery, produtoresQuery } from './queries';
 import { GraphQLAPI } from './GraphQLAPI';
 import { Produtor } from 'src/@domain/produtor/produtor';
 
@@ -17,6 +17,13 @@ export class ProdutorGraphQLAPI extends GraphQLAPI {
     const variables = { id: parseInt(id) };
     const { produtor } = (await this.client.request({ document, variables })) as any;
     return this.parseBigint(produtor);
+  }
+
+  async getManyProdutores(ids: string[]): Promise<any> {
+    const document = produtoresQuery;
+    const variables = { ids };
+    const result = (await this.client.request({ document, variables })) as any;
+    return result;
   }
 
   async getProdutorUnidadeEmpresaId(id: string): Promise<Partial<Produtor>> {

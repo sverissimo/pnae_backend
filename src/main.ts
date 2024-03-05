@@ -4,6 +4,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BigIntInterceptor } from './interceptors/big-int.interceptor';
 import { WinstonLoggerService } from './common/logging/winston-logger.service';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
   const keyPath = path.join(__dirname, '..', 'certificates', 'csr-key-emater.pem');
@@ -20,8 +22,12 @@ async function bootstrap() {
 
   const app =
     env === 'production'
-      ? await NestFactory.create(AppModule, logger)
-      : await NestFactory.create(AppModule, { httpsOptions, ...logger });
+      ? await NestFactory.create<NestExpressApplication>(AppModule, logger)
+      : await NestFactory.create<NestExpressApplication>(AppModule, { httpsOptions, ...logger });
+
+  app.useStaticAssets(join(__dirname, 'public'));
+  app.setBaseViewsDir(join(__dirname, 'views'));
+  app.setViewEngine('ejs');
 
   app.enableCors();
   app.useGlobalInterceptors(new BigIntInterceptor());

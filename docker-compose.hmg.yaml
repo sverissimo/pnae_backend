@@ -45,6 +45,7 @@ services:
   #   command: npx prisma db push
   #   env_file:
   #     - homolog.env
+  #   working_dir: /home/node/app/prisma
   #   depends_on:
   #     - postgres_pnae_hmg
   #   networks:

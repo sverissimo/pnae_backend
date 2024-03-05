@@ -133,6 +133,26 @@ export const produtorQuery = gql`
   }
 `;
 
+export const produtoresQuery = gql`
+  query Produtores($ids: [String]) {
+    produtores(ids: $ids) {
+      id_pessoa_demeter
+      nm_pessoa
+      nr_cpf_cnpj
+      id_und_empresa
+      perfis {
+        at_prf_see_propriedade {
+          pl_propriedade {
+            municipio {
+              nm_municipio
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 export const produtorUnidadeEmpresaQuery = gql`
   query GetUnidadeEmpresa($produtorId: Int) {
     getUnidadeEmpresa(produtorId: $produtorId) {

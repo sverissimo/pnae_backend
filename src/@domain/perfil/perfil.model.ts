@@ -3,6 +3,11 @@ import { GrupoProdutos } from '../../modules/perfil/types';
 export type at_prf_see_propriedade = {
   atividade: 'ATIVIDADE_PRIMARIA' | 'ATIVIDADE_SECUNDARIA' | 'AMBAS';
   producao_dedicada_pnae?: boolean;
+  pl_propriedade?: {
+    municipio?: {
+      nm_municipio: string;
+    };
+  };
 };
 
 export type PerfilModel = {

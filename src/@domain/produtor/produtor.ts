@@ -1,5 +1,5 @@
 import { Propriedade } from 'src/modules/produtor/entities';
-import { Perfil } from '../perfil';
+import { Perfil, PerfilModel } from '../perfil';
 
 export class Produtor {
   id_pessoa_demeter: bigint;
@@ -38,4 +38,10 @@ export class Produtor {
   at_cli_atend_prop?: any[] | null;
   at_prf_see?: Perfil[] | null;
   pl_propriedade_ger_pessoa?: any[] | null;
+
+  static getMunicipioFromPerfis(perfis: PerfilModel[]): string {
+    if (!perfis[0]?.at_prf_see_propriedade[0]?.pl_propriedade?.municipio)
+      return 'mun_nao_encontrado';
+    return perfis[0].at_prf_see_propriedade[0].pl_propriedade.municipio.nm_municipio;
+  }
 }

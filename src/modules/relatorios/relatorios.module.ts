@@ -9,6 +9,7 @@ import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 import { AtendimentoModule } from 'src/modules/atendimento/atendimento.module';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { ProdutorService } from '../produtor/produtor.service';
 
 @Module({
   controllers: [RelatorioController],
@@ -17,6 +18,7 @@ import { WinstonLoggerService } from 'src/common/logging/winston-logger.service'
     RelatorioGraphQLAPI,
     ProdutorGraphQLAPI,
     RelatorioService,
+    ProdutorService,
     { provide: UsuarioGraphQLAPI, useClass: UsuarioGraphQLAPI },
     { provide: RestAPI, useClass: RestAPI },
     { provide: WinstonLoggerService, useClass: WinstonLoggerService },

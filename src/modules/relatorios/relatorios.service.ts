@@ -4,11 +4,12 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import * as archiver from 'archiver';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/common/files/file.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
-import { formatCPF } from 'src/utils/formatCPF';
+import { formatCPF, unformatCPF } from 'src/utils/formatCPF';
 import { Perfil } from 'src/@domain/perfil/perfil.entity';
 import { PerfilModel } from 'src/@domain/perfil/perfil.model';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
@@ -18,7 +19,9 @@ import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { Usuario } from '../usuario/entity/usuario-model';
 import { AtendimentoService } from '../atendimento/atendimento.service';
 import { pdfGen } from 'src/@pdf-gen/pdf-gen';
-import * as archiver from 'archiver';
+import { writeDataToStream } from 'src/@zip-gen/zip-gen';
+import { ZipCreator } from 'src/@zip-gen/ZipCreator';
+import { ProdutorService } from '../produtor/produtor.service';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -28,6 +31,7 @@ export class RelatorioService {
     private readonly prismaService: PrismaService,
     private readonly usuarioApi: UsuarioGraphQLAPI,
     private readonly produtorApi: ProdutorGraphQLAPI,
+    private readonly produtorService: ProdutorService,
     private readonly atendimentoService: AtendimentoService,
     private readonly fileService: FileService,
     private readonly restAPI: RestAPI,
@@ -254,30 +258,25 @@ export class RelatorioService {
     }
   }
 
-  async createZipStream(relatorioId) {
-    const pdfStream = await this.createPDFStream(relatorioId);
+  async createNestedZipFiles(relatoriosIds: string[]) {}
 
+  async createZipFile(relatoriosIds: string[]) {
     const archive = archiver('zip', {
-      zlib: { level: 9 }, // Compression level
+      zlib: { level: 9 },
     });
 
-    await new Promise<void>((resolve, reject) => {
-      const chunks = [];
-      pdfStream.on('data', (chunk) => chunks.push(chunk));
-      pdfStream.on('end', () => {
-        // Combine all chunks to get the complete PDF file
-        const completePdfFile = Buffer.concat(chunks);
-        // Add the PDF to the archive
-        archive.append(completePdfFile, { name: `relatório.pdf` });
-        resolve();
-      });
-      pdfStream.on('error', reject);
-    });
+    // const relatorios = await this.findManyById(relatoriosIds);
 
-    return pdfStream;
+    const produtores = await this.findManyById(relatoriosIds);
+    // const municipios = produtores.map((p) => p.municipio);
+
+    for (const id of relatoriosIds) {
+      await this.createPDFStream(id, archive);
+    }
+    return archive;
   }
 
-  private async createPDFStream(relatorioId: string) {
+  async createPDFStream(relatorioId: string, archive: archiver.Archiver) {
     const {
       relatorio,
       perfilPDFModel,
@@ -294,7 +293,14 @@ export class RelatorioService {
       dados_producao_in_natura,
     });
 
-    return pdfStream;
+    const { numeroRelatorio, municipio } = relatorio;
+    const { nomeProdutor, cpfProdutor } = relatorio.produtor;
+    const unformattedCPF = unformatCPF(cpfProdutor);
+    const filename = `2.3_${municipio}_${nomeProdutor}_${unformattedCPF}_${numeroRelatorio}_final.pdf`;
+    // const zipCreator = new ZipCreator();
+    // await zipCreator.createZipFile(relatorioId, pdfStream);
+    await writeDataToStream(archive, pdfStream, filename);
+    return { filename, pdfStream };
   }
 
   private async removeFiles(relatorio: RelatorioDto) {
