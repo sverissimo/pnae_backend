@@ -124,11 +124,11 @@ describe('Atendimento entity', () => {
       const campo1 = atendimento.at_atendimento_indi_camp_acess[0];
       const campo2 = atendimento.at_atendimento_indi_camp_acess[1];
 
-      expect(campo1.id_at_indicador_camp_acessorio).toEqual('13896');
+      expect(campo1.id_at_indicador_camp_acessorio).toEqual('13895');
       expect(campo1.valor_campo_acessorio).toEqual('Não');
       expect(campo1.id_und_empresa).toEqual(atendimento.id_und_empresa);
 
-      expect(campo2.id_at_indicador_camp_acessorio).toEqual('13895');
+      expect(campo2.id_at_indicador_camp_acessorio).toEqual('13896');
       expect(campo2.valor_campo_acessorio).toEqual(input.numero_relatorio);
       expect(campo2.id_und_empresa).toEqual(atendimento.id_und_empresa);
     });
@@ -140,11 +140,11 @@ describe('Atendimento entity', () => {
       const campo1 = atendimento.at_atendimento_indi_camp_acess[0];
       const campo2 = atendimento.at_atendimento_indi_camp_acess[1];
 
-      expect(campo1.id_at_indicador_camp_acessorio).toEqual('13896');
+      expect(campo1.id_at_indicador_camp_acessorio).toEqual('13895');
       expect(campo1.valor_campo_acessorio).toEqual('Sim');
       expect(campo1.id_und_empresa).toEqual(atendimento.id_und_empresa);
 
-      expect(campo2.id_at_indicador_camp_acessorio).toEqual('13895');
+      expect(campo2.id_at_indicador_camp_acessorio).toEqual('13896');
       expect(campo2.valor_campo_acessorio).toEqual(input.numero_relatorio);
       expect(campo2.id_und_empresa).toEqual(atendimento.id_und_empresa);
     });

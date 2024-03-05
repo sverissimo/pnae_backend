@@ -111,12 +111,12 @@ export class Atendimento {
   private createIndicadoresCampoAssessorio(numero_relatorio): at_atendimento_indi_camp_acess[] {
     return [
       {
-        id_at_indicador_camp_acessorio: '13896',
+        id_at_indicador_camp_acessorio: '13895',
         valor_campo_acessorio: 'Não',
         id_und_empresa: this.id_und_empresa,
       },
       {
-        id_at_indicador_camp_acessorio: '13895',
+        id_at_indicador_camp_acessorio: '13896',
         valor_campo_acessorio: String(numero_relatorio),
         id_und_empresa: this.id_und_empresa,
       },
@@ -126,12 +126,12 @@ export class Atendimento {
   private updateIndicadoresCampoAssessorio(numero_relatorio): at_atendimento_indi_camp_acess[] {
     return [
       {
-        id_at_indicador_camp_acessorio: '13896',
+        id_at_indicador_camp_acessorio: '13895',
         valor_campo_acessorio: 'Sim',
         id_und_empresa: this.id_und_empresa,
       },
       {
-        id_at_indicador_camp_acessorio: '13895',
+        id_at_indicador_camp_acessorio: '13896',
         valor_campo_acessorio: String(numero_relatorio),
         id_und_empresa: this.id_und_empresa,
       },
