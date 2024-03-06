@@ -29,6 +29,7 @@ COPY --from=builder /home/node/app/dist ./dist
 COPY --from=builder /home/node/app/certificates ./certificates
 COPY --from=builder /home/node/app/homolog.env ./.env
 COPY --from=builder /home/node/app/prisma ./prisma
+COPY --from=builder /home/node/app/assets ./assets
 
 RUN chown -R node:node /home/node/app
 
