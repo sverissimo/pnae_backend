@@ -12,7 +12,7 @@ export const parseValue = (value: unknown) => {
       }
       if (value instanceof Date) {
         const parsedData = formatDate(value.toISOString());
-        return typeof parsedData === 'string' ? parsedData : parsedData.toLocaleDateString();
+        return parsedData;
       }
     case 'boolean':
       return value ? 'Sim' : 'Não';

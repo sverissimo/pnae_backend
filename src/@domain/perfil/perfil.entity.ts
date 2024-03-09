@@ -7,13 +7,33 @@ import {
 } from '../../modules/perfil/constants';
 import { Produto, at_prf_see_propriedade } from '.';
 import { PerfilDTO } from '../../modules/perfil/types';
-import { CreatePerfilInputDto, CreatePerfilOutputDto } from './dto/create-perfil.dto';
+import {
+  CreatePerfilInputDto,
+  CreatePerfilOutputDto,
+} from './dto/create-perfil.dto';
+import { parseNumbers } from 'src/utils/parseNumbers';
+import { CreateDadosProducaoInputDTO } from './dto/create-dados-producao-dto';
 
 export class Perfil {
   constructor(private perfil?: PerfilModel | CreatePerfilInputDto) {}
 
   inputDTOToOutputDTO(): CreatePerfilOutputDto {
     const p = this.getOutputDTOValues(this.perfil as CreatePerfilInputDto);
+    const {
+      dados_producao_agro_industria: prodInd,
+      dados_producao_in_natura: prodNatura,
+    } = p;
+
+    const parseValues = (obj: CreateDadosProducaoInputDTO) => {
+      obj.valor_total_obtido_pnae = parseNumbers(obj.valor_total_obtido_pnae);
+      obj.valor_total_obtido_outros = parseNumbers(
+        obj.valor_total_obtido_outros,
+      );
+    };
+
+    parseValues(prodNatura);
+    parseValues(prodInd);
+
     return {
       ...p,
       ativo: true,
@@ -32,17 +52,19 @@ export class Perfil {
 
     const atividade = this.atividadesArrayToValue(at_prf_see_propriedade);
 
-    const gruposProdutosNatura = dados_producao_in_natura?.at_prf_see_grupos_produtos
-      ? dados_producao_in_natura.at_prf_see_grupos_produtos.map((group) =>
-          produto.productGroupToDTO(group),
-        )
-      : null;
+    const gruposProdutosNatura =
+      dados_producao_in_natura?.at_prf_see_grupos_produtos
+        ? dados_producao_in_natura.at_prf_see_grupos_produtos.map((group) =>
+            produto.productGroupToDTO(group),
+          )
+        : null;
 
-    const gruposProdutosIndustriais = dados_producao_agro_industria?.at_prf_see_grupos_produtos
-      ? dados_producao_agro_industria.at_prf_see_grupos_produtos.map((group) =>
-          produto.productGroupToDTO(group),
-        )
-      : null;
+    const gruposProdutosIndustriais =
+      dados_producao_agro_industria?.at_prf_see_grupos_produtos
+        ? dados_producao_agro_industria.at_prf_see_grupos_produtos.map(
+            (group) => produto.productGroupToDTO(group),
+          )
+        : null;
 
     const perfilDTO = {
       ...rest,
@@ -72,7 +94,10 @@ export class Perfil {
 
     const perfilData = perfilFieldLabels.map(({ field, label }) => ({
       label,
-      value: field === 'atividade' ? this.formatToDTO(atividade) : this.formatToDTO(rest[field]),
+      value:
+        field === 'atividade'
+          ? this.formatToDTO(atividade)
+          : this.formatToDTO(rest[field]),
     }));
 
     const perfilPDFModel = { perfilData };
@@ -163,11 +188,21 @@ export class Perfil {
     return result;
   }
 
-  private atividadesArrayToValue(at_prf_see_propriedades: at_prf_see_propriedade[]) {
+  private atividadesArrayToValue(
+    at_prf_see_propriedades: at_prf_see_propriedade[],
+  ) {
     const atividade = at_prf_see_propriedades.reduce((acc, curr) => {
       if (acc === 'AMBAS') return acc;
-      if (acc === 'ATIVIDADE_PRIMARIA' && curr.atividade === 'ATIVIDADE_SECUNDARIA') return 'AMBAS';
-      if (acc === 'ATIVIDADE_SECUNDARIA' && curr.atividade === 'ATIVIDADE_PRIMARIA') return 'AMBAS';
+      if (
+        acc === 'ATIVIDADE_PRIMARIA' &&
+        curr.atividade === 'ATIVIDADE_SECUNDARIA'
+      )
+        return 'AMBAS';
+      if (
+        acc === 'ATIVIDADE_SECUNDARIA' &&
+        curr.atividade === 'ATIVIDADE_PRIMARIA'
+      )
+        return 'AMBAS';
 
       return curr.atividade;
     }, at_prf_see_propriedades[0].atividade);

@@ -4,7 +4,9 @@
 <section class="table">
   <table class="relatorioTable avoid-break">
     <thead>
-      <th colspan="2" class="title relatorioTable">Relatório da Visita Técnica</th>
+      <th colspan="2" class="title relatorioTable">
+        Relatório da Visita Técnica
+      </th>
     </thead>
     <tbody>
       <tr>
@@ -28,23 +30,31 @@
         <td class="td-content"><%= municipio %></td>
       </tr>
       <tr>
-        <td class="td-label">Extensionista<%= outrosExtensionistas ? ' 1' : '' %></td>
+        <td class="td-label">
+          Extensionista<%= outrosExtensionistas ? ' 1' : '' %>
+        </td>
         <td class="td-content">
           <div class="extensionista">
             <span class="nomeExtensionista"> <%= nomeTecnico %> </span>
-            <span class="matricula"> <strong>Matrícula: </strong> <%= matricula %> </span>
+            <span class="matricula">
+              <strong>Matrícula: </strong> <%= matricula %>
+            </span>
           </div>
         </td>
       </tr>
 
-      <% if (outrosExtensionistas) { %> <% outrosExtensionistas.forEach((extensionista, i) => { %>
+      <% if (outrosExtensionistas) { %> <%
+      outrosExtensionistas.forEach((extensionista, i) => { %>
       <tr>
         <td class="td-label">Extensionista <%=i+2%></td>
         <td class="td-content">
           <div class="extensionista">
-            <span class="nomeExtensionista"> <%= extensionista.nome_usuario %> </span>
+            <span class="nomeExtensionista">
+              <%= extensionista.nome_usuario %>
+            </span>
             <span class="matricula">
-              <strong>Matrícula: </strong> <%= extensionista.matricula_usuario %>
+              <strong>Matrícula: </strong> <%= extensionista.matricula_usuario
+              %>
             </span>
           </div>
         </td>
@@ -57,7 +67,7 @@
   <h5 class="subtitle">Assunto Técnico Tratado no Atendimento</h5>
   <p><%= assunto %></p>
 </section>
-<section class="textBox">
+<section class="textBox avoid-break">
   <h5 class="subtitle">Orientação Técnica</h5>
   <div class="orientacaoBox"><%- orientacao %></div>
 </section>
@@ -80,12 +90,12 @@
     </div>
     <div class="assinaturaInfo">
       <p>
-        * Como forma de comprovação da ATER realizada, utilizaremos imagem do beneficiário, o qual
-        declara estar ciente e de acordo.
+        * Como forma de comprovação da ATER realizada, utilizaremos imagem do
+        beneficiário, o qual declara estar ciente e de acordo.
       </p>
       <p>
-        ** O(s) técnico(s) que realizou a visita foi devidamente logado(s) no sistema por login e
-        senha, sendo dispensada sua assinatura.
+        ** O(s) técnico(s) que realizou a visita foi devidamente logado(s) no
+        sistema por login e senha, sendo dispensada sua assinatura.
       </p>
     </div>
   </div>
@@ -93,6 +103,11 @@
 <section class="textBox avoid-break">
   <h5 class="subtitle">Foto da Visita</h5>
   <div class="imageContainer">
-    <img id="imagePlaceholder" src="<%= pictureBase64Image %>" alt="" class="foto" />
+    <img
+      id="imagePlaceholder"
+      src="<%= pictureBase64Image %>"
+      alt=""
+      class="foto"
+    />
   </div>
 </section>

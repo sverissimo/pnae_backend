@@ -23,6 +23,7 @@ import { pdfGen } from 'src/@pdf-gen/pdf-gen';
 import { FilesInputDto } from 'src/common/files/files-input.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { formatDate, formatReverseDate } from 'src/utils';
 
 @Controller('relatorios')
 export class RelatorioController {
@@ -39,7 +40,10 @@ export class RelatorioController {
       { name: 'assinatura', maxCount: 1 },
     ]),
   )
-  async create(@UploadedFiles() files: FilesInputDto, @Body() relatorio: RelatorioModel) {
+  async create(
+    @UploadedFiles() files: FilesInputDto,
+    @Body() relatorio: RelatorioModel,
+  ) {
     try {
       relatorio.readOnly = String(relatorio.readOnly) === 'true';
       const { id: relatorioId } = await this.relatorioService.create(relatorio);
@@ -51,7 +55,8 @@ export class RelatorioController {
       return relatorioId;
     } catch (error) {
       this.logger.error(
-        '🚀 ~ file: relatorios.controller.ts:53 ~ create ~ error:' + error.message,
+        '🚀 ~ file: relatorios.controller.ts:53 ~ create ~ error:' +
+          error.message,
         error.trace,
       );
       throw error;
@@ -120,7 +125,8 @@ export class RelatorioController {
       console.log('🚀 ...done ');
     } catch (error) {
       this.logger.error(
-        '🚀 ~ file: relatorios.controller.ts:118 ~ genPDF ~ error:' + error.message,
+        '🚀 ~ file: relatorios.controller.ts:118 ~ genPDF ~ error:' +
+          error.message,
         error.trace,
       );
       if (error instanceof NotFoundException) {
@@ -130,23 +136,32 @@ export class RelatorioController {
     }
   }
 
-  // @Header('Content-Type', 'application/pdf')
-  // @Header('Content-Disposition', 'attachment; filename="relatorios.pdf"')
-  @Get('/zip/:id')
-  async generateZip(@Param('id') id: string, @Res() res: Response) {
+  @Get('/zip/create')
+  async generateZip() {
+    console.log('🚀 - RelatorioController - generateZip... ');
+
+    const relatorios = await this.relatorioService.findAll();
+    const relatoriosIds = relatorios.map((relatorio) => relatorio.id);
+    const result = this.relatorioService.createZipFile(relatoriosIds);
+    return result;
+  }
+
+  @Header('Content-Type', 'application/zip')
+  @Get('/zip/download')
+  async downloadZip(@Res() res: Response) {
     try {
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader('Content-Disposition', `inline; filename=relatorio_1.zip`);
+      const yesterdayDate = new Date();
+      yesterdayDate.setDate(new Date().getDate() - 1);
+      yesterdayDate.setHours(new Date().getHours() - 3);
 
-      const relatorios = await this.relatorioService.findAll();
-      const relatoriosIds = relatorios.map((relatorio) => relatorio.id);
-      console.log(relatoriosIds);
+      const yesterday = formatReverseDate(yesterdayDate);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="relatorios_consolidado_${yesterday}.zip"`,
+      );
 
-      const archive = await this.relatorioService.createZipFile(relatoriosIds);
-
-      archive.pipe(res);
-      archive.finalize();
-      console.log('🚀 ...done ');
+      const zipStream = this.relatorioService.downloadRelatorioZip();
+      zipStream.pipe(res);
     } catch (error) {
       console.log('🚀 - RelatorioController - generateZip - error:', error);
       res.send('Erro ao gerar zip');
@@ -167,7 +182,9 @@ export class RelatorioController {
   ) {
     try {
       const relatorioUpdate = { id, ...update };
-      const newAtendimentoId = await this.relatorioService.update(relatorioUpdate);
+      const newAtendimentoId = await this.relatorioService.update(
+        relatorioUpdate,
+      );
 
       if (files && Object.keys(files).length > 0) {
         await this.fileService.update(files, relatorioUpdate);
@@ -175,7 +192,8 @@ export class RelatorioController {
       return newAtendimentoId;
     } catch (error) {
       this.logger.error(
-        '🚀 ~ file: relatorios.controller.ts:147 ~ update ~ error:' + error.message,
+        '🚀 ~ file: relatorios.controller.ts:147 ~ update ~ error:' +
+          error.message,
         error.trace,
       );
       throw error;
@@ -190,7 +208,8 @@ export class RelatorioController {
       return result;
     } catch (error) {
       this.logger.error(
-        '🚀 ~ file: relatorios.controller.ts:161 ~ update ~ error:' + error.message,
+        '🚀 ~ file: relatorios.controller.ts:161 ~ update ~ error:' +
+          error.message,
         error.trace,
       );
       throw error;

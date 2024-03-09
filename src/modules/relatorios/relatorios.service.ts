@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 import {
   Injectable,
   InternalServerErrorException,
@@ -20,8 +23,9 @@ import { Usuario } from '../usuario/entity/usuario-model';
 import { AtendimentoService } from '../atendimento/atendimento.service';
 import { pdfGen } from 'src/@pdf-gen/pdf-gen';
 import { writeDataToStream } from 'src/@zip-gen/zip-gen';
-import { ZipCreator } from 'src/@zip-gen/ZipCreator';
+import { ZipCreator, zipFileInput } from 'src/@zip-gen/ZipCreator';
 import { ProdutorService } from '../produtor/produtor.service';
+import { formatReverseDate } from 'src/utils';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -74,9 +78,9 @@ export class RelatorioService {
     const relatorios = await this.prismaService.relatorio.findMany({
       where: { id: { in: ids } },
     });
-    const relatoriosWithPermissions = (await this.updateRelatoriosPermissions(relatorios)).map(
-      Relatorio.toModel,
-    );
+    const relatoriosWithPermissions = (
+      await this.updateRelatoriosPermissions(relatorios)
+    ).map(Relatorio.toModel);
     return relatoriosWithPermissions;
   }
 
@@ -89,15 +93,17 @@ export class RelatorioService {
       query = { produtorId: { in: input.map((id) => BigInt(id)) } };
     } else if (input.ids || input.produtorIds) {
       const produtorIds = input.produtorIds.map((id) => BigInt(id));
-      query = { OR: [{ id: { in: input.ids } }, { produtorId: { in: produtorIds } }] };
+      query = {
+        OR: [{ id: { in: input.ids } }, { produtorId: { in: produtorIds } }],
+      };
     }
     const relatorios = await this.prismaService.relatorio.findMany({
       where: query,
     });
 
-    const relatoriosWithPermissions = (await this.updateRelatoriosPermissions(relatorios)).map(
-      Relatorio.toModel,
-    );
+    const relatoriosWithPermissions = (
+      await this.updateRelatoriosPermissions(relatorios)
+    ).map(Relatorio.toModel);
     return relatoriosWithPermissions;
   }
 
@@ -125,9 +131,11 @@ export class RelatorioService {
       atendimentoId,
       String(numeroRelatorio),
     );
-    console.log('🚀 - RelatorioService - update - newAtendimentoId:', newAtendimentoId);
 
-    const data = Relatorio.updateFieldsToDTO({ ...update, atendimentoId: newAtendimentoId });
+    const data = Relatorio.updateFieldsToDTO({
+      ...update,
+      atendimentoId: newAtendimentoId,
+    });
     await this.prismaService.relatorio.update({
       where: { id },
       data,
@@ -167,17 +175,25 @@ export class RelatorioService {
 
   async updateRelatoriosPermissions(relatorios: RelatorioDto[]) {
     const readOnlyIds = await this.getReadOnly(relatorios);
-    const editableIds = relatorios.filter((r) => !readOnlyIds.includes(r.id)).map((r) => r.id);
+    const editableIds = relatorios
+      .filter((r) => !readOnlyIds.includes(r.id))
+      .map((r) => r.id);
     const editableUpdates = { ids: editableIds, update: { readOnly: false } };
     const readOnlyUpdates = { ids: readOnlyIds, update: { readOnly: true } };
 
-    await Promise.all([this.updateMany(editableUpdates), this.updateMany(readOnlyUpdates)]);
-    const response = relatorios.map((r) => ({ ...r, readOnly: readOnlyIds.includes(r.id) }));
+    await Promise.all([
+      this.updateMany(editableUpdates),
+      this.updateMany(readOnlyUpdates),
+    ]);
+    const response = relatorios.map((r) => ({
+      ...r,
+      readOnly: readOnlyIds.includes(r.id),
+    }));
     return response;
   }
 
-  async createPDFInput(relatorioId: string) {
-    const relatorio = await this.findOne(relatorioId);
+  async createPDFInput(relatorioId: string, relatorioInput?: RelatorioModel) {
+    const relatorio = relatorioInput || (await this.findOne(relatorioId));
     if (!relatorio) {
       throw new NotFoundException('Relatório não encontrado');
     }
@@ -186,8 +202,12 @@ export class RelatorioService {
       const { outroExtensionista, contratoId: relatorioContratoId } = relatorio;
 
       const tecnicoId = relatorio.tecnicoId.toString();
-      const tecnicoIds = outroExtensionista ? tecnicoId + ',' + outroExtensionista : tecnicoId;
-      const { usuarios } = (await this.usuarioApi.getUsuarios({ ids: tecnicoIds })) as {
+      const tecnicoIds = outroExtensionista
+        ? tecnicoId + ',' + outroExtensionista
+        : tecnicoId;
+      const { usuarios } = (await this.usuarioApi.getUsuarios({
+        ids: tecnicoIds,
+      })) as {
         usuarios: Usuario[];
       };
       const usuario = usuarios.find((u) => u.id_usuario == relatorio.tecnicoId);
@@ -204,7 +224,9 @@ export class RelatorioService {
           }));
       }
 
-      const produtor = await this.produtorApi.getProdutorById(relatorio.produtorId.toString());
+      const produtor = await this.produtorApi.getProdutorById(
+        relatorio.produtorId.toString(),
+      );
       const { perfis, propriedades } = produtor;
 
       if (!propriedades || !propriedades.length) {
@@ -220,18 +242,25 @@ export class RelatorioService {
 
       const perfil = perfis.find(
         (p: PerfilModel) =>
-          p.id_contrato === (relatorioContratoId || 1) && p.tipo_perfil === 'ENTRADA',
+          p.id_contrato === (relatorioContratoId || 1) &&
+          p.tipo_perfil === 'ENTRADA',
       ) as PerfilModel;
 
       const perfilDTO = new Perfil(perfil).toDTO();
 
       const { municipio } = propriedades[0];
-      const nome_propriedade = propriedades.map((p) => p.nome_propriedade).join(', ');
-      const { dados_producao_in_natura, dados_producao_agro_industria } = perfilDTO;
+      const nome_propriedade = propriedades
+        .map((p) => p.nome_propriedade)
+        .join(', ');
+      const { dados_producao_in_natura, dados_producao_agro_industria } =
+        perfilDTO;
       const matricula = usuario.digito_matricula
         ? usuario.matricula_usuario + '-' + usuario.digito_matricula
         : usuario.matricula_usuario;
-      const perfilPDFModel = new Perfil().toPDFModel({ ...perfil, nome_propriedade });
+      const perfilPDFModel = new Perfil().toPDFModel({
+        ...perfil,
+        nome_propriedade,
+      });
       return {
         relatorio: {
           ...relatorio,
@@ -258,32 +287,71 @@ export class RelatorioService {
     }
   }
 
-  async createNestedZipFiles(relatoriosIds: string[]) {}
+  private async getRelatoriosPorMunicipio(relatoriosIds: string[]) {
+    const relatorios = await this.findManyById(relatoriosIds);
 
-  async createZipFile(relatoriosIds: string[]) {
-    const archive = archiver('zip', {
-      zlib: { level: 9 },
+    const uniqueProdutoresIds = [
+      ...new Set(relatorios.map((r) => r.produtorId)),
+    ];
+
+    const produtores = (await this.produtorService.findManyById(
+      uniqueProdutoresIds,
+    )) as any[];
+
+    produtores.sort((a, b) => {
+      const primary = a.municipio.localeCompare(b.municipio);
+      if (primary !== 0) return primary;
+      return a.nm_pessoa.localeCompare(b.nm_pessoa);
     });
 
-    // const relatorios = await this.findManyById(relatoriosIds);
+    const relatoriosPorMunicipio: any[] = produtores.reduce((acc, p) => {
+      if (acc[p.municipio]) {
+        acc[p.municipio].push(
+          ...relatorios.filter((r) => r.produtorId === p.id_pessoa_demeter),
+        );
+      } else {
+        acc[p.municipio] = relatorios.filter(
+          (r) => r.produtorId === p.id_pessoa_demeter,
+        );
+      }
+      return acc;
+    }, {});
 
-    const produtores = await this.findManyById(relatoriosIds);
-    // const municipios = produtores.map((p) => p.municipio);
-
-    for (const id of relatoriosIds) {
-      await this.createPDFStream(id, archive);
-    }
-    return archive;
+    return relatoriosPorMunicipio;
   }
 
-  async createPDFStream(relatorioId: string, archive: archiver.Archiver) {
+  async createZipFile(relatoriosIds: string[]) {
+    const relatoriosPorMunicipio = await this.getRelatoriosPorMunicipio(
+      relatoriosIds,
+    );
+
+    const filePaths = [];
+    for (const municipio in relatoriosPorMunicipio) {
+      const zipCreator = new ZipCreator(
+        municipio,
+        relatoriosPorMunicipio[municipio],
+        this.createPDFStream.bind(this),
+      );
+      const zipFiles = await zipCreator.generateNestedZip();
+      filePaths.push(...zipFiles);
+    }
+    const result = await ZipCreator.generateFinalZip(filePaths);
+    return result;
+  }
+
+  downloadRelatorioZip() {
+    const zipStream = fs.createReadStream('final.zip');
+    return zipStream;
+  }
+
+  async createPDFStream(relatorioId: string, relatorioInput?: RelatorioModel) {
     const {
       relatorio,
       perfilPDFModel,
       nome_propriedade,
       dados_producao_agro_industria,
       dados_producao_in_natura,
-    } = await this.createPDFInput(relatorioId);
+    } = await this.createPDFInput(relatorioId, relatorioInput);
 
     const pdfStream = await pdfGen({
       relatorio,
@@ -293,13 +361,11 @@ export class RelatorioService {
       dados_producao_in_natura,
     });
 
-    const { numeroRelatorio, municipio } = relatorio;
+    const { municipio, atendimentoId, createdAt } = relatorio;
     const { nomeProdutor, cpfProdutor } = relatorio.produtor;
     const unformattedCPF = unformatCPF(cpfProdutor);
-    const filename = `2.3_${municipio}_${nomeProdutor}_${unformattedCPF}_${numeroRelatorio}_final.pdf`;
-    // const zipCreator = new ZipCreator();
-    // await zipCreator.createZipFile(relatorioId, pdfStream);
-    await writeDataToStream(archive, pdfStream, filename);
+    const date = formatReverseDate(new Date(createdAt));
+    const filename = `2.3_${municipio}_${nomeProdutor}_${date}_${atendimentoId}_${unformattedCPF}_final.pdf`;
     return { filename, pdfStream };
   }
 
@@ -311,7 +377,13 @@ export class RelatorioService {
     }
   }
 
-  private async updateMany({ ids, update }: { ids: string[]; update: Partial<RelatorioDto> }) {
+  private async updateMany({
+    ids,
+    update,
+  }: {
+    ids: string[];
+    update: Partial<RelatorioDto>;
+  }) {
     const updated = await this.prismaService.relatorio.updateMany({
       where: { id: { in: ids } },
       data: update,
