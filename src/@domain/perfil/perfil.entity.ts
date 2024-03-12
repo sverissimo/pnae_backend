@@ -24,15 +24,8 @@ export class Perfil {
       dados_producao_in_natura: prodNatura,
     } = p;
 
-    const parseValues = (obj: CreateDadosProducaoInputDTO) => {
-      obj.valor_total_obtido_pnae = parseNumbers(obj.valor_total_obtido_pnae);
-      obj.valor_total_obtido_outros = parseNumbers(
-        obj.valor_total_obtido_outros,
-      );
-    };
-
-    parseValues(prodNatura);
-    parseValues(prodInd);
+    this.parseValues(prodNatura);
+    this.parseValues(prodInd);
 
     return {
       ...p,
@@ -138,6 +131,18 @@ export class Perfil {
     }
 
     return perfilPDFModel;
+  }
+
+  private parseValues(obj: CreateDadosProducaoInputDTO) {
+    if (obj?.valor_total_obtido_pnae) {
+      obj.valor_total_obtido_pnae = parseNumbers(obj.valor_total_obtido_pnae);
+    }
+
+    if (obj?.valor_total_obtido_outros) {
+      obj.valor_total_obtido_outros = parseNumbers(
+        obj.valor_total_obtido_outros,
+      );
+    }
   }
 
   private getDTOValues(perfilDTO: PerfilDTO): PerfilDTO {
