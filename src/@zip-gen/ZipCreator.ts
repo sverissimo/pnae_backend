@@ -19,13 +19,13 @@ interface CreateRelatorioStream {
 export class ZipCreator {
   private municipio: string;
   private relatorios: RelatorioModel[];
-  private currentArchive: archiver.Archiver | null;
+  private currentArchive: archiver.Archiver | null | undefined;
   private createRelatorioStream: CreateRelatorioStream;
   private tempZipFiles: string[] = [];
 
   private output: fs.WriteStream;
 
-  private maxSize = 5 * 1024 * 1024;
+  private readonly maxSize = 1.5 * 1024 * 1024;
   private currentSize = 0;
   private archiveIndex = 0;
 
@@ -37,14 +37,15 @@ export class ZipCreator {
     this.municipio = municipio;
     this.relatorios = relatorios;
     this.createRelatorioStream = createRelatorioStream;
-    this.currentArchive = null;
   }
 
   private async createAndAppendPDF(
     filename: string,
     pdfStream: NodeJS.ReadableStream,
   ): Promise<void> {
-    if (this.currentSize === 0) this.createNewArchive();
+    if (this.currentArchive === undefined) {
+      this.createNewArchive();
+    }
 
     let chunks = [];
     pdfStream.on('data', (chunk) => {
@@ -58,8 +59,13 @@ export class ZipCreator {
         if (this.currentSize >= this.maxSize) {
           await this.finalizeArchive();
           this.createNewArchive();
+          this.currentSize = chunks.reduce(
+            (acc, chunk) => acc + chunk.length,
+            0,
+          );
         }
-
+        // console.log(filename);
+        // console.log('########## currentSize: ', this.currentSize);
         this.currentArchive?.append(completePdfFile, {
           name: `${filename}`,
         });
@@ -69,7 +75,7 @@ export class ZipCreator {
     });
   }
 
-  private createNewArchive(): void {
+  private createNewArchive() {
     this.currentArchive = archiver('zip', { zlib: { level: 9 } });
     this.currentSize = 0;
     this.archiveIndex++;
@@ -80,23 +86,20 @@ export class ZipCreator {
   }
 
   private async finalizeArchive() {
-    if (this.currentArchive) {
-      await new Promise<void>((resolve, reject) => {
-        this.currentArchive!.on('error', reject);
-        this.output.on('finish', resolve);
-        this.currentArchive!.finalize();
-      });
-      this.currentArchive = null;
-    }
+    await new Promise<void>((resolve, reject) => {
+      this.currentArchive!.on('error', reject);
+      this.output.on('finish', resolve);
+      this.currentArchive!.finalize();
+    });
+    this.currentArchive = null;
   }
 
-  public async generateNestedZip(): Promise<string[]> {
+  public async generateZipFiles(): Promise<string[]> {
     for (const relatorio of this.relatorios) {
       const { pdfStream, filename } = await this.createRelatorioStream(
         relatorio.id,
         relatorio,
       );
-      console.log('🚀 - ZipCreator - generateNestedZip - filename:', filename);
       await this.createAndAppendPDF(filename, pdfStream);
     }
 

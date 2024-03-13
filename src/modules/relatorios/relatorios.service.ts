@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as path from 'path';
 
 import {
   Injectable,
@@ -7,7 +6,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import * as archiver from 'archiver';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/common/files/file.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
@@ -22,10 +20,10 @@ import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { Usuario } from '../usuario/entity/usuario-model';
 import { AtendimentoService } from '../atendimento/atendimento.service';
 import { pdfGen } from 'src/@pdf-gen/pdf-gen';
-import { writeDataToStream } from 'src/@zip-gen/zip-gen';
-import { ZipCreator, zipFileInput } from 'src/@zip-gen/ZipCreator';
+import { ZipCreator } from 'src/@zip-gen/ZipCreator';
 import { ProdutorService } from '../produtor/produtor.service';
 import { formatReverseDate } from 'src/utils';
+import { Atendimento } from '../atendimento/entities/atendimento.entity';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -287,9 +285,44 @@ export class RelatorioService {
     }
   }
 
-  private async getRelatoriosPorMunicipio(relatoriosIds: string[]) {
-    const relatorios = await this.findManyById(relatoriosIds);
+  async createZipFile() {
+    const unsentRelatorios = await this.getUnsentRelatorios();
 
+    if (!unsentRelatorios.length) {
+      return 'Não há nenhum relatório para ser enviado para a SEE.';
+    }
+
+    const relatoriosPorMunicipio = await this.getRelatoriosPorMunicipio(
+      unsentRelatorios,
+    );
+
+    const allZipFilePaths = await this.createZipFilesForAllMunicipios(
+      relatoriosPorMunicipio,
+    );
+
+    const result = await ZipCreator.generateFinalZip(allZipFilePaths);
+
+    const idsToRegisterDataSEI = unsentRelatorios.map((r) => r.atendimentoId);
+    await this.atendimentoService.saveIdsToFile(idsToRegisterDataSEI);
+
+    return result;
+  }
+
+  async downloadRelatorioZip() {
+    try {
+      await this.atendimentoService.registerDataSEI();
+    } catch (error) {
+      console.log(
+        '🚀 - RelatorioService - downloadRelatorioZip - error:',
+        error,
+      );
+    }
+
+    const zipStream = fs.createReadStream('final.zip');
+    return zipStream;
+  }
+
+  private async getRelatoriosPorMunicipio(relatorios: RelatorioModel[]) {
     const uniqueProdutoresIds = [
       ...new Set(relatorios.map((r) => r.produtorId)),
     ];
@@ -320,28 +353,45 @@ export class RelatorioService {
     return relatoriosPorMunicipio;
   }
 
-  async createZipFile(relatoriosIds: string[]) {
-    const relatoriosPorMunicipio = await this.getRelatoriosPorMunicipio(
-      relatoriosIds,
-    );
+  private async createZipFilesForAllMunicipios(relatoriosGroupedByMunicipio) {
+    const allZipFilePaths = [];
 
-    const filePaths = [];
-    for (const municipio in relatoriosPorMunicipio) {
+    for (const municipio in relatoriosGroupedByMunicipio) {
+      const relatoriosForMunicipio = relatoriosGroupedByMunicipio[municipio];
       const zipCreator = new ZipCreator(
         municipio,
-        relatoriosPorMunicipio[municipio],
+        relatoriosForMunicipio,
         this.createPDFStream.bind(this),
       );
-      const zipFiles = await zipCreator.generateNestedZip();
-      filePaths.push(...zipFiles);
+
+      const zipFilePathsForMunicipio = await zipCreator.generateZipFiles();
+      allZipFilePaths.push(...zipFilePathsForMunicipio);
     }
-    const result = await ZipCreator.generateFinalZip(filePaths);
-    return result;
+
+    return allZipFilePaths;
   }
 
-  downloadRelatorioZip() {
-    const zipStream = fs.createReadStream('final.zip');
-    return zipStream;
+  private async getUnsentRelatorios(): Promise<RelatorioModel[]> {
+    const atendimentosSemDataSEI: Partial<Atendimento>[] =
+      await this.atendimentoService.getAtendimentosWithoutDataSEI();
+
+    if (!atendimentosSemDataSEI.length) return [] as any;
+
+    console.log('🚀RelatorioService idsSemSEI:', atendimentosSemDataSEI.length);
+
+    const atendimentoIds = atendimentosSemDataSEI.map((a) =>
+      BigInt(a.id_at_atendimento),
+    );
+
+    const relatorios = (
+      await this.prismaService.relatorio.findMany({
+        where: {
+          atendimentoId: { in: atendimentoIds },
+        },
+      })
+    ).map(Relatorio.toModel);
+
+    return relatorios;
   }
 
   async createPDFStream(relatorioId: string, relatorioInput?: RelatorioModel) {

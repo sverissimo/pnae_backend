@@ -23,7 +23,7 @@ import { pdfGen } from 'src/@pdf-gen/pdf-gen';
 import { FilesInputDto } from 'src/common/files/files-input.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
-import { formatDate, formatReverseDate } from 'src/utils';
+import { getYesterdayStringDate } from 'src/utils';
 
 @Controller('relatorios')
 export class RelatorioController {
@@ -54,6 +54,8 @@ export class RelatorioController {
       console.log('🚀 relatorios.controller.ts:50 ~ created id ', relatorioId);
       return relatorioId;
     } catch (error) {
+      console.log('🚀 - RelatorioController 57 - error:', error);
+
       this.logger.error(
         '🚀 ~ file: relatorios.controller.ts:53 ~ create ~ error:' +
           error.message,
@@ -138,32 +140,39 @@ export class RelatorioController {
 
   @Get('/zip/create')
   async generateZip() {
-    console.log('🚀 - RelatorioController - generateZip... ');
-
-    const relatorios = await this.relatorioService.findAll();
-    const relatoriosIds = relatorios.map((relatorio) => relatorio.id);
-    const result = this.relatorioService.createZipFile(relatoriosIds);
-    return result;
+    try {
+      const result = this.relatorioService.createZipFile();
+      return result;
+    } catch (error) {
+      console.log('🚀 - RelatorioController - generateZip - error:', error);
+      this.logger.error(
+        '🚀 ~ file: relatorios.controller.ts:118 ~ genPDF ~ error:' +
+          error.message,
+        error.trace,
+      );
+      throw new InternalServerErrorException('Erro ao gerar zip');
+    }
   }
 
   @Header('Content-Type', 'application/zip')
   @Get('/zip/download')
   async downloadZip(@Res() res: Response) {
     try {
-      const yesterdayDate = new Date();
-      yesterdayDate.setDate(new Date().getDate() - 1);
-      yesterdayDate.setHours(new Date().getHours() - 3);
-
-      const yesterday = formatReverseDate(yesterdayDate);
+      const yesterday = getYesterdayStringDate();
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="relatorios_consolidado_${yesterday}.zip"`,
+        `attachment; filename="PNAE - Relatórios não enviados até ${yesterday}.zip"`,
       );
 
-      const zipStream = this.relatorioService.downloadRelatorioZip();
+      const zipStream = await this.relatorioService.downloadRelatorioZip();
       zipStream.pipe(res);
     } catch (error) {
       console.log('🚀 - RelatorioController - generateZip - error:', error);
+      this.logger.error(
+        '🚀 ~ file: relatorios.controller.ts:174 ~ genPDF ~ error:' +
+          error.message,
+        error.trace,
+      );
       res.send('Erro ao gerar zip');
     }
   }

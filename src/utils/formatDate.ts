@@ -17,3 +17,13 @@ export const formatDate = (date: string | Date | undefined) => {
 export function formatReverseDate(date: Date): string {
   return date.toISOString().split('T')[0].replaceAll('-', '');
 }
+
+export function getYesterdayStringDate(): string {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  date.setHours(new Date().getHours() - 3);
+
+  const yesterdayString = formatDate(date) as string;
+  const yesterday = yesterdayString.replaceAll('/', '-');
+  return yesterday;
+}

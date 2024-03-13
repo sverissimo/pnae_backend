@@ -56,6 +56,12 @@ export const updateAtendimentoMutation = gql`
   }
 `;
 
+export const checkDataSEIMutation = gql`
+  mutation checkDataSEI($atendimentosIds: [String]) {
+    checkDataSEI(atendimentosIds: $atendimentosIds)
+  }
+`;
+
 // export const atendimentoQueries = gql`
 //   query {
 //     atendimento {
