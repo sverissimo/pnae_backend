@@ -26,18 +26,21 @@ export const atendimentoQuery = gql`
 `;
 
 export const atendimentosQuery = gql`
-  query {
-    atendimentos {
+  query Atendimentos($ids: [BigInt]) {
+    atendimentos(ids: $ids) {
       id_at_atendimento
-      id_at_acao
-      id_at_status
-      ativo
-      id_und_empresa
-      link_pdf
       data_criacao
       data_atualizacao
-      data_inicio_atendimento
-      data_fim_atendimento
+      data_validacao
+      data_sei
+      id_und_empresa
+      ativo
+      link_pdf
+      at_atendimento_usuario {
+        usuario {
+          nome_usuario
+        }
+      }
     }
   }
 `;

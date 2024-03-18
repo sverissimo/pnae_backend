@@ -11,9 +11,13 @@ import {
 
 @Injectable()
 export class AtendimentoGraphQLAPI extends GraphQLAPI {
-  async findAll() {
-    const query = atendimentosQuery;
-    const { atendimentos } = (await this.client.request(query)) as {
+  async findMany(ids: string[]) {
+    const document = atendimentosQuery;
+    const variables = { ids };
+    const { atendimentos } = (await this.client.request({
+      document,
+      variables,
+    })) as {
       atendimentos: Atendimento[];
     };
     return atendimentos;

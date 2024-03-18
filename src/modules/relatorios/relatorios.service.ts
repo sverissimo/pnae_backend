@@ -107,11 +107,9 @@ export class RelatorioService {
 
   async findAll() {
     const relatorios = await this.prismaService.relatorio.findMany({
-      include: {
-        files: true,
-      },
+      take: 100,
     });
-    return relatorios;
+    return relatorios.map(Relatorio.toModel);
   }
 
   async update(update: RelatorioModel) {

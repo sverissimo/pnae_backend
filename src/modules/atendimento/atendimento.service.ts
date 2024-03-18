@@ -22,9 +22,19 @@ export class AtendimentoService {
     return newAtendimentoId;
   }
 
-  async findAll() {
-    const atendimentos = await this.graphQLAPI.findAll();
-    return atendimentos;
+  async findMany(ids: string[]) {
+    const atendimentos = await this.graphQLAPI.findMany(ids);
+    const parsedAtendimentos = atendimentos.map((atendimento) => {
+      const { at_atendimento_usuario } = atendimento;
+      const { usuario } = at_atendimento_usuario && at_atendimento_usuario[0];
+
+      return {
+        ...atendimento,
+        usuario: usuario?.nome_usuario,
+        at_atendimento_usuario: undefined,
+      };
+    });
+    return parsedAtendimentos;
   }
 
   async findOne(id: string) {

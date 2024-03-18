@@ -33,9 +33,9 @@ export class AtendimentoController {
     }
   }
 
-  @Get()
-  async findAll() {
-    return await this.atendimentoService.findAll();
+  @Post('/findMany')
+  async findMany(@Body() ids: string[]) {
+    return await this.atendimentoService.findMany(ids);
   }
 
   @Get('getAtendimentosWithoutDataSEI')
