@@ -134,13 +134,21 @@ export class Perfil {
   }
 
   private parseValues(obj: CreateDadosProducaoInputDTO) {
-    if (obj?.valor_total_obtido_pnae) {
-      obj.valor_total_obtido_pnae = parseNumbers(obj.valor_total_obtido_pnae);
+    const produto = new Produto();
+    const valorPNAE = obj?.valor_total_obtido_pnae;
+    const valorOutros = obj?.valor_total_obtido_outros;
+
+    if (valorPNAE) {
+      obj.valor_total_obtido_pnae = parseNumbers(valorPNAE);
     }
 
-    if (obj?.valor_total_obtido_outros) {
-      obj.valor_total_obtido_outros = parseNumbers(
-        obj.valor_total_obtido_outros,
+    if (valorOutros) {
+      obj.valor_total_obtido_outros = parseNumbers(valorOutros);
+    }
+
+    if (obj) {
+      obj.at_prf_see_grupos_produtos.forEach(
+        produto.productGroupInputToOutputDTO.bind(produto),
       );
     }
   }
