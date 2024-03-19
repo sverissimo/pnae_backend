@@ -15,6 +15,7 @@ services:
     volumes:
       - /home/pnae/pnae_app/data:/home/node/data
       - /home/pnae/pnae_app/logs/prod:/home/node/logs
+      - /home/pnae/pnae_app/zipFiles/prod:/home/node/zipFiles
     deploy:
       replicas: 6
       resources:
@@ -24,8 +25,8 @@ services:
     restart: always
     networks:
       - pnae_prod_default
-    depends_on:
-      - postgres_pnae_prod
+    # depends_on:
+    #   - postgres_pnae_prod
 
   postgres_pnae_prod:
     container_name: postgres_pnae_prod

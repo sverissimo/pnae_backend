@@ -25,7 +25,7 @@ export class ZipCreator {
 
   private output: fs.WriteStream;
 
-  private readonly maxSize = 1.5 * 1024 * 1024;
+  private readonly maxSize = 40 * 1024 * 1024;
   private currentSize = 0;
   private archiveIndex = 0;
 
@@ -108,8 +108,10 @@ export class ZipCreator {
   }
 
   public static async generateFinalZip(filePaths: string[]): Promise<string> {
-    const parentOutput = fs.createWriteStream('final.zip');
+    const zipPath = process.env.ZIP_FILES_PATH;
+    const parentOutput = fs.createWriteStream(`${zipPath}/final.zip`);
     const parentArchive = archiver('zip', { zlib: { level: 9 } });
+
     parentArchive.pipe(parentOutput);
 
     for (const tempZipPath of filePaths) {

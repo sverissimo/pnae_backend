@@ -315,8 +315,8 @@ export class RelatorioService {
         error,
       );
     }
-
-    const zipStream = fs.createReadStream('final.zip');
+    const zipPath = process.env.ZIP_FILES_PATH;
+    const zipStream = fs.createReadStream(`${zipPath}/final.zip`);
     return zipStream;
   }
 

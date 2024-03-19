@@ -93,7 +93,11 @@ export class AtendimentoService {
   }
 
   async registerDataSEI() {
-    const idsString = await fs.readFile('atendimentosIds.json', 'utf-8');
+    const zipPath = process.env.ZIP_FILES_PATH;
+    const idsString = await fs.readFile(
+      `${zipPath}/atendimentosIds.json`,
+      'utf-8',
+    );
 
     const atendimentosIds: string[] = JSON.parse(idsString);
     if (!atendimentosIds.length) {
@@ -104,7 +108,11 @@ export class AtendimentoService {
   }
 
   async saveIdsToFile(atendimentosIds: string[]) {
-    await fs.writeFile('atendimentosIds.json', JSON.stringify(atendimentosIds));
+    const zipPath = process.env.ZIP_FILES_PATH;
+    await fs.writeFile(
+      `${zipPath}/atendimentosIds.json`,
+      JSON.stringify(atendimentosIds),
+    );
   }
 
   async logicRemove(id: string) {

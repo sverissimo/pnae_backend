@@ -15,6 +15,7 @@ services:
     volumes:
       - /home/pnae/pnae_app/data_hmg:/home/node/data_hmg
       - /home/pnae/pnae_app/logs/hmg:/home/node/logs
+      - /home/pnae/pnae_app/zipFiles/hmg:/home/node/zipFiles
     deploy:
       replicas: 1
       resources:
