@@ -9,13 +9,7 @@ export class AuthMiddleware implements NestMiddleware {
       req.baseUrl.match('/relatorios/pdf') ||
       req.baseUrl.match('/relatorios/zip')
     ) {
-      // return res.redirect('/web-login');
       return next();
-    }
-    try {
-      if (req.baseUrl.match('/web-login')) return next();
-    } catch (error) {
-      console.log('🚀 - AuthMiddleware - use - error:', error);
     }
 
     const authHeader = req.headers['authorization'];

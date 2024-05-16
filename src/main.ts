@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as bodyParser from 'body-parser';
-import { join } from 'path';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BigIntInterceptor } from './interceptors/big-int.interceptor';
@@ -39,10 +38,6 @@ async function bootstrap() {
           httpsOptions,
           ...logger,
         });
-
-  app.useStaticAssets(join(__dirname, 'public'));
-  app.setBaseViewsDir(join(__dirname, 'views'));
-  app.setViewEngine('ejs');
 
   app.use(bodyParser.json({ limit: '5mb' }));
   app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));

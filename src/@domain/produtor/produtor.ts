@@ -43,18 +43,9 @@ export class Produtor {
     if (!perfis[0]?.at_prf_see_propriedade[0]?.pl_propriedade?.municipio)
       return 'mun_nao_encontrado';
 
-    console.log(
-      '🚀 - Produtor - getMunicipioFromPerfis - perfis[0]?.at_prf_see_propriedade[0]?.pl_propriedade?.municipio:',
-      perfis[0]?.at_prf_see_propriedade[0]?.pl_propriedade?.municipio,
-    );
-
-    const pr: any =
+    const municipioSRE: string =
       perfis[0].at_prf_see_propriedade[0].pl_propriedade.municipio.nm_municipio;
 
-    return pr;
-    const sreString = pr.ger_und_empresa[0].nm_und_empresa as string;
-    return sreString;
-    const municipio = sreString.split(' de ')[1];
-    return municipio;
+    return municipioSRE;
   }
 }

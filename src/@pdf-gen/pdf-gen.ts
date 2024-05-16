@@ -15,9 +15,14 @@ type CreatePdfInput = {
 };
 
 export const pdfGen = async (pdfInputData: CreatePdfInput) => {
-  const { perfilPDFModel, relatorio, dados_producao_agro_industria, dados_producao_in_natura } =
-    pdfInputData;
-  const { numeroRelatorio, produtor, pictureURI, assinaturaURI, contratoId } = relatorio;
+  const {
+    perfilPDFModel,
+    relatorio,
+    dados_producao_agro_industria,
+    dados_producao_in_natura,
+  } = pdfInputData;
+  const { numeroRelatorio, produtor, pictureURI, assinaturaURI, contratoId } =
+    relatorio;
   const data = formatDate(relatorio.createdAt);
 
   const { cpfProdutor, id_und_empresa } = produtor as any;
@@ -32,17 +37,25 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
     cpfProdutor.replace(/\D/g, ''),
   );
 
-  const [pictureBuffer, assinaturaBuffer, logoBuffer] = await Promise.allSettled([
-    pictureURI ? readFile(`${imagesFolder}/${pictureURI}`, 'base64') : Promise.resolve(''),
-    assinaturaURI ? readFile(`${imagesFolder}/${assinaturaURI}`, 'base64') : Promise.resolve(''),
-    readFile(`${headerImageFolder}/emater_logo.jpg`, 'base64'),
-  ]);
+  const [pictureBuffer, assinaturaBuffer, logoBuffer] =
+    await Promise.allSettled([
+      pictureURI
+        ? readFile(`${imagesFolder}/${pictureURI}`, 'base64')
+        : Promise.resolve(''),
+      assinaturaURI
+        ? readFile(`${imagesFolder}/${assinaturaURI}`, 'base64')
+        : Promise.resolve(''),
+      readFile(`${headerImageFolder}/emater_logo.jpg`, 'base64'),
+    ]);
 
   const pictureBase64Image =
     pictureBuffer.status === 'fulfilled' ? pictureBuffer.value.toString() : '';
   const assinaturaBase64Image =
-    assinaturaBuffer.status === 'fulfilled' ? assinaturaBuffer.value.toString() : '';
-  const logoBase64Image = logoBuffer.status === 'fulfilled' ? logoBuffer.value.toString() : '';
+    assinaturaBuffer.status === 'fulfilled'
+      ? assinaturaBuffer.value.toString()
+      : '';
+  const logoBase64Image =
+    logoBuffer.status === 'fulfilled' ? logoBuffer.value.toString() : '';
 
   const [headerHtml, htmlWithPicture, footerHtml] = await Promise.all([
     ejs.renderFile(`${templatesFolder}/header.ejs`, {
@@ -53,7 +66,8 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
       produtor,
       perfil: perfilPDFModel,
       gruposProdutosNatura: dados_producao_in_natura.at_prf_see_grupos_produtos,
-      gruposProdutosIndustriais: dados_producao_agro_industria.at_prf_see_grupos_produtos,
+      gruposProdutosIndustriais:
+        dados_producao_agro_industria.at_prf_see_grupos_produtos,
       assinaturaBase64Image: `data:image/jpeg;base64,${assinaturaBase64Image} `,
       pictureBase64Image: `data:image/jpeg;base64,${pictureBase64Image} `,
     }),
@@ -67,7 +81,10 @@ export const pdfGen = async (pdfInputData: CreatePdfInput) => {
   const headerFilePath = `${templatesFolder}/header.html`;
   const footerFilePath = `${templatesFolder}/footer.html`;
 
-  await Promise.all([writeFile(headerFilePath, headerHtml), writeFile(footerFilePath, footerHtml)]);
+  await Promise.all([
+    writeFile(headerFilePath, headerHtml),
+    writeFile(footerFilePath, footerHtml),
+  ]);
 
   const pdfStream = wkhtmltopdf(htmlWithPicture, {
     pageSize: 'A4',
