@@ -31,13 +31,17 @@ async function bootstrap() {
   const PORT = process.env.PORT || 3000;
   const logger = { logger: new WinstonLoggerService() };
 
-  const app =
-    env === 'production'
-      ? await NestFactory.create<NestExpressApplication>(AppModule, logger)
-      : await NestFactory.create<NestExpressApplication>(AppModule, {
-          httpsOptions,
-          ...logger,
-        });
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule,
+    logger,
+  );
+  // const app =
+  //   env === 'production'
+  //     ? await NestFactory.create<NestExpressApplication>(AppModule, logger)
+  //     : await NestFactory.create<NestExpressApplication>(AppModule, {
+  //         httpsOptions,
+  //         ...logger,
+  //       });
 
   app.use(bodyParser.json({ limit: '5mb' }));
   app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));

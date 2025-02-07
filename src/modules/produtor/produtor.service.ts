@@ -19,15 +19,22 @@ export class ProdutorService {
   }
 
   async findOne(produtorId: string) {
-    const produtor: any = (await this.api.getProdutorById(produtorId)) as ProdutorDTO;
-    const propriedades = produtor.propriedades.map((p) => new Propriedade(p).toDTO());
+    const produtor: any = (await this.api.getProdutorById(
+      produtorId,
+    )) as ProdutorDTO;
+    const propriedades = produtor.propriedades.map((p) =>
+      new Propriedade(p).toDTO(),
+    );
     const perfis = produtor.perfis.map((p) => new Perfil(p).toDTO());
     return { ...produtor, propriedades, perfis } as ProdutorDTO;
   }
 
   async findByCpf(cpfProdutor: string) {
     const produtor: any = await this.api.getProdutor(cpfProdutor);
-    const propriedades = produtor.propriedades.map((p) => new Propriedade(p).toDTO());
+
+    const propriedades = produtor.propriedades.map((p) =>
+      new Propriedade(p).toDTO(),
+    );
     const perfis = produtor.perfis.map((p) => new Perfil(p).toDTO());
 
     return { ...produtor, propriedades, perfis };

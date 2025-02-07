@@ -22,11 +22,21 @@ export class PerfilController {
 
   @Post()
   async create(@Body() createPerfilDto: CreatePerfilInputDto) {
+    console.log(
+      '🚀 - PerfilController - create - createPerfilDto:',
+      JSON.stringify(createPerfilDto, null, 3),
+    );
+
     try {
       const result = await this.perfilService.create(createPerfilDto);
       return result;
     } catch (error) {
-      this.logger.error('🚀 ~ PerfilController - create:32 ~  error:' + error.message, error.trace);
+      console.log('🚀 - PerfilController - create - error:', error);
+
+      this.logger.error(
+        '🚀 ~ PerfilController - create:32 ~  error:' + error.message,
+        error.trace,
+      );
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -39,6 +49,11 @@ export class PerfilController {
   @Get('/options')
   getPerfilOptions() {
     return this.perfilService.getPerfilOptions();
+  }
+
+  @Get('/options_raw')
+  getPerfilOptionsRaw() {
+    return this.perfilService.getPerfilOptionsRaw();
   }
 
   @Get('/produtos')

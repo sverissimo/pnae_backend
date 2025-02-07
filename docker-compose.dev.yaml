@@ -12,8 +12,8 @@ services:
       - NODE_ENV=development
     entrypoint: "dockerize -wait tcp://postgres_pnae_dev:5432 -timeout 20s /usr/local/bin/docker-entrypoint.sh"
     command: "npm run start:dev"
-    ports:
-      - '3001:3000'
+    # ports:
+    #   - '3001:3000'
     depends_on:
       - postgres_pnae_dev
     volumes:

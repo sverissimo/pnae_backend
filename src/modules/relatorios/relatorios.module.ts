@@ -3,7 +3,6 @@ import { RelatorioService } from './relatorios.service';
 import { RelatorioController } from './relatorios.controller';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileModule } from 'src/common/files/file.module';
-import { RelatorioGraphQLAPI } from 'src/@graphQL-server/relatorio-api.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
@@ -15,7 +14,7 @@ import { ProdutorService } from '../produtor/produtor.service';
   controllers: [RelatorioController],
   providers: [
     PrismaService,
-    RelatorioGraphQLAPI,
+    // RelatorioGraphQLAPI,
     ProdutorGraphQLAPI,
     RelatorioService,
     ProdutorService,

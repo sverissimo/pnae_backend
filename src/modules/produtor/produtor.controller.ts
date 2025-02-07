@@ -38,7 +38,8 @@ export class ProdutorController {
       return await this.produtorService.getUnidadeEmpresa(produtorId);
     } catch (error) {
       this.logger.error(
-        '🚀 ~ file:  ProdutorController 41 - findOne - graphQLAPIError:' + error.message,
+        '🚀 ~ file:  ProdutorController 41 - findOne - graphQLAPIError:' +
+          error.message,
         error.trace,
       );
       throw new InternalServerErrorException(error.message);
@@ -52,31 +53,36 @@ export class ProdutorController {
       return produtor;
     } catch (graphQLAPIError) {
       this.logger.error(
-        '🚀 ~ file:  ProdutorController 57 - findOne - graphQLAPIError:' + graphQLAPIError.message,
+        '🚀 ~ file:  ProdutorController 57 - findOne - graphQLAPIError:' +
+          graphQLAPIError.message,
         graphQLAPIError.trace,
       );
       const { errors } = graphQLAPIError.response;
       const error = errors[0];
       if (error.extensions.code === 'NOT_FOUND') {
-        throw new NotFoundException('Produtor não encontrado. Verifique o CPF informado.');
+        throw new NotFoundException(
+          'Produtor não encontrado. Verifique o CPF informado.',
+        );
       }
       throw new InternalServerErrorException(error.message);
     }
   }
 
   @Get()
-  async findByCpf(@Query('cpfProdutor') cpfProdutor: string) {
-    console.log('🚀 - ProdutorController - findByCpf - cpfProdutor:', cpfProdutor);
-
+  findByCpf(@Query('cpfProdutor') cpfProdutor: string) {
     try {
-      const produtor = await this.produtorService.findByCpf(cpfProdutor);
-      return produtor;
+      return this.produtorService.findByCpf(cpfProdutor);
     } catch (graphQLAPIError) {
       const { errors } = graphQLAPIError?.response;
       const error = errors && errors[0];
-      this.logger.error('ProdutorController 77 - ' + error.message, error.trace);
+      this.logger.error(
+        'ProdutorController 77 - ' + error.message,
+        error.trace,
+      );
       if (error.extensions.code === 'NOT_FOUND') {
-        throw new NotFoundException('Produtor não encontrado. Verifique o CPF informado.');
+        throw new NotFoundException(
+          'Produtor não encontrado. Verifique o CPF informado.',
+        );
       }
       throw new InternalServerErrorException(error.message);
     }
@@ -87,13 +93,19 @@ export class ProdutorController {
     try {
       return await this.produtorService.findManyById(ids);
     } catch (error) {
-      this.logger.error('ProdutorController 92 - ' + error.message, error.trace);
+      this.logger.error(
+        'ProdutorController 92 - ' + error.message,
+        error.trace,
+      );
       throw new InternalServerErrorException(error.message);
     }
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProdutorDto: UpdateProdutorDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateProdutorDto: UpdateProdutorDto,
+  ) {
     return this.produtorService.update(+id, updateProdutorDto);
   }
 

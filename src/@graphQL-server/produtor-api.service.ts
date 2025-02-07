@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { produtorQuery, produtorUnidadeEmpresaQuery, produtoresQuery } from './queries';
+import {
+  produtorQuery,
+  produtorUnidadeEmpresaQuery,
+  produtoresQuery,
+} from './queries';
 import { GraphQLAPI } from './GraphQLAPI';
 import { Produtor } from 'src/@domain/produtor/produtor';
 
@@ -8,14 +12,20 @@ export class ProdutorGraphQLAPI extends GraphQLAPI {
   async getProdutor(cpfProdutor: string) {
     const document = produtorQuery;
     const variables = { cpf: cpfProdutor };
-    const { produtor } = (await this.client.request({ document, variables })) as any;
+    const { produtor } = (await this.client.request({
+      document,
+      variables,
+    })) as any;
     return this.parseBigint(produtor);
   }
 
   async getProdutorById(id: string): Promise<any> {
     const document = produtorQuery;
     const variables = { id: parseInt(id) };
-    const { produtor } = (await this.client.request({ document, variables })) as any;
+    const { produtor } = (await this.client.request({
+      document,
+      variables,
+    })) as any;
     return this.parseBigint(produtor);
   }
 
@@ -34,7 +44,9 @@ export class ProdutorGraphQLAPI extends GraphQLAPI {
       variables,
     })) as any;
     if (!result) {
-      throw new Error('Produtor não encontrado ao buscar por unidade da empresa.');
+      throw new Error(
+        'Produtor não encontrado ao buscar por unidade da empresa.',
+      );
     }
     return result;
   }

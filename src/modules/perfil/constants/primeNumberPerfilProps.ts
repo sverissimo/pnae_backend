@@ -1,0 +1,15 @@
+export const primeNumbersPerfilProps = [
+  'nivel_tecnologico_cultivo',
+  'sistema_producao',
+  'condicao_posse',
+  'fonte_captacao_agua',
+  'forma_esgotamento_sanitario',
+  'atividades_usam_recursos_hidricos',
+  'atividades_com_regularizacao_ambiental',
+  'local_comercializacao',
+  'procedimento_pos_colheita',
+  'forma_entrega_produtos',
+  'dificuldade_fornecimento',
+  'valor_total_obtido_pnae',
+  'valor_total_obtido_outros',
+];

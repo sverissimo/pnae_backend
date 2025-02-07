@@ -1,15 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { correctValoresPnaeOrder } from './utils/correctValoresPnaeOrder';
 
 @Injectable()
 export class RestAPI {
   url: string;
   token: string;
+  headers: Record<string, string>;
+
   constructor(private configService: ConfigService) {
     this.token = this.configService.get('token');
     this.url = this.configService.get('url');
-    1;
+    this.headers = {
+      Authorization: `Bearer ${this.token}`,
+    };
   }
+
   async getPerfilOptions() {
     try {
       const result = await fetch(`${this.url}/api/getPerfilOptions`, {
@@ -18,13 +24,31 @@ export class RestAPI {
         },
       });
 
-      const data = await result.json();
+      const data = (await result.json()) as Record<string, any>;
+      data?.ValorPnae && correctValoresPnaeOrder(data);
+
       return data;
     } catch (error) {
       console.log(
         '🚀 ~ file: rest-api.service.ts:13 ~ RestAPI ~ getPerfilOptions ~ error:',
         error,
       );
+    }
+  }
+
+  async getPerfilOptionsRaw() {
+    try {
+      const result = await fetch(`${this.url}/api/getPerfilOptionsRaw`, {
+        ...this.headers,
+      });
+      const data = await result.json();
+      return data;
+    } catch (error) {
+      console.log(
+        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getPerfilOptions ~ error:',
+        error,
+      );
+      throw error;
     }
   }
 

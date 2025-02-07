@@ -3,7 +3,6 @@ import { ProdutorService } from './produtor.service';
 import { ProdutorController } from './produtor.controller';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
-import { RelatorioGraphQLAPI } from 'src/@graphQL-server/relatorio-api.service';
 import { RelatorioModule } from 'src/modules/relatorios/relatorios.module';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
 
@@ -12,7 +11,7 @@ import { WinstonLoggerService } from 'src/common/logging/winston-logger.service'
   providers: [
     PrismaService,
     ProdutorGraphQLAPI,
-    RelatorioGraphQLAPI,
+    // RelatorioGraphQLAPI,
     ProdutorService,
     { provide: WinstonLoggerService, useClass: WinstonLoggerService },
   ],
