@@ -8,8 +8,8 @@ import {
   Delete,
 } from '@nestjs/common';
 import { AtendimentoService } from './atendimento.service';
-import { CreateAtendimentoDto } from './dto/create-atendimento.dto';
-import { UpdateAtendimentoDto } from './dto/update-atendimento.dto';
+import { CreateAtendimentoInputDto } from './dto/create-atendimento.dto';
+import { UpdateAtendimentoInputDto } from './dto/update-atendimento.dto';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
 
 @Controller('atendimento')
@@ -20,9 +20,11 @@ export class AtendimentoController {
   ) {}
 
   @Post()
-  async create(@Body() createAtendimentoDto: CreateAtendimentoDto) {
+  async create(@Body() CreateAtendimentoInputDto: CreateAtendimentoInputDto) {
     try {
-      const id = await this.atendimentoService.create(createAtendimentoDto);
+      const id = await this.atendimentoService.create(
+        CreateAtendimentoInputDto,
+      );
       return id;
     } catch (error) {
       this.logger.error(
@@ -50,6 +52,18 @@ export class AtendimentoController {
     }
   }
 
+  @Get('getTemasAtendimento')
+  getTemasAtendimento() {
+    try {
+      return this.atendimentoService.getTemasAtendimento();
+    } catch (error) {
+      this.logger.error(
+        'AtendimentoController:69 ~ getTemasAtendimento :' + error.message,
+        error.trace,
+      );
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {
@@ -62,9 +76,9 @@ export class AtendimentoController {
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() updateAtendimentoDto: UpdateAtendimentoDto,
+    @Body() UpdateAtendimentoInputDto: UpdateAtendimentoInputDto,
   ) {
-    return this.atendimentoService.update(id, updateAtendimentoDto);
+    return this.atendimentoService.update(id, UpdateAtendimentoInputDto);
   }
 
   @Delete(':id')

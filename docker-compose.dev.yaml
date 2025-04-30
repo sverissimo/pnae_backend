@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   pnae_backend_dev:
     container_name: pnae_backend_dev

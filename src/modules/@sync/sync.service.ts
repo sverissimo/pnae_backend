@@ -20,9 +20,11 @@ export class SyncService {
   ): Promise<Partial<CheckForUpdatesOutputDto<ProdutorDTO>>> {
     const { produtorId, updatedAt } = produtorSyncInput;
 
-    const produtor = await this.produtorService.findOne(produtorId).catch((err) => {
-      throw err;
-    });
+    const produtor = await this.produtorService
+      .findOne(produtorId)
+      .catch((err) => {
+        throw err;
+      });
 
     if (!produtor) {
       return { missingIdsOnServer: [produtorId] };
@@ -33,9 +35,13 @@ export class SyncService {
     }
 
     const clientUpdatedAt = updatedAt && new Date(updatedAt);
-    const serverUpdatedAt = produtor.dt_update_record && new Date(produtor.dt_update_record);
+    const serverUpdatedAt =
+      produtor.dt_update_record && new Date(produtor.dt_update_record);
 
-    const updateStatus = compareClientAndServerDates(clientUpdatedAt, serverUpdatedAt);
+    const updateStatus = compareClientAndServerDates(
+      clientUpdatedAt,
+      serverUpdatedAt,
+    );
     const response =
       updateStatus === 'outdatedOnClient'
         ? { outdatedOnClient: [produtor] }
@@ -47,10 +53,14 @@ export class SyncService {
   }
 
   async updateRelatoriosData(updatesInput: CheckForUpdatesInputDto) {
-    const { produtorIds, relatoriosSyncInfo: relatoriosFromClient } = updatesInput;
+    const { produtorIds, relatoriosSyncInfo: relatoriosFromClient } =
+      updatesInput;
 
     const ids = relatoriosFromClient.map((r) => r.id);
-    const existingRelatorios = await this.relatorioService.findMany({ ids, produtorIds });
+    const existingRelatorios = await this.relatorioService.findMany({
+      ids,
+      produtorIds,
+    });
 
     const updateInfoOutput = RelatorioDomainService.getSyncInfo(
       relatoriosFromClient,

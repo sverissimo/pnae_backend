@@ -24,6 +24,7 @@ import { FilesInputDto } from 'src/common/files/files-input.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
 import { getYesterdayStringDate } from 'src/utils';
+import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 
 @Controller('relatorios')
 export class RelatorioController {
@@ -52,6 +53,7 @@ export class RelatorioController {
         await this.fileService.save(files, relatorio);
       }
       console.log('🚀 relatorios.controller.ts:50 ~ created id ', relatorioId);
+
       return relatorioId;
     } catch (error) {
       console.log('🚀 - RelatorioController 57 - error:', error);
@@ -87,6 +89,7 @@ export class RelatorioController {
       if (!relatorios) {
         throw new NotFoundException('Nenhum relatório encontrado');
       }
+
       return relatorios;
     } catch (error) {
       this.logger.error(
@@ -187,7 +190,7 @@ export class RelatorioController {
   async update(
     @Param('id') id: string,
     @UploadedFiles() files: FilesInputDto,
-    @Body() update: Omit<RelatorioModel, 'id'>,
+    @Body() update: UpdateRelatorioDto,
   ) {
     try {
       const relatorioUpdate = { id, ...update };

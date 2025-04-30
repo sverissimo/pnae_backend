@@ -8,6 +8,7 @@ import {
   checkDataSEIMutation,
   updateAtendimentoMutation,
 } from './queries/atendimento-queries';
+import { CreateAtendimentoStorageDto } from 'src/modules/atendimento/dto/create-atendimento.dto';
 
 @Injectable()
 export class AtendimentoGraphQLAPI extends GraphQLAPI {
@@ -35,7 +36,7 @@ export class AtendimentoGraphQLAPI extends GraphQLAPI {
     return atendimento;
   }
 
-  async createAtendimento(createAtendimentoInput: Atendimento) {
+  async createAtendimento(createAtendimentoInput: CreateAtendimentoStorageDto) {
     const document = createAtendimentoMutation;
     const variables = { input: createAtendimentoInput };
     const { id_at_atendimento }: { id_at_atendimento: string } =

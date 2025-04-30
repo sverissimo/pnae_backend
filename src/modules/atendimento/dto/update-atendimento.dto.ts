@@ -1,6 +1,14 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateAtendimentoDto } from './create-atendimento.dto';
+import {
+  CreateAtendimentoInputDto,
+  CreateAtendimentoStorageDto,
+} from './create-atendimento.dto';
 
-export class UpdateAtendimentoDto extends PartialType(CreateAtendimentoDto) {
+export interface UpdateAtendimentoInputDto
+  extends Partial<CreateAtendimentoInputDto> {
   ativo?: boolean;
+}
+
+export interface UpdateAtendimentoStorageDto
+  extends Partial<CreateAtendimentoStorageDto> {
+  id_at_atendimento?: string;
 }

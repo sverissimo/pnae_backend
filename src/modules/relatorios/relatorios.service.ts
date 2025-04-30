@@ -24,6 +24,7 @@ import { ZipCreator } from 'src/@zip-gen/ZipCreator';
 import { ProdutorService } from '../produtor/produtor.service';
 import { formatReverseDate } from 'src/utils';
 import { Atendimento } from '../atendimento/entities/atendimento.entity';
+import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -113,10 +114,11 @@ export class RelatorioService {
     return relatorios.map(Relatorio.toModel);
   }
 
-  async update(update: RelatorioModel) {
-    console.log('🚀 - RelatorioService - update - update:', update);
+  async update(updateInput: UpdateRelatorioDto) {
+    console.log('🚀 - RelatorioService - update - update:', updateInput);
+    // const { id, atendimentoId, numeroRelatorio, temas_atendimento } = update;
 
-    const { id, atendimentoId, numeroRelatorio } = update;
+    const { id, atendimentoId, temas_atendimento, ...update } = updateInput;
     const { readOnly } = await this.findOne(id);
     if (readOnly) {
       throw new UnauthorizedException(
@@ -124,21 +126,37 @@ export class RelatorioService {
       );
     }
 
-    const newAtendimentoId = await this.atendimentoService.updateIfNecessary(
-      atendimentoId,
-      String(numeroRelatorio),
+    // ************ ITEM 134 (Rel é sub de outro) FOI REMOVIDO DO BANCO. ************
+    // const newAtendimentoId = await this.atendimentoService.updateIfNecessary(
+    //   atendimentoId,
+    //   String(numeroRelatorio),
+    // );
+    // *****************************************************************************
+    //INSTEAD:
+    console.log(
+      '🚀 - RelatorioService - update - temas_atendimento:',
+      temas_atendimento,
     );
+    if (temas_atendimento && temas_atendimento.length > 0) {
+      const temasDTO = Atendimento.temasAtendimentoListToDTO(temas_atendimento);
+      await this.atendimentoService.updateTemasAtendimento(
+        atendimentoId,
+        temasDTO,
+      );
+    }
 
     const data = Relatorio.updateFieldsToDTO({
       ...update,
-      atendimentoId: newAtendimentoId,
+      // atendimentoId: newAtendimentoId, // Wont change anymore cause no 134
     });
+    console.log('🚀 - RelatorioService - update - data:', data);
+
     await this.prismaService.relatorio.update({
       where: { id },
       data,
     });
 
-    return newAtendimentoId;
+    // return newAtendimentoId;
   }
 
   async remove(id: string) {
@@ -150,7 +168,9 @@ export class RelatorioService {
     }
 
     const atendimentoId = relatorio?.atendimentoId?.toString();
-    atendimentoId && (await this.atendimentoService.logicRemove(atendimentoId));
+    if (atendimentoId) {
+      await this.atendimentoService.logicRemove(atendimentoId);
+    }
 
     await this.removeFiles(relatorio);
     await this.prismaService.relatorio.delete({ where: { id } });
@@ -244,11 +264,16 @@ export class RelatorioService {
       ) as PerfilModel;
 
       const perfilDTO = new Perfil(perfil).toDTO();
+      if (!perfis || !perfis.length)
+        throw new NotFoundException(
+          `Nenhum Perfil encontrado para o produtor ${produtor.nm_pessoa}`,
+        );
 
       const { municipio } = propriedades[0];
       const nome_propriedade = propriedades
         .map((p) => p.nome_propriedade)
         .join(', ');
+
       const { dados_producao_in_natura, dados_producao_agro_industria } =
         perfilDTO;
       const matricula = usuario.digito_matricula

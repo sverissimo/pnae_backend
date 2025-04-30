@@ -27,7 +27,10 @@ export class UsuarioController {
     if (!id && !matricula) {
       throw new BadRequestException('É necessário informar um id ou matricula');
     }
-    let { usuarios } = await this.api.getUsuarios({ ids: id, matriculas: matricula });
+    let { usuarios } = await this.api.getUsuarios({
+      ids: id,
+      matriculas: matricula,
+    });
 
     if (!usuarios?.length) {
       const { usuarios: comissionados } = await this.api.getUsuarios({
@@ -58,9 +61,15 @@ export class UsuarioController {
         throw new NotFoundException('Usuário não encontrado');
       }
       const { matricula_usuario, password } = user;
-      const login = matricula_usuario.length === 4 ? 'C' + matricula_usuario : matricula_usuario;
+      const login =
+        matricula_usuario.length === 4
+          ? 'C' + matricula_usuario
+          : matricula_usuario;
 
-      const authenticated = await this.userLdapService.authenticate(login, password);
+      const authenticated = await this.userLdapService.authenticate(
+        login,
+        password,
+      );
 
       if (authenticated) {
         const user = await this.api.getUsuarios({ matriculas: login });
@@ -72,13 +81,13 @@ export class UsuarioController {
         return usuario;
       }
     } catch (error) {
+      console.log('🚀 - UsuarioController - login - error:', error);
       if (error instanceof UserNotFoundError) {
         throw new NotFoundException(error.message);
       }
       if (error.message === 'Usuário ou senha inválidos.') {
         throw new BadRequestException('Usuário ou senha inválidos.');
       }
-      console.log('🚀 - UsuarioController - login - error:', error);
       throw error;
     }
   }

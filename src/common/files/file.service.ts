@@ -7,22 +7,31 @@ import { Readable } from 'stream';
 import { ProdutorService } from 'src/modules/produtor/produtor.service';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { Relatorio } from 'src/modules/relatorios/entities/relatorio.entity';
+import { UpdateRelatorioDto } from 'src/modules/relatorios/dto/update-relatorio.dto';
 
 @Injectable()
 export class FileService {
-  constructor(private prismaService: PrismaService, private produtorService: ProdutorService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private produtorService: ProdutorService,
+  ) {}
 
   async getFileStream(
     fileUUIDName: string,
     callback: (err: Error | null, stream?: Readable) => void,
   ): Promise<any> {
     const relatorio = await this.prismaService.relatorio.findFirst({
-      where: { OR: [{ pictureURI: fileUUIDName }, { assinaturaURI: fileUUIDName }] },
+      where: {
+        OR: [{ pictureURI: fileUUIDName }, { assinaturaURI: fileUUIDName }],
+      },
       select: { produtorId: true, contratoId: true },
     });
 
     const { produtorId, contratoId } = relatorio;
-    const folder = await this.getFolderPath({ produtorId: String(produtorId), contratoId });
+    const folder = await this.getFolderPath({
+      produtorId: String(produtorId),
+      contratoId,
+    });
 
     const filePath = join(folder, fileUUIDName);
     const stream = createReadStream(filePath);
@@ -57,9 +66,11 @@ export class FileService {
     return uploadFolder;
   }
 
-  async update(files: FilesInputDto, relatorio: RelatorioModel) {
+  async update(files: FilesInputDto, relatorio: UpdateRelatorioDto) {
     const { id: relatorioId } = relatorio;
-    const oldFiles = await this.prismaService.pictureFile.findMany({ where: { relatorioId } });
+    const oldFiles = await this.prismaService.pictureFile.findMany({
+      where: { relatorioId },
+    });
     const uploadFolder = await this.save(files, relatorio);
 
     if (oldFiles.length) {
@@ -67,13 +78,18 @@ export class FileService {
         .filter((file) => {
           return (
             (file.description === 'FOTO_RELATORIO' && !!files['foto']) ||
-            (file.description === 'ASSINATURA_PRODUTOR' && !!files['assinatura'])
+            (file.description === 'ASSINATURA_PRODUTOR' &&
+              !!files['assinatura'])
           );
         })
         .map((file) => file.id);
-      await this.prismaService.pictureFile.deleteMany({ where: { id: { in: fileIdsToDelete } } });
+      await this.prismaService.pictureFile.deleteMany({
+        where: { id: { in: fileIdsToDelete } },
+      });
       await Promise.all(
-        fileIdsToDelete.map((fileId) => this.deleteFile(join(uploadFolder, fileId))),
+        fileIdsToDelete.map((fileId) =>
+          this.deleteFile(join(uploadFolder, fileId)),
+        ),
       );
     }
   }
@@ -86,17 +102,32 @@ export class FileService {
       fileIds = fileIds.split(',');
     }
 
-    await this.prismaService.pictureFile.deleteMany({ where: { id: { in: fileIds } } });
+    await this.prismaService.pictureFile.deleteMany({
+      where: { id: { in: fileIds } },
+    });
     for (const id of fileIds) {
       const rel =
         relatorio ||
         (await this.prismaService.relatorio.findFirst({
-          where: { OR: [{ pictureURI: { in: fileIds } }, { assinaturaURI: { in: fileIds } }] },
-          select: { produtorId: true, contratoId: true, pictureURI: true, assinaturaURI: true },
+          where: {
+            OR: [
+              { pictureURI: { in: fileIds } },
+              { assinaturaURI: { in: fileIds } },
+            ],
+          },
+          select: {
+            produtorId: true,
+            contratoId: true,
+            pictureURI: true,
+            assinaturaURI: true,
+          },
         }));
 
       const { produtorId, contratoId } = rel;
-      const filesFolder = await this.getFolderPath({ produtorId: String(produtorId), contratoId });
+      const filesFolder = await this.getFolderPath({
+        produtorId: String(produtorId),
+        contratoId,
+      });
       const filePath = join(filesFolder, id);
       await this.deleteFile(filePath);
     }
@@ -105,12 +136,16 @@ export class FileService {
 
   async getFolderPath(relatorio: Partial<RelatorioModel>) {
     const { produtorId, contratoId } = relatorio;
-    const { nr_cpf_cnpj, id_und_empresa } = await this.produtorService.getUnidadeEmpresa(
-      produtorId,
-    );
+    const { nr_cpf_cnpj, id_und_empresa } =
+      await this.produtorService.getUnidadeEmpresa(produtorId);
 
     const baseFolder = process.env.FILES_FOLDER;
-    const folderName = join(baseFolder, `contrato_${contratoId}`, id_und_empresa, nr_cpf_cnpj);
+    const folderName = join(
+      baseFolder,
+      `contrato_${contratoId}`,
+      id_und_empresa,
+      nr_cpf_cnpj,
+    );
     return folderName;
   }
 
@@ -120,7 +155,8 @@ export class FileService {
       fileName: file.originalname,
       size: Number(file.size),
       mimeType: file.mimetype,
-      description: file.fieldname === 'foto' ? 'FOTO_RELATORIO' : 'ASSINATURA_PRODUTOR',
+      description:
+        file.fieldname === 'foto' ? 'FOTO_RELATORIO' : 'ASSINATURA_PRODUTOR',
       relatorioId: relatorioId,
     };
     // console.log('🚀 ~ file: file.service.ts:67 ~ FileService :', fileMetadata);

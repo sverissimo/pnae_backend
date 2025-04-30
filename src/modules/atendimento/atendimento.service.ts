@@ -1,10 +1,14 @@
 import * as fs from 'fs/promises';
 import { Injectable } from '@nestjs/common';
-import { CreateAtendimentoDto } from './dto/create-atendimento.dto';
-import { UpdateAtendimentoDto } from './dto/update-atendimento.dto';
+import { CreateAtendimentoInputDto } from './dto/create-atendimento.dto';
+import {
+  UpdateAtendimentoInputDto,
+  UpdateAtendimentoStorageDto,
+} from './dto/update-atendimento.dto';
 import { AtendimentoGraphQLAPI } from 'src/@graphQL-server/atendimento-api.service';
 import { Atendimento } from './entities/atendimento.entity';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
+import { AtendimentoDataMapper } from './data-mapper/atendimento.data-mapper';
 
 @Injectable()
 export class AtendimentoService {
@@ -13,11 +17,13 @@ export class AtendimentoService {
     private restAPI: RestAPI,
   ) {}
 
-  async create(createAtendimentoDto: CreateAtendimentoDto) {
-    const atendimento = Atendimento.create(createAtendimentoDto);
+  async create(CreateAtendimentoInputDto: CreateAtendimentoInputDto) {
+    const atendimento = Atendimento.create(CreateAtendimentoInputDto);
+    const createAtendimentoStorageDto =
+      AtendimentoDataMapper.entityToCreateStorageDto(atendimento);
 
     const newAtendimentoId: string = await this.graphQLAPI.createAtendimento(
-      atendimento,
+      createAtendimentoStorageDto,
     );
     return newAtendimentoId;
   }
@@ -51,6 +57,10 @@ export class AtendimentoService {
     return atendimentos;
   }
 
+  getTemasAtendimento() {
+    return this.restAPI.getTemasAtendimento();
+  }
+
   async updateIfNecessary(atendimentoId: string, numero_relatorio: string) {
     const atendimento = await this.findOne(atendimentoId);
     if (!atendimento?.sn_pendencia) {
@@ -66,7 +76,7 @@ export class AtendimentoService {
     const { id_usuario } = at_atendimento_usuario;
     const { id_pessoa_demeter, id_pl_propriedade } = at_cli_atend_prop;
 
-    const atendimentoDTO: CreateAtendimentoDto = {
+    const atendimentoDTO: CreateAtendimentoInputDto = {
       id_usuario,
       id_und_empresa,
       link_pdf,
@@ -78,18 +88,28 @@ export class AtendimentoService {
 
     await this.logicRemove(atendimentoId);
     const newAtendimento = Atendimento.recreate(atendimentoDTO);
+    const newAtendimentoDto =
+      AtendimentoDataMapper.entityToCreateStorageDto(newAtendimento);
+
     const newAtendimentoId = await this.graphQLAPI.createAtendimento(
-      newAtendimento,
+      newAtendimentoDto,
     );
 
     return newAtendimentoId;
   }
 
-  async update(id: string, updateAtendimentoDto: UpdateAtendimentoDto) {
+  async update(
+    id: string,
+    UpdateAtendimentoInputDto: UpdateAtendimentoStorageDto,
+  ) {
     await this.graphQLAPI.update({
       id_at_atendimento: id,
-      ...updateAtendimentoDto,
+      ...UpdateAtendimentoInputDto,
     });
+  }
+
+  updateTemasAtendimento(id: string, temasAtendimento: string): Promise<void> {
+    return this.restAPI.updateTemasAtendimento(id, temasAtendimento);
   }
 
   async registerDataSEI() {

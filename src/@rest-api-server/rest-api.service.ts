@@ -19,9 +19,7 @@ export class RestAPI {
   async getPerfilOptions() {
     try {
       const result = await fetch(`${this.url}/api/getPerfilOptions`, {
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-        },
+        headers: this.headers,
       });
 
       const data = (await result.json()) as Record<string, any>;
@@ -39,7 +37,7 @@ export class RestAPI {
   async getPerfilOptionsRaw() {
     try {
       const result = await fetch(`${this.url}/api/getPerfilOptionsRaw`, {
-        ...this.headers,
+        headers: this.headers,
       });
       const data = await result.json();
       return data;
@@ -55,9 +53,7 @@ export class RestAPI {
   async getGruposProdutos() {
     try {
       const result = await fetch(`${this.url}/api/getGruposProdutos`, {
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-        },
+        headers: this.headers,
       });
       const data = await result.json();
       return data;
@@ -72,9 +68,7 @@ export class RestAPI {
   async getContractInfo() {
     try {
       const result = await fetch(`${this.url}/api/getContractInfo`, {
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-        },
+        headers: this.headers,
       });
 
       const data = await result.json();
@@ -94,9 +88,7 @@ export class RestAPI {
       const result = await fetch(
         `${this.url}/api/getReadOnlyRelatorios/${ids}`,
         {
-          headers: {
-            Authorization: `Bearer ${this.token}`,
-          },
+          headers: this.headers,
         },
       );
       const data = await result.json();
@@ -114,9 +106,7 @@ export class RestAPI {
       const result = await fetch(
         `${this.url}/api/getAtendimentosWithoutDataSEI`,
         {
-          headers: {
-            Authorization: `Bearer ${this.token}`,
-          },
+          headers: this.headers,
         },
       );
       const data = await result.json();
@@ -124,6 +114,49 @@ export class RestAPI {
     } catch (error) {
       console.log(
         '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getAtendimentosWithoutDataSEI ~ error:',
+        error,
+      );
+    }
+  }
+
+  async getTemasAtendimento() {
+    try {
+      const result = await fetch(`${this.url}/api/getTemasAtendimento`, {
+        headers: this.headers,
+      });
+      const data = await result.json();
+      console.log('🚀 - RestAPI - getTemasAtendimento - data:', data);
+
+      return data;
+    } catch (error) {
+      console.log(
+        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getTemasAtendimento ~ error:',
+        error,
+      );
+    }
+  }
+
+  async updateTemasAtendimento(
+    atendimentoId: string,
+    temasAtendimento: string,
+  ): Promise<void> {
+    try {
+      const result = await fetch(
+        `${this.url}/api/updateTemasAtendimento/${atendimentoId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            ...this.headers,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ temasAtendimento }),
+        },
+      );
+      console.log('🚀 - RestAPI - result:', result);
+      return;
+    } catch (error) {
+      console.log(
+        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ updateTemasAtendimento ~ error:',
         error,
       );
     }

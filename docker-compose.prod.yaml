@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   pnae_backend_prod:
     image: pnae_backend_prod

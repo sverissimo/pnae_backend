@@ -16,7 +16,9 @@ export class SyncController {
   @Post('produtor')
   async syncProdutor(@Body() produtorSyncInput: ProdutorSyncInput) {
     try {
-      const updates = await this.syncService.getProdutorSyncInfo(produtorSyncInput);
+      const updates = await this.syncService.getProdutorSyncInfo(
+        produtorSyncInput,
+      );
 
       return updates;
     } catch (error) {
@@ -30,7 +32,12 @@ export class SyncController {
   @Post('relatorios')
   async syncRelatorios(@Body() updatesInput: CheckForUpdatesInputDto) {
     try {
+      console.log(
+        '🚀 - SyncController - syncRelatorios - updatesInput:',
+        updatesInput,
+      );
       const updates = await this.syncService.updateRelatoriosData(updatesInput);
+      console.log('🚀 - SyncController - syncRelatorios - updates sent:');
       return updates;
     } catch (error) {
       console.log('🚀 - SyncController - syncRelatorios - error:', error);

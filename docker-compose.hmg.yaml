@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   pnae_backend_hmg:
     image: pnae_backend_hmg

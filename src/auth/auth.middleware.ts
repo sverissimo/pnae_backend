@@ -7,7 +7,8 @@ export class AuthMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     if (
       req.baseUrl.match('/relatorios/pdf') ||
-      req.baseUrl.match('/relatorios/zip')
+      req.baseUrl.match('/relatorios/zip') ||
+      req.baseUrl.match('/cmc')
     ) {
       return next();
     }
