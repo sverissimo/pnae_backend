@@ -1,10 +1,7 @@
 import * as fs from 'fs/promises';
 import { Injectable } from '@nestjs/common';
 import { CreateAtendimentoInputDto } from './dto/create-atendimento.dto';
-import {
-  UpdateAtendimentoInputDto,
-  UpdateAtendimentoStorageDto,
-} from './dto/update-atendimento.dto';
+import { UpdateAtendimentoStorageDto } from './dto/update-atendimento.dto';
 import { AtendimentoGraphQLAPI } from 'src/@graphQL-server/atendimento-api.service';
 import { Atendimento } from './entities/atendimento.entity';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';

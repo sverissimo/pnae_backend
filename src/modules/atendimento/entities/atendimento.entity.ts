@@ -181,7 +181,8 @@ export class Atendimento {
   }
 
   private createTemasAtendimentoDTO(): string {
-    return this.temas_atendimento
+    const temasAtendimento = this.temas_atendimento || [];
+    return temasAtendimento
       .reduce((acc, curr) => {
         if (!this.temas_atendimento) return acc;
         const atendimentoCode = this.temas_atendimento_list.findIndex(
