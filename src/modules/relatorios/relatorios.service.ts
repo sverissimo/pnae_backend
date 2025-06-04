@@ -149,7 +149,6 @@ export class RelatorioService {
       ...update,
       // atendimentoId: newAtendimentoId, // Wont change anymore cause no 134
     });
-    console.log('🚀 - RelatorioService - update - data:', data);
 
     await this.prismaService.relatorio.update({
       where: { id },
@@ -264,18 +263,14 @@ export class RelatorioService {
       ) as PerfilModel;
 
       const perfilDTO = new Perfil(perfil).toDTO();
-      if (!perfis || !perfis.length)
-        throw new NotFoundException(
-          `Nenhum Perfil encontrado para o produtor ${produtor.nm_pessoa}`,
-        );
+      const { dados_producao_in_natura, dados_producao_agro_industria } =
+        perfilDTO || {};
 
       const { municipio } = propriedades[0];
       const nome_propriedade = propriedades
         .map((p) => p.nome_propriedade)
         .join(', ');
 
-      const { dados_producao_in_natura, dados_producao_agro_industria } =
-        perfilDTO;
       const matricula = usuario.digito_matricula
         ? usuario.matricula_usuario + '-' + usuario.digito_matricula
         : usuario.matricula_usuario;

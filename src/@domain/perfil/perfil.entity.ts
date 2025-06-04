@@ -32,7 +32,7 @@ export class Perfil {
     };
   }
 
-  toDTO(): PerfilDTO {
+  toDTO(): PerfilDTO | undefined {
     if (!this.perfil) return;
     const produto = new Produto();
     const {
