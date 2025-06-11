@@ -69,6 +69,8 @@ export const produtorQuery = gql`
           local_comercializacao
           valor_total_obtido_pnae
           valor_total_obtido_outros
+          total_obtido_pnae
+          total_obtido_outros
           forma_entrega_produtos
           dificuldade_fornecimento
           informacoes_adicionais
@@ -107,6 +109,8 @@ export const produtorQuery = gql`
           local_comercializacao
           valor_total_obtido_pnae
           valor_total_obtido_outros
+          total_obtido_pnae
+          total_obtido_outros
           forma_entrega_produtos
           dificuldade_fornecimento
           informacoes_adicionais

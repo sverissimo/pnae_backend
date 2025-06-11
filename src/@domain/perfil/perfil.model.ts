@@ -34,6 +34,8 @@ export type PerfilModel = {
     tipo_regularizacao_uso_recursos_hidricos: string;
     valor_total_obtido_outros: string;
     valor_total_obtido_pnae: string;
+    total_obtido_pnae?: string;
+    total_obtido_outros?: string;
     at_prf_see_grupos_produtos: GrupoProdutos[];
   };
   dados_producao_in_natura: {
@@ -46,6 +48,8 @@ export type PerfilModel = {
     tipo_regularizacao_uso_recursos_hidricos: string;
     valor_total_obtido_outros: string;
     valor_total_obtido_pnae: string;
+    total_obtido_pnae?: string;
+    total_obtido_outros?: string;
     at_prf_see_grupos_produtos: GrupoProdutos[];
   };
   dap_caf_vigente: boolean;
@@ -57,7 +61,12 @@ export type PerfilModel = {
   id_dados_producao_agro_industria: string;
   id_dados_producao_in_natura: string;
   nivel_tecnologico_cultivo: string;
-  orgao_fiscalizacao_sanitaria: 'IMA' | 'VIGILANCIA_SANITARIA' | 'SIM' | 'MAPA' | 'NAO_SE_APLICA';
+  orgao_fiscalizacao_sanitaria:
+    | 'IMA'
+    | 'VIGILANCIA_SANITARIA'
+    | 'SIM'
+    | 'MAPA'
+    | 'NAO_SE_APLICA';
   participa_organizacao: boolean;
   pessoas_processamento_alimentos: number;
   possui_agroindustria_propria?: boolean;

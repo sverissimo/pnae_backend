@@ -266,18 +266,20 @@ export class RelatorioService {
       const { dados_producao_in_natura, dados_producao_agro_industria } =
         perfilDTO || {};
 
-      const { municipio } = propriedades[0];
       const nome_propriedade = propriedades
         .map((p) => p.nome_propriedade)
         .join(', ');
 
-      const matricula = usuario.digito_matricula
-        ? usuario.matricula_usuario + '-' + usuario.digito_matricula
-        : usuario.matricula_usuario;
       const perfilPDFModel = new Perfil().toPDFModel({
         ...perfil,
         nome_propriedade,
       });
+
+      const { municipio } = propriedades[0];
+      const matricula = usuario.digito_matricula
+        ? usuario.matricula_usuario + '-' + usuario.digito_matricula
+        : usuario.matricula_usuario;
+
       return {
         relatorio: {
           ...relatorio,

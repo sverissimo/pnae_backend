@@ -12,6 +12,7 @@ import {
   CreatePerfilOutputDto,
 } from './dto/create-perfil.dto';
 import { CreateDadosProducaoInputDTO } from './dto/create-dados-producao-dto';
+import { faixasValoresDemeter } from './constants/faixas-valores-demeter';
 
 export class Perfil {
   constructor(private perfil?: PerfilModel | CreatePerfilInputDto) {}
@@ -34,6 +35,9 @@ export class Perfil {
 
   toDTO(): PerfilDTO | undefined {
     if (!this.perfil) return;
+
+    this.fixFaixasValores(this.perfil as PerfilModel);
+
     const produto = new Produto();
     const {
       dados_producao_agro_industria,
@@ -94,6 +98,8 @@ export class Perfil {
 
     const perfilPDFModel = { perfilData };
 
+    // console.log(JSON.stringify(perfil, null, 2));
+
     const producaoNatura =
       atividade === 'ATIVIDADE_PRIMARIA' || atividade === 'AMBAS'
         ? producaoNaturaLabels.map(({ field, label }) => {
@@ -122,10 +128,10 @@ export class Perfil {
           })
         : [];
 
-    if (producaoNatura.length > 0) {
+    if (producaoNatura?.length > 0) {
       Object.assign(perfilPDFModel, { producaoNatura });
     }
-    if (producaoIndustrial.length > 0) {
+    if (producaoIndustrial?.length > 0) {
       Object.assign(perfilPDFModel, { producaoIndustrial });
     }
 
@@ -210,5 +216,37 @@ export class Perfil {
     }, at_prf_see_propriedades[0].atividade);
 
     return atividade as 'ATIVIDADE_PRIMARIA' | 'ATIVIDADE_SECUNDARIA' | 'AMBAS';
+  }
+
+  // Workaround para a duplicidade de colunas referentes às faixas de valores criada no banco de dados do Demeter
+  private fixFaixasValores(perfil: PerfilModel) {
+    const { dados_producao_agro_industria, dados_producao_in_natura } = perfil;
+
+    const { valoresPNAE, valoresDemais } = faixasValoresDemeter;
+
+    if (dados_producao_agro_industria?.total_obtido_pnae) {
+      dados_producao_agro_industria.valor_total_obtido_pnae =
+        valoresPNAE.find(
+          (v) => v.value === dados_producao_agro_industria.total_obtido_pnae,
+        )?.descricao || 'R$ 0,00';
+    }
+    if (dados_producao_agro_industria?.total_obtido_outros) {
+      dados_producao_agro_industria.valor_total_obtido_outros =
+        valoresDemais.find(
+          (v) => v.value === dados_producao_agro_industria.total_obtido_outros,
+        )?.descricao || 'R$ 0,00';
+    }
+    if (dados_producao_in_natura?.total_obtido_pnae) {
+      dados_producao_in_natura.valor_total_obtido_pnae =
+        valoresPNAE.find(
+          (v) => v.value === dados_producao_in_natura.total_obtido_pnae,
+        )?.descricao || 'R$ 0,00';
+    }
+    if (dados_producao_in_natura?.total_obtido_outros) {
+      dados_producao_in_natura.valor_total_obtido_outros =
+        valoresDemais.find(
+          (v) => v.value === dados_producao_in_natura.total_obtido_outros,
+        )?.descricao || 'R$ 0,00';
+    }
   }
 }
