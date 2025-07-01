@@ -1,11 +1,11 @@
-import { PerfilModel } from './perfil.model';
+import { at_prf_see_propriedade, PerfilModel } from './perfil.model';
 import {
   formattedValues,
   perfilFieldLabels,
   producaoIndustrialLabels,
   producaoNaturaLabels,
 } from '../../modules/perfil/constants';
-import { Produto, at_prf_see_propriedade } from '.';
+import { Produto } from './produto.entity';
 import { PerfilDTO } from '../../modules/perfil/types';
 import {
   CreatePerfilInputDto,

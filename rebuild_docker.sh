@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Usage example:
-# ./rebuild-hmg.sh prod
+# bash rebuild-docker.sh prod
 
 if [ -z "$1" ]; then
   echo "Usage: $0 <environment>"

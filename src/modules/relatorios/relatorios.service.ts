@@ -19,7 +19,7 @@ import { RelatorioDto } from './dto/relatorio.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { Usuario } from '../usuario/entity/usuario-model';
 import { AtendimentoService } from '../atendimento/atendimento.service';
-import { pdfGen } from 'src/@pdf-gen/pdf-gen';
+import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
 import { ZipCreator } from 'src/@zip-gen/ZipCreator';
 import { ProdutorService } from '../produtor/produtor.service';
 import { formatReverseDate } from 'src/utils';
@@ -243,6 +243,7 @@ export class RelatorioService {
       const produtor = await this.produtorApi.getProdutorById(
         relatorio.produtorId.toString(),
       );
+
       const { perfis, propriedades } = produtor;
 
       if (!propriedades || !propriedades.length) {
@@ -300,9 +301,8 @@ export class RelatorioService {
         perfilPDFModel,
       };
     } catch (error) {
-      // console.error('🚀 ~ file: relatorios.service.ts:244 ~ createPDF:', error);
       console.log(error);
-      throw new InternalServerErrorException(error.message); // or throw new InternalServerErrorException(error.message);
+      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -424,7 +424,7 @@ export class RelatorioService {
       dados_producao_in_natura,
     } = await this.createPDFInput(relatorioId, relatorioInput);
 
-    const pdfStream = await pdfGen({
+    const pdfStream = await PdfGenerator.generatePdf({
       relatorio,
       perfilPDFModel,
       nome_propriedade,

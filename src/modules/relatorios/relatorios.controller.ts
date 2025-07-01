@@ -19,7 +19,7 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { FileService } from 'src/common/files/file.service';
 import { RelatorioService } from './relatorios.service';
-import { pdfGen } from 'src/@pdf-gen/pdf-gen';
+import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
 import { FilesInputDto } from 'src/common/files/files-input.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
@@ -119,7 +119,7 @@ export class RelatorioController {
         `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.pdf`,
       );
 
-      const pdfStream = await pdfGen({
+      const pdfStream = await PdfGenerator.generatePdf({
         relatorio,
         perfilPDFModel,
         nome_propriedade,
@@ -127,7 +127,8 @@ export class RelatorioController {
         dados_producao_in_natura,
       });
       pdfStream.pipe(res);
-      console.log('🚀 ...done ');
+
+      console.log('🚀 ...done!! ');
     } catch (error) {
       this.logger.error(
         '🚀 ~ file: relatorios.controller.ts:118 ~ genPDF ~ error:' +

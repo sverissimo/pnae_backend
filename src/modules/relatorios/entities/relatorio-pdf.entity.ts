@@ -12,7 +12,7 @@ export type RelatorioPDF = {
   numeroRelatorio: number;
   assunto: string;
   orientacao: string;
-  produtor?: Partial<Produtor>;
+  produtor?: ProdutorPDFInput;
   pictureURI?: string;
   assinaturaURI?: string;
   municipio?: string;
@@ -21,3 +21,10 @@ export type RelatorioPDF = {
   createdAt: any;
   updatedAt?: any;
 } | null;
+
+export type ProdutorPDFInput = {
+  nomeProdutor: string;
+  cpfProdutor: string;
+  dap?: string;
+  id_und_empresa: string;
+};
