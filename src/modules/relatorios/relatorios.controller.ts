@@ -195,6 +195,17 @@ export class RelatorioController {
   ) {
     try {
       const relatorioUpdate = { id, ...update };
+
+      if (!update.produtorId) {
+        const relatorio = await this.relatorioService.findOne(id);
+        if (!relatorio) {
+          throw new NotFoundException('Relatório não encontrado');
+        }
+        Object.assign(relatorioUpdate, {
+          produtorId: relatorio.produtorId,
+        });
+      }
+
       const newAtendimentoId = await this.relatorioService.update(
         relatorioUpdate,
       );
