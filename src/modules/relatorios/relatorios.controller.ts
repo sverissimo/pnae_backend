@@ -196,13 +196,15 @@ export class RelatorioController {
     try {
       const relatorioUpdate = { id, ...update };
 
-      if (!update.produtorId) {
+      //  Needed to get files folder name where to save updated files, if present.
+      if (!update.produtorId || !update.contratoId) {
         const relatorio = await this.relatorioService.findOne(id);
         if (!relatorio) {
           throw new NotFoundException('Relatório não encontrado');
         }
         Object.assign(relatorioUpdate, {
-          produtorId: relatorio.produtorId,
+          produtorId: update.produtorId || relatorio.produtorId,
+          contratoId: update.contratoId || relatorio.contratoId,
         });
       }
 

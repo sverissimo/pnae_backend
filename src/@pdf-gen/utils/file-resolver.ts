@@ -9,12 +9,12 @@ export class FileResolver {
     fileName: string,
   ): Promise<string> {
     const { cpfProdutor, id_und_empresa } = produtor;
+    const dataFolder =
+      process.env.NODE_ENV === 'development'
+        ? '/home/node/data'
+        : process.env.FILES_FOLDER!;
 
-    const contractFolder = join(
-      process.env.FILES_FOLDER!,
-      `contrato_${contratoId}`,
-    );
-
+    const contractFolder = join(dataFolder, `contrato_${contratoId}`);
     const cpfFolder = cpfProdutor.replace(/\D/g, '');
 
     // 1) direct path
@@ -23,7 +23,20 @@ export class FileResolver {
       return readFile(direct, 'base64');
     }
 
-    // 2) scan one level deep
+    // 2) workaround for undefined contract folder
+    const undefinedContractFolder = join(dataFolder, 'contrato_undefined');
+    const workaround = join(
+      undefinedContractFolder,
+      id_und_empresa,
+      cpfFolder,
+      fileName,
+    );
+    if (await this.exists(workaround)) {
+      console.log(`Found file at ${workaround}`);
+      return readFile(workaround, 'base64');
+    }
+
+    // 3) scan one level deep
     const entries = await readdir(contractFolder, { withFileTypes: true });
     for (const e of entries) {
       if (!e.isDirectory()) continue;

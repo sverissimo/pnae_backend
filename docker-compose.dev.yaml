@@ -24,7 +24,7 @@ services:
 
   postgres_pnae_dev:
     container_name: postgres_pnae_dev
-    image: postgres:15
+    image: postgres:16
     env_file:
       - development.env
     ports:

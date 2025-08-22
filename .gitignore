@@ -16,6 +16,7 @@
 /db
 /zipFiles
 *.zip
+*.dump
 
 
 # Logs
