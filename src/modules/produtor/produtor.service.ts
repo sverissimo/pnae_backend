@@ -5,7 +5,7 @@ import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { Propriedade } from './entities';
 import { Perfil } from 'src/@domain/perfil';
 import { ProdutorDTO } from './dto';
-import { Produtor } from 'src/@domain/produtor/produtor';
+import { ProdutorDataMapper } from './data-mapper/produtor.data-mapper';
 
 @Injectable()
 export class ProdutorService {
@@ -42,12 +42,10 @@ export class ProdutorService {
 
   async findManyById(ids: string[]) {
     const produtores: any = await this.api.getManyProdutores(ids);
-    const parsedProdutores = produtores.produtores.map((p) => {
-      const { perfis, ...produtor } = p;
-      const municipio = Produtor.getMunicipioFromPerfis(perfis);
-      return { ...produtor, municipio };
-    });
-    return parsedProdutores;
+
+    return produtores.produtores.map(
+      ProdutorDataMapper.ProdutoresFromGraphQLtoOutputDTO,
+    );
   }
 
   async getUnidadeEmpresa(produtorId: string) {

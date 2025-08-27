@@ -39,16 +39,6 @@ services:
     restart: always
     networks:
       - pnae_prod_default
-  # prisma-migrate:
-  #   image: pnae_backend_prod
-  #   container_name: prisma_migrate
-  #   command: npx prisma db push
-  #   env_file:
-  #     - production.env
-  #   depends_on:
-  #     - postgres_pnae_prod
-  #   networks:
-  #     - pnae_prod_default
 
 volumes:
   postgres_data_prod:

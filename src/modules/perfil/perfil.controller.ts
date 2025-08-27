@@ -60,6 +60,15 @@ export class PerfilController {
     return await this.perfilService.getContractInfo();
   }
 
+  @Get('/getRegionaisEmater')
+  getRegionaisEmater() {
+    try {
+      return this.perfilService.getRegionaisEmater();
+    } catch (error) {
+      console.log('🚀 - PerfilController - getRegionaisEmater - error:', error);
+    }
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePerfilDto: UpdatePerfilDto) {
     return this.perfilService.update(+id, updatePerfilDto);

@@ -150,6 +150,16 @@ export const produtoresQuery = gql`
             municipio {
               nm_municipio
             }
+            regional_sre
+            ger_und_empresa {
+              id_und_empresa
+              fk_und_empresa
+              nm_und_empresa
+              ger_und_empresa {
+                id_und_empresa
+                nm_und_empresa
+              }
+            }
           }
         }
       }

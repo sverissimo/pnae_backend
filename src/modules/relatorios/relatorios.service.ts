@@ -108,7 +108,7 @@ export class RelatorioService {
 
   async findAll() {
     const relatorios = await this.prismaService.relatorio.findMany({
-      take: 500,
+      where: { contratoId: 2 },
       orderBy: { createdAt: 'desc' },
     });
     return relatorios.map(Relatorio.toModel);

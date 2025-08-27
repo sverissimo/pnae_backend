@@ -56,4 +56,23 @@ export class PerfilService {
     const contractInfo = await this.restAPI.getContractInfo();
     return contractInfo;
   };
+
+  getRegionaisEmater = async () => {
+    try {
+      const unidadesEmpresa = (await this.restAPI.getRegionaisEmater()) as {
+        sg_und_empresa: string | null;
+        id_und_empresa: string;
+        nm_und_empresa: string;
+      }[];
+
+      return unidadesEmpresa.map((r) => ({
+        nm_und_empresa: r.nm_und_empresa,
+        sg_und_empresa: r.sg_und_empresa,
+        id_und_empresa: r.id_und_empresa,
+      }));
+    } catch (error) {
+      console.log('🚀 - PerfilService - getRegionaisEmater - error:', error);
+      throw error;
+    }
+  };
 }

@@ -136,6 +136,21 @@ export class RestAPI {
     }
   }
 
+  async getRegionaisEmater() {
+    try {
+      const result = await fetch(`${this.url}/api/getRegionaisEmater`, {
+        headers: this.headers,
+      });
+      const data = await result.json();
+      return data;
+    } catch (error) {
+      console.log(
+        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getRegionaisEmater ~ error:',
+        error,
+      );
+    }
+  }
+
   async updateTemasAtendimento(
     atendimentoId: string,
     temasAtendimento: string,
