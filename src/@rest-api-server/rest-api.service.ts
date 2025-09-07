@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { correctValoresPnaeOrder } from './utils/correctValoresPnaeOrder';
+import { UpdateTemasAndVisitaAtendimentoDTO } from 'src/modules/atendimento/dto/update-temas-and-visita-atendimento.dto';
 
 @Injectable()
 export class RestAPI {
@@ -151,20 +152,21 @@ export class RestAPI {
     }
   }
 
-  async updateTemasAtendimento(
-    atendimentoId: string,
-    temasAtendimento: string,
-  ): Promise<void> {
+  async updateTemasAndVisitaAtendimento({
+    atendimentoId,
+    temasAtendimento,
+    numeroVisita,
+  }: Partial<UpdateTemasAndVisitaAtendimentoDTO>): Promise<void> {
     try {
       const result = await fetch(
-        `${this.url}/api/updateTemasAtendimento/${atendimentoId}`,
+        `${this.url}/api/updateTemasAndVisitaAtendimento/${atendimentoId}`,
         {
           method: 'PATCH',
           headers: {
             ...this.headers,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ temasAtendimento }),
+          body: JSON.stringify({ temasAtendimento, numeroVisita }),
         },
       );
       console.log('🚀 - RestAPI - result:', result);

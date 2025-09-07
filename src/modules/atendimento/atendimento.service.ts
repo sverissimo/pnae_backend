@@ -6,6 +6,7 @@ import { AtendimentoGraphQLAPI } from 'src/@graphQL-server/atendimento-api.servi
 import { Atendimento } from './entities/atendimento.entity';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 import { AtendimentoDataMapper } from './data-mapper/atendimento.data-mapper';
+import { UpdateTemasAndVisitaAtendimentoDTO } from './dto/update-temas-and-visita-atendimento.dto';
 
 @Injectable()
 export class AtendimentoService {
@@ -105,8 +106,39 @@ export class AtendimentoService {
     });
   }
 
-  updateTemasAtendimento(id: string, temasAtendimento: string): Promise<void> {
-    return this.restAPI.updateTemasAtendimento(id, temasAtendimento);
+  updateTemasAndVisita(
+    updateAtendimentoProps: UpdateTemasAndVisitaAtendimentoDTO,
+  ): Promise<void> {
+    const {
+      atendimentoId,
+      temasAtendimento,
+      numeroVisita,
+      oldRelatorioNumber,
+    } = updateAtendimentoProps;
+
+    const hasNumero = !!numeroVisita;
+
+    const numeroVisitaUpdate =
+      hasNumero && numeroVisita !== String(oldRelatorioNumber)
+        ? String(numeroVisita)
+        : undefined;
+
+    const temasDTO = temasAtendimento
+      ? Atendimento.temasAtendimentoListToDTO(temasAtendimento)
+      : undefined;
+
+    if (!atendimentoId || (!temasDTO && !numeroVisitaUpdate)) return;
+    console.log({
+      atendimentoId,
+      temasDTO,
+      numeroVisitaUpdate,
+    });
+
+    return this.restAPI.updateTemasAndVisitaAtendimento({
+      atendimentoId,
+      temasAtendimento: temasDTO,
+      numeroVisita: numeroVisitaUpdate,
+    });
   }
 
   async registerDataSEI() {
@@ -134,5 +166,48 @@ export class AtendimentoService {
 
   async logicRemove(id: string) {
     await this.update(id, { ativo: false });
+  }
+
+  // Workaround cause frontEnd doesn't send dates
+  async checkDates({
+    createdAt,
+    atendimentoId,
+  }: {
+    createdAt: string;
+    atendimentoId: string;
+  }) {
+    if (!createdAt || !atendimentoId) return false;
+
+    const atendimento = await this.findOne(atendimentoId);
+    const { data_inicio_atendimento } = atendimento;
+
+    const parsedCreated = new Date(createdAt);
+    const parsedInicio = new Date(data_inicio_atendimento);
+    const validCreated = !isNaN(parsedCreated.getTime());
+    const validInicio = !isNaN(parsedInicio.getTime());
+
+    if (!validInicio && validCreated) {
+      await this.update(atendimentoId, {
+        data_inicio_atendimento: createdAt,
+        data_fim_atendimento: createdAt,
+      });
+      return true;
+    }
+
+    if (!validCreated || !validInicio) return false;
+
+    const d1 = parsedCreated.toISOString().slice(0, 10);
+    const d2 = parsedInicio.toISOString().slice(0, 10);
+    d1 === d2 && console.log('Dates are the same, no update needed.');
+    if (d1 !== d2) {
+      console.log('Dates are different, updating atendimento...');
+      await this.update(atendimentoId, {
+        data_inicio_atendimento: createdAt,
+        data_fim_atendimento: createdAt,
+      });
+      return true;
+    }
+
+    return false;
   }
 }

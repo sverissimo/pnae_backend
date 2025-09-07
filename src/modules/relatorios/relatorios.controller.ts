@@ -14,6 +14,8 @@ import {
   InternalServerErrorException,
   Res,
   Header,
+  Req,
+  HttpException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
@@ -46,26 +48,29 @@ export class RelatorioController {
     @Body() relatorio: RelatorioModel,
   ) {
     try {
-      relatorio.readOnly = String(relatorio.readOnly) === 'true';
-      const { id: relatorioId } = await this.relatorioService.create(relatorio);
+      //throw error if duplicate and abort creation
+      await this.relatorioService.checkForDuplicateRelatorios(relatorio);
+      const savedRelatorio = await this.relatorioService.create(relatorio);
 
       if (files) {
         await this.fileService.save(files, relatorio);
       }
-      console.log('🚀 relatorios.controller.ts:50 ~ created id ', relatorioId);
 
-      return relatorioId;
+      return savedRelatorio?.id;
     } catch (error) {
       console.log('🚀 - RelatorioController 57 - error:', error);
+      this.logger.error('create error', error?.stack ?? String(error));
 
-      this.logger.error(
-        '🚀 ~ file: relatorios.controller.ts:53 ~ create ~ error:' +
-          error.message,
-        error.trace,
-      );
-      throw error;
+      if (error instanceof HttpException) throw error;
+
+      const status = Number(error?.status ?? error?.statusCode);
+      if (!Number.isNaN(status)) {
+        throw new HttpException(error?.message ?? String(error), status);
+      }
+      throw new BadRequestException(error?.message ?? String(error));
     }
   }
+
   @Get('/all')
   async findAll() {
     return await this.relatorioService.findAll();
@@ -227,14 +232,19 @@ export class RelatorioController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(@Req() req: Request, @Param('id') id: string) {
     try {
       if (!id) throw new BadRequestException('Id inválido');
+      const userIP = req.headers['x-real-ip'] || req.headers['x-forwarded-for'];
+
       const result = await this.relatorioService.remove(id);
+
+      this.logger.error(`#### DELETED RELATORIO ${id}. User IP: ${userIP}`, ''); // Not an error, use method to write to log file.
+
       return result;
     } catch (error) {
       this.logger.error(
-        '🚀 ~ file: relatorios.controller.ts:161 ~ update ~ error:' +
+        '####### ~ file: relatorios.controller.ts:161 ~ remove ~ error:' +
           error.message,
         error.trace,
       );

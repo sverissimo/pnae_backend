@@ -24,11 +24,12 @@ export const formattedValues = [
   ['OUTORGA', 'Outorga'],
   ['CERTIDAO_DISPENSA_LICENCIAMENTO', 'Certidão de dispensa de licenciamento'],
   ['LICENCA_AMBIENTAL', 'Licença ambiental'],
+  ['NAO_REGISTRADO', 'Não é registrado'],
   ['VIGILANCIA_SANITARIA', 'Vigilância Sanitária'],
   ['IMA', 'IMA (Instituto Mineiro de Agropecuária)'],
   ['MAPA', 'MAPA (Ministério da Agricultura, Pecuária e Abastecimento)'],
   ['SIM', 'SIM (Serviço de Inspeção Municipal - Consórcio)'],
-
+  ['SIM_NAO_CONSORCIO', 'SIM (Serviço de Inspeção Municipal)'],
   [true, 'Sim'],
   [false, 'Não'],
 ];

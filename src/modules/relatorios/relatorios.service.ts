@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import {
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -25,6 +26,7 @@ import { ProdutorService } from '../produtor/produtor.service';
 import { formatReverseDate } from 'src/utils';
 import { Atendimento } from '../atendimento/entities/atendimento.entity';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
+import { UpdateTemasAndVisitaAtendimentoDTO } from '../atendimento/dto/update-temas-and-visita-atendimento.dto';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -47,8 +49,11 @@ export class RelatorioService {
         data: relatorioDto,
       });
 
+      await this.checkAtendimentoDate(relatorioInput);
+
       return createdRelatorio;
     } catch (error) {
+      await this.atendimentoService.logicRemove(relatorioInput.atendimentoId);
       if (error.code === 'P2002' && error.meta?.target?.includes('id')) {
         throw new Error('Relatório com este ID já existe');
       }
@@ -57,8 +62,15 @@ export class RelatorioService {
   }
 
   async createMany(relatorios: RelatorioModel[]) {
+    if (!Array.isArray(relatorios) || relatorios.length === 0) {
+      return 'Nenhum relatório para criar';
+    }
+
     const data = relatorios.map((r) => new Relatorio(r).toDto());
-    await this.prismaService.relatorio.createMany({ data });
+    await this.prismaService.relatorio.createMany({
+      data,
+      skipDuplicates: true,
+    });
     return 'Relatórios criados com sucesso';
   }
 
@@ -116,32 +128,13 @@ export class RelatorioService {
 
   async update(updateInput: UpdateRelatorioDto) {
     console.log('🚀 - RelatorioService - update - update:', updateInput);
-    // const { id, atendimentoId, numeroRelatorio, temas_atendimento } = update;
 
     const { id, atendimentoId, temas_atendimento, ...update } = updateInput;
-    const { readOnly } = await this.findOne(id);
+    const { numeroRelatorio: oldRelatorioNumber, readOnly } =
+      await this.findOne(id);
     if (readOnly) {
       throw new UnauthorizedException(
         'Não é possível alterar relatório, pois já foi validado pela gerência.',
-      );
-    }
-
-    // ************ ITEM 134 (Rel é sub de outro) FOI REMOVIDO DO BANCO. ************
-    // const newAtendimentoId = await this.atendimentoService.updateIfNecessary(
-    //   atendimentoId,
-    //   String(numeroRelatorio),
-    // );
-    // *****************************************************************************
-    //INSTEAD:
-    console.log(
-      '🚀 - RelatorioService - update - temas_atendimento:',
-      temas_atendimento,
-    );
-    if (temas_atendimento && temas_atendimento.length > 0) {
-      const temasDTO = Atendimento.temasAtendimentoListToDTO(temas_atendimento);
-      await this.atendimentoService.updateTemasAtendimento(
-        atendimentoId,
-        temasDTO,
       );
     }
 
@@ -153,6 +146,20 @@ export class RelatorioService {
     await this.prismaService.relatorio.update({
       where: { id },
       data,
+    });
+
+    // ************ ITEM 134 (Rel é sub de outro) FOI REMOVIDO DO BANCO. ************
+    // const newAtendimentoId = await this.atendimentoService.updateIfNecessary(atendimentoId, String(numeroRelatorio));
+    // *****************************************************************************
+    //INSTEAD:
+
+    await this.atendimentoService.updateTemasAndVisita({
+      atendimentoId,
+      temasAtendimento: temas_atendimento,
+      numeroVisita: update.numeroRelatorio
+        ? String(update.numeroRelatorio)
+        : undefined,
+      oldRelatorioNumber: oldRelatorioNumber,
     });
 
     // return newAtendimentoId;
@@ -341,6 +348,42 @@ export class RelatorioService {
     const zipPath = process.env.ZIP_FILES_PATH;
     const zipStream = fs.createReadStream(`${zipPath}/final.zip`);
     return zipStream;
+  }
+
+  async checkForDuplicateRelatorios(relatorio: RelatorioModel) {
+    const relatorioDto = new Relatorio(relatorio).toDto();
+    const { produtorId, tecnicoId, numeroRelatorio, contratoId } = relatorioDto;
+
+    if (!produtorId || !numeroRelatorio || !contratoId || !tecnicoId) return;
+
+    const duplicateCandidate = await this.prismaService.relatorio.findFirst({
+      where: {
+        produtorId,
+        tecnicoId,
+        numeroRelatorio,
+        contratoId,
+      },
+    });
+
+    console.log('RelatorioService checkForDuplicate :', duplicateCandidate);
+
+    if (duplicateCandidate) {
+      //Remove antendimento previamente cadastrado
+      await this.atendimentoService.logicRemove(relatorio.atendimentoId);
+      throw new Error(`Relatório já cadastrado.`);
+    }
+  }
+
+  private async checkAtendimentoDate(relatorio: RelatorioModel) {
+    try {
+      const { atendimentoId, createdAt } = relatorio;
+      await this.atendimentoService.checkDates({
+        atendimentoId: String(atendimentoId),
+        createdAt,
+      });
+    } catch (error) {
+      console.log('🚀 RelatorioService checkAtendimentoDate:', error);
+    }
   }
 
   private async getRelatoriosPorMunicipio(relatorios: RelatorioModel[]) {
