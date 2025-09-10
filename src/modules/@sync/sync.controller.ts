@@ -32,12 +32,7 @@ export class SyncController {
   @Post('relatorios')
   async syncRelatorios(@Body() updatesInput: CheckForUpdatesInputDto) {
     try {
-      console.log(
-        '🚀 - SyncController - syncRelatorios - updatesInput:',
-        updatesInput,
-      );
       const updates = await this.syncService.updateRelatoriosData(updatesInput);
-      console.log('🚀 - SyncController - syncRelatorios - updates sent:');
       return updates;
     } catch (error) {
       console.log('🚀 - SyncController - syncRelatorios - error:', error);

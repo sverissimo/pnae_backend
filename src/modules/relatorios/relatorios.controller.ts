@@ -59,7 +59,12 @@ export class RelatorioController {
       return savedRelatorio?.id;
     } catch (error) {
       console.log('🚀 - RelatorioController 57 - error:', error);
-      this.logger.error('create error', error?.stack ?? String(error));
+      this.logger.error(
+        'RelatorioController ~ create' + error?.message ||
+          error?.stack ||
+          String(error),
+        error?.trace,
+      );
 
       if (error instanceof HttpException) throw error;
 

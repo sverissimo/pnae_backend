@@ -8,6 +8,9 @@ import { ProdutorService } from 'src/modules/produtor/produtor.service';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { Relatorio } from 'src/modules/relatorios/entities/relatorio.entity';
 import { UpdateRelatorioDto } from 'src/modules/relatorios/dto/update-relatorio.dto';
+import { PictureDescription, Prisma } from '@prisma/client';
+import { isDuplicateError } from 'src/prisma/errors/is-duplicate-error';
+import { GetResult } from '@prisma/client/runtime';
 
 @Injectable()
 export class FileService {
@@ -55,43 +58,122 @@ export class FileService {
     }
 
     for (const key in files) {
-      if (files[key]) {
-        for (const file of files[key]) {
-          const fileMetadata = this.createFileMetadata(file, relatorio.id);
-          const { id: fileId } = await this.saveMetadata(fileMetadata);
-          await fs.writeFile(`${uploadFolder}/${fileId}`, file.buffer);
+      if (!files[key]) continue;
+
+      for (const file of files[key]) {
+        const fileMetadata = this.createFileMetadata(file, relatorio.id);
+        const result = await this.saveMetadata(fileMetadata);
+
+        if (!result || result.__duplicate === true) {
+          console.warn(
+            `[files/save] Duplicate metadata detected for id=${fileMetadata.id} (relatorioId=${fileMetadata.relatorioId}, desc=${fileMetadata.description}). Skipping FS write.`,
+          );
+          continue;
         }
+
+        const targetPath = join(uploadFolder, result.id);
+        if (existsSync(targetPath)) {
+          console.warn(
+            `[files/save] File already exists at ${targetPath}. Skipping write.`,
+          );
+          continue;
+        }
+
+        await fs.writeFile(targetPath, file.buffer as Uint8Array | string);
       }
     }
-    return uploadFolder;
   }
 
   async update(files: FilesInputDto, relatorio: UpdateRelatorioDto) {
     const { id: relatorioId } = relatorio;
-    const oldFiles = await this.prismaService.pictureFile.findMany({
+    const existingFiles = await this.prismaService.pictureFile.findMany({
       where: { relatorioId },
     });
-    const uploadFolder = await this.save(files, relatorio);
 
-    if (oldFiles.length) {
-      const fileIdsToDelete = oldFiles
-        .filter((file) => {
-          return (
-            (file.description === 'FOTO_RELATORIO' && !!files['foto']) ||
-            (file.description === 'ASSINATURA_PRODUTOR' &&
-              !!files['assinatura'])
-          );
-        })
-        .map((file) => file.id);
+    const { changedFiles } = await this.getModifiedFiles(files, existingFiles);
+    if (!changedFiles.length) {
+      return;
+    }
+
+    await this.save(files, relatorio);
+    await this.removeOutdatedFiles({ files, relatorio, existingFiles });
+  }
+
+  private async removeOutdatedFiles(removeFilesProps: {
+    files: FilesInputDto;
+    relatorio: UpdateRelatorioDto;
+    existingFiles: { id: string; description: PictureDescription }[];
+  }) {
+    const { files, relatorio, existingFiles } = removeFilesProps;
+    if (!existingFiles.length) return;
+
+    const fieldToDescription: Record<string, PictureDescription> = {
+      foto: 'FOTO_RELATORIO',
+      assinatura: 'ASSINATURA_PRODUTOR',
+    };
+
+    const fileIdsToDelete = Object.entries(fieldToDescription)
+      .filter(([field]) => files?.[field]?.[0])
+      .map(
+        ([, description]) =>
+          existingFiles.find((f) => f.description === description)?.id,
+      )
+      .filter((id): id is string => Boolean(id));
+
+    if (!fileIdsToDelete.length) return;
+
+    try {
       await this.prismaService.pictureFile.deleteMany({
         where: { id: { in: fileIdsToDelete } },
       });
-      await Promise.all(
-        fileIdsToDelete.map((fileId) =>
-          this.deleteFile(join(uploadFolder, fileId)),
-        ),
-      );
+    } catch (err) {
+      console.error('[files/update] Failed to delete pictureFile rows:', err);
+      return;
     }
+
+    const uploadFolder = await this.getFolderPath(relatorio);
+    await Promise.all(
+      fileIdsToDelete.map(async (fileId) => {
+        try {
+          await this.deleteFile(join(uploadFolder, fileId));
+        } catch (err) {
+          console.warn(
+            `[files/update] Failed to delete file ${fileId} from disk:`,
+            err,
+          );
+        }
+      }),
+    );
+  }
+
+  private async getModifiedFiles(files: FilesInputDto, existingFiles: any[]) {
+    const incoming = Object.values(files).flat() as Express.Multer.File[];
+
+    const changedFiles = incoming.filter(
+      (file) =>
+        !existingFiles.some(
+          (o) =>
+            o.id === file.originalname.split('.')[0] &&
+            o.description ===
+              (file.fieldname === 'foto'
+                ? 'FOTO_RELATORIO'
+                : 'ASSINATURA_PRODUTOR'),
+        ),
+    );
+
+    // const outDatedFiles = existingFiles.filter(
+    //   (o) =>
+    //     !incoming.some(
+    //       (file) =>
+    //         o.id === file.originalname.split('.')[0] &&
+    //         o.description ===
+    //           (file.fieldname === 'foto'
+    //             ? 'FOTO_RELATORIO'
+    //             : 'ASSINATURA_PRODUTOR'),
+    //     ),
+    // );
+
+    return { changedFiles };
   }
 
   async remove(fileIds: string | string[], relatorio?: Partial<Relatorio>) {
@@ -156,16 +238,41 @@ export class FileService {
       size: Number(file.size),
       mimeType: file.mimetype,
       description:
-        file.fieldname === 'foto' ? 'FOTO_RELATORIO' : 'ASSINATURA_PRODUTOR',
+        file.fieldname === 'foto'
+          ? ('FOTO_RELATORIO' as PictureDescription)
+          : ('ASSINATURA_PRODUTOR' as PictureDescription),
       relatorioId: relatorioId,
     };
     // console.log('🚀 ~ file: file.service.ts:67 ~ FileService :', fileMetadata);
     return fileMetadata;
   }
 
-  private async saveMetadata(file) {
-    const fileId = await this.prismaService.pictureFile.create({ data: file });
-    return fileId;
+  private async saveMetadata(file: {
+    id: string;
+    fileName: string;
+    size: number;
+    mimeType: string;
+    description: PictureDescription;
+    relatorioId: string;
+  }): Promise<{ id: string; __duplicate?: true } | null> {
+    const { relatorioId, ...data } = file;
+
+    try {
+      const created = await this.prismaService.pictureFile.create({
+        data: {
+          ...data,
+          relatorio: { connect: { id: relatorioId } },
+        },
+      });
+      return { id: created.id };
+    } catch (e: any) {
+      if (isDuplicateError(e)) {
+        return { id: file.id, __duplicate: true };
+      }
+
+      console.error('[files/saveMetadata] Unexpected error on create:', e);
+      throw e;
+    }
   }
 
   async deleteFile(filePath: string): Promise<void> {
