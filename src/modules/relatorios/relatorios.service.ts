@@ -451,6 +451,7 @@ export class RelatorioService {
       await this.prismaService.relatorio.findMany({
         where: {
           atendimentoId: { in: atendimentoIds },
+          contratoId: 2,
         },
       })
     ).map(Relatorio.toModel);

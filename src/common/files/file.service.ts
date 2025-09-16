@@ -8,9 +8,8 @@ import { ProdutorService } from 'src/modules/produtor/produtor.service';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { Relatorio } from 'src/modules/relatorios/entities/relatorio.entity';
 import { UpdateRelatorioDto } from 'src/modules/relatorios/dto/update-relatorio.dto';
-import { PictureDescription, Prisma } from '@prisma/client';
 import { isDuplicateError } from 'src/prisma/errors/is-duplicate-error';
-import { GetResult } from '@prisma/client/runtime';
+import { type PictureDescription } from './types/picture-description.type';
 
 @Injectable()
 export class FileService {
