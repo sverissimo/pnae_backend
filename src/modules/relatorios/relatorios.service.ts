@@ -24,9 +24,11 @@ import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
 import { ZipCreator } from 'src/@zip-gen/ZipCreator';
 import { ProdutorService } from '../produtor/produtor.service';
 import { formatReverseDate } from 'src/utils';
-import { Atendimento } from '../atendimento/entities/atendimento.entity';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
-import { UpdateTemasAndVisitaAtendimentoDTO } from '../atendimento/dto/update-temas-and-visita-atendimento.dto';
+import { AtendimentoUpdate } from 'src/@domain/relatorio/types/atendimento-updates';
+import { RelatorioDomainService } from 'src/@domain/relatorio/relatorio-domain-service';
+import { ProdutorFindManyOutputDTO } from '../produtor/types/produtores.output-dto';
+import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -40,6 +42,7 @@ export class RelatorioService {
     private readonly atendimentoService: AtendimentoService,
     private readonly fileService: FileService,
     private readonly restAPI: RestAPI,
+    private readonly logger: WinstonLoggerService,
   ) {}
 
   async create(relatorioInput: RelatorioModel) {
@@ -123,7 +126,23 @@ export class RelatorioService {
       where: { contratoId: 2 },
       orderBy: { createdAt: 'desc' },
     });
-    return relatorios.map(Relatorio.toModel);
+    const relatorioModels = relatorios.map(Relatorio.toModel);
+    const updatedRelatorios = await this.updateAtendimentoIds(relatorioModels);
+    return updatedRelatorios || relatorioModels;
+  }
+
+  private async updateAtendimentoIds(relatorios: RelatorioModel[]) {
+    const replacedAtendimentos =
+      (await this.atendimentoService.getReplacedAtendimentos()) as AtendimentoUpdate[];
+    if (!replacedAtendimentos?.length) {
+      return;
+    }
+
+    const updatedRelatorios = RelatorioDomainService.updateAtendimentoIds(
+      relatorios,
+      replacedAtendimentos,
+    );
+    return updatedRelatorios;
   }
 
   async update(updateInput: UpdateRelatorioDto) {
@@ -315,25 +334,24 @@ export class RelatorioService {
 
   async createZipFile() {
     const unsentRelatorios = await this.getUnsentRelatorios();
-
     if (!unsentRelatorios.length) {
       return 'Não há nenhum relatório para ser enviado para a SEE.';
     }
 
-    const relatoriosPorMunicipio = await this.getRelatoriosPorMunicipio(
+    const relatoriosPorRegional = await this.getRelatoriosPorRegional(
       unsentRelatorios,
     );
 
-    const allZipFilePaths = await this.createZipFilesForAllMunicipios(
-      relatoriosPorMunicipio,
+    const allTempParts = await this.createZipFilesForAllRegions(
+      relatoriosPorRegional,
     );
 
-    const result = await ZipCreator.generateFinalZip(allZipFilePaths);
+    const finalZipPath = await ZipCreator.generateFinalZip(allTempParts);
 
-    const idsToRegisterDataSEI = unsentRelatorios.map((r) => r.atendimentoId);
-    await this.atendimentoService.saveIdsToFile(idsToRegisterDataSEI);
+    // const idsToRegisterDataSEI = unsentRelatorios.map((r) => r.atendimentoId);
+    // await this.atendimentoService.saveIdsToFile(idsToRegisterDataSEI);
 
-    return result;
+    return `Arquivo gerado: ${finalZipPath}`;
   }
 
   async downloadRelatorioZip() {
@@ -386,77 +404,60 @@ export class RelatorioService {
     }
   }
 
-  private async getRelatoriosPorMunicipio(relatorios: RelatorioModel[]) {
+  private async getRelatoriosPorRegional(relatorios: RelatorioModel[]) {
     const uniqueProdutoresIds = [
       ...new Set(relatorios.map((r) => r.produtorId)),
     ];
 
     const produtores = (await this.produtorService.findManyById(
       uniqueProdutoresIds,
-    )) as any[];
+    )) as ProdutorFindManyOutputDTO[];
 
-    produtores.sort((a, b) => {
-      const primary = a.municipio.localeCompare(b.municipio);
-      if (primary !== 0) return primary;
-      return a.nm_pessoa.localeCompare(b.nm_pessoa);
-    });
-
-    const relatoriosPorMunicipio: any[] = produtores.reduce((acc, p) => {
-      if (acc[p.municipio]) {
-        acc[p.municipio].push(
-          ...relatorios.filter((r) => r.produtorId === p.id_pessoa_demeter),
-        );
-      } else {
-        acc[p.municipio] = relatorios.filter(
-          (r) => r.produtorId === p.id_pessoa_demeter,
-        );
-      }
-      return acc;
-    }, {});
-
-    return relatoriosPorMunicipio;
+    return RelatorioDomainService.groupByRegionAndCity(relatorios, produtores);
   }
 
-  private async createZipFilesForAllMunicipios(relatoriosGroupedByMunicipio) {
-    const allZipFilePaths = [];
+  private async createZipFilesForAllRegions(
+    grouped: Array<Record<string, Array<Record<string, RelatorioModel[]>>>>,
+  ): Promise<string[]> {
+    const allRegionZipPaths: string[] = [];
 
-    for (const municipio in relatoriosGroupedByMunicipio) {
-      const relatoriosForMunicipio = relatoriosGroupedByMunicipio[municipio];
-      const zipCreator = new ZipCreator(
-        municipio,
-        relatoriosForMunicipio,
-        this.createPDFStream.bind(this),
-      );
+    for (const regionEntry of grouped) {
+      const region = Object.keys(regionEntry)[0];
+      const municipiosArray = regionEntry[region];
 
-      const zipFilePathsForMunicipio = await zipCreator.generateZipFiles();
-      allZipFilePaths.push(...zipFilePathsForMunicipio);
+      // normalize to [{ municipio, relatorios }]
+      const municipiosList = municipiosArray.map((m) => {
+        const municipio = Object.keys(m)[0];
+        return { municipio, relatorios: m[municipio] as RelatorioModel[] };
+      });
+
+      try {
+        const creator = new ZipCreator(region, {
+          maxSizeBytes: 40 * 1024 * 1024,
+        });
+        const regionParts = await creator.generateRegionZipParts(
+          municipiosList,
+          async (relatorio) => this.createPDFStream(relatorio.id, relatorio),
+        );
+        allRegionZipPaths.push(...regionParts);
+      } catch (err) {
+        console.error(`[Zip] Failed region "${region}":`, err);
+        this.logger.error(`[Zip] Failed region "${region}" : ${err}`);
+        // continue with next region
+      }
     }
 
-    return allZipFilePaths;
+    return allRegionZipPaths;
   }
 
   private async getUnsentRelatorios(): Promise<RelatorioModel[]> {
-    const atendimentosSemDataSEI: Partial<Atendimento>[] =
-      await this.atendimentoService.getAtendimentosWithoutDataSEI();
+    // const atendimentosSemDataSEI: Partial<Atendimento>[] =
+    //   await this.atendimentoService.getAtendimentosWithoutDataSEI();
+    // if (!atendimentosSemDataSEI.length) return [] as any;
+    // console.log('🚀RelatorioService idsSemSEI:', atendimentosSemDataSEI.length);
 
-    if (!atendimentosSemDataSEI.length) return [] as any;
-
-    console.log('🚀RelatorioService idsSemSEI:', atendimentosSemDataSEI.length);
-
-    const atendimentoIds = atendimentosSemDataSEI.map((a) =>
-      BigInt(a.id_at_atendimento),
-    );
-
-    const relatorios = (
-      await this.prismaService.relatorio.findMany({
-        where: {
-          atendimentoId: { in: atendimentoIds },
-          contratoId: 2,
-        },
-      })
-    ).map(Relatorio.toModel);
-
-    return relatorios;
+    const relatorios = await this.findAll();
+    return relatorios || [];
   }
 
   async createPDFStream(relatorioId: string, relatorioInput?: RelatorioModel) {
@@ -480,7 +481,24 @@ export class RelatorioService {
     const { nomeProdutor, cpfProdutor } = relatorio.produtor;
     const unformattedCPF = unformatCPF(cpfProdutor);
     const date = formatReverseDate(new Date(createdAt));
-    const filename = `2.3_${municipio}_${nomeProdutor}_${date}_${atendimentoId}_${unformattedCPF}_final.pdf`;
+
+    const sanitizeSegment = (s: string) =>
+      (s ?? '')
+        .normalize('NFKC')
+        .replace(/[\/\\:*?"<>|]/g, '') // remove path-forbidden chars (Win/ZIP)
+        .replace(/\s+/g, ' ') // collapse multiple spaces
+        .trim();
+    const filename =
+      [
+        '2.3',
+        sanitizeSegment(municipio),
+        sanitizeSegment(nomeProdutor),
+        date,
+        atendimentoId,
+        unformattedCPF,
+        'final',
+      ].join('_') + '.pdf';
+
     return { filename, pdfStream };
   }
 

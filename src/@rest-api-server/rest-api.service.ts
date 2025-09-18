@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { correctValoresPnaeOrder } from './utils/correctValoresPnaeOrder';
 import { UpdateTemasAndVisitaAtendimentoDTO } from 'src/modules/atendimento/dto/update-temas-and-visita-atendimento.dto';
+import { AtendimentoUpdate } from 'src/@domain/relatorio/types/atendimento-updates';
 
 @Injectable()
 export class RestAPI {
@@ -174,6 +175,20 @@ export class RestAPI {
     } catch (error) {
       console.log(
         '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ updateTemasAtendimento ~ error:',
+        error,
+      );
+    }
+  }
+
+  async getReplacedAtendimentos() {
+    try {
+      const result = await fetch(`${this.url}/api/getReplacedAtendimentos`, {
+        headers: this.headers,
+      });
+      return result.json() as Promise<AtendimentoUpdate[]>;
+    } catch (error) {
+      console.log(
+        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getReplacedAtendimentos ~ error:',
         error,
       );
     }

@@ -64,6 +64,18 @@ export class AtendimentoController {
     }
   }
 
+  @Get('/getReplacedAtendimentos')
+  async getReplacedAtendimentos() {
+    try {
+      return await this.atendimentoService.getReplacedAtendimentos();
+    } catch (error) {
+      this.logger.error(
+        'AtendimentoController:97 ~ getReplacedAtendimentos :' + error.message,
+        error.trace,
+      );
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {

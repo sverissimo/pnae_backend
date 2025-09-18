@@ -32,7 +32,6 @@ export class FileResolver {
       fileName,
     );
     if (await this.exists(workaround)) {
-      console.log(`Found file at ${workaround}`);
       return readFile(workaround, 'base64');
     }
 
@@ -42,7 +41,6 @@ export class FileResolver {
       if (!e.isDirectory()) continue;
       const candidate = join(contractFolder, e.name, cpfFolder, fileName);
       if (await this.exists(candidate)) {
-        console.log(`Found file at ${candidate}`);
         return readFile(candidate, 'base64');
       }
     }

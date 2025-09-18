@@ -210,4 +210,8 @@ export class AtendimentoService {
 
     return false;
   }
+
+  getReplacedAtendimentos() {
+    return this.restAPI.getReplacedAtendimentos();
+  }
 }

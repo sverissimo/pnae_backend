@@ -1,5 +1,10 @@
 import { ConsoleLogger, Injectable } from '@nestjs/common';
-import { createLogger, format, transports, Logger as WinstonLogger } from 'winston';
+import {
+  createLogger,
+  format,
+  transports,
+  Logger as WinstonLogger,
+} from 'winston';
 import * as DailyRotateFile from 'winston-daily-rotate-file';
 
 @Injectable()
@@ -36,14 +41,24 @@ export class WinstonLoggerService extends ConsoleLogger {
         format: () => {
           const date = new Date();
           date.setHours(date.getUTCHours() - 3);
-          return date.toISOString().split('.')[0].replace('T', ' ').replace('Z', '');
+          return date
+            .toISOString()
+            .split('.')[0]
+            .replace('T', ' ')
+            .replace('Z', '');
         },
       }),
-      format.errors({ stack: true }),
+      format.errors({ stack: true }), // ensures Error.stack => info.stack
       format.splat(),
-      format.simple(),
-      format.printf(({ level, message, timestamp }) => {
-        return `${timestamp} ${level}: ${message}`;
+      // keep format.simple removed (it can interfere) and use printf that prints stack+meta
+      format.printf((info: any) => {
+        const { timestamp, level, message, stack, ...meta } = info;
+        const metaKeys = Object.keys(meta);
+        const metaStr = metaKeys.length ? ` ${JSON.stringify(meta)}` : '';
+        if (stack) {
+          return `${timestamp} ${level}: ${message}\n${stack}${metaStr}`;
+        }
+        return `${timestamp} ${level}: ${message}${metaStr}`;
       }),
     );
   }
@@ -60,7 +75,25 @@ export class WinstonLoggerService extends ConsoleLogger {
     });
   }
 
-  error(message: string, trace: string) {
-    this.winstonLogger.error(message, trace);
+  error(message: string | Error, meta?: any) {
+    // keep console output for Nest
+    if (message instanceof Error) {
+      // let winston capture the stack via format.errors
+      this.winstonLogger.error(message);
+      if (process.env.NODE_ENV !== 'production')
+        super.warn('bbbbbbbbbbbbbbbbbbbbbbbr');
+      // super.warn(message.stack || message.message);
+
+      return;
+    }
+
+    if (meta) {
+      this.winstonLogger.error(message, meta);
+    } else {
+      this.winstonLogger.error(message);
+    }
+
+    if (process.env.NODE_ENV !== 'production')
+      super.warn('bbbbbbbbbbbbbbbbbbbbbbbr');
   }
 }

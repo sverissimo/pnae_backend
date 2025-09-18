@@ -9,6 +9,7 @@ export type RelatorioModel = {
   pictureURI: string;
   assinaturaURI: string;
   atendimentoId?: string;
+  atendimentoAnteriorId?: string;
   outroExtensionista?: string;
   coordenadas?: string;
   readOnly: boolean;

@@ -155,14 +155,14 @@ export class RelatorioController {
   @Get('/zip/create')
   async generateZip() {
     try {
-      const result = this.relatorioService.createZipFile();
+      const result = await this.relatorioService.createZipFile();
       return result;
     } catch (error) {
-      console.log('🚀 - RelatorioController - generateZip - error:', error);
+      // THIS IS NOT WORKING AS EXPECTED
       this.logger.error(
-        '🚀 ~ file: relatorios.controller.ts:118 ~ genPDF ~ error:' +
-          error.message,
-        error.trace,
+        `RelatorioController ~ create - ${error?.message ?? String(error)}\n${
+          error?.stack ?? ''
+        }`,
       );
       throw new InternalServerErrorException('Erro ao gerar zip');
     }
