@@ -37,7 +37,8 @@
     "@rest-api-server": "Node",
     "@pdf-gen": "pdf"
   },
-  "editor.mouseWheelScrollSensitivity": 50,
-  "workbench.list.mouseWheelScrollSensitivity": 50,
-  "terminal.integrated.mouseWheelScrollSensitivity": 50
+  "editor.mouseWheelScrollSensitivity": 9,
+  "workbench.list.mouseWheelScrollSensitivity": 9,
+  "terminal.integrated.mouseWheelScrollSensitivity": 11,
+  "screencastMode.mouseIndicatorSize": 20
 }

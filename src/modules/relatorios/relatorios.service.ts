@@ -97,7 +97,12 @@ export class RelatorioService {
     const relatoriosWithPermissions = (
       await this.updateRelatoriosPermissions(relatorios)
     ).map(Relatorio.toModel);
-    return relatoriosWithPermissions;
+
+    const relatoriosResolvedAtendimentos = this.updateAtendimentoIds(
+      relatoriosWithPermissions,
+    );
+
+    return relatoriosResolvedAtendimentos || relatoriosWithPermissions;
   }
 
   async findMany(input: queryObject | string | string[]) {
@@ -120,7 +125,12 @@ export class RelatorioService {
     const relatoriosWithPermissions = (
       await this.updateRelatoriosPermissions(relatorios)
     ).map(Relatorio.toModel);
-    return relatoriosWithPermissions;
+
+    const relatoriosResolvedAtendimentos = this.updateAtendimentoIds(
+      relatoriosWithPermissions,
+    );
+
+    return relatoriosResolvedAtendimentos || relatoriosWithPermissions;
   }
 
   async findAll() {
@@ -193,13 +203,37 @@ export class RelatorioService {
         'Não é possível remover relatório, pois já foi validado pela gerência.',
       );
     }
+    const relatorioModel = Relatorio.toModel(relatorio);
+    const relatorioWithUpdatedAtendimentoId = this.updateAtendimentoIds([
+      relatorioModel,
+    ])?.[0];
 
-    const atendimentoId = relatorio?.atendimentoId?.toString();
-    if (atendimentoId) {
-      await this.atendimentoService.logicRemove(atendimentoId);
+    const atendimentoId = relatorioWithUpdatedAtendimentoId
+      ? relatorioWithUpdatedAtendimentoId.atendimentoId?.toString()
+      : relatorio?.atendimentoId?.toString();
+
+    try {
+      if (atendimentoId) {
+        await this.atendimentoService.logicRemove(atendimentoId);
+      }
+    } catch (error) {
+      this.logger.error(
+        `🚀 RelatorioService.ts logicRemove error - atendimentoId: ${atendimentoId} / relatorioId: ${relatorio.id}` +
+          error.message,
+        { error },
+      );
     }
 
-    await this.removeFiles(relatorio);
+    try {
+      await this.removeFiles(relatorio);
+    } catch (error) {
+      this.logger.error(
+        `🚀 RelatorioService.ts removeFiles error - relatorioId: ${relatorio.id}` +
+          error.message,
+        { error },
+      );
+    }
+
     await this.prismaService.relatorio.delete({ where: { id } });
     return `Relatorio ${id} removed.`;
   }
