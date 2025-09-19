@@ -7,7 +7,7 @@ import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { ZipCreatorOptions } from './types/temp-zip-part';
 
 type MunicipioBucket = { municipio: string; relatorios: RelatorioModel[] };
-
+let i = 0;
 export class ZipCreator {
   private region: string;
   private readonly maxSize: number;
@@ -64,28 +64,11 @@ export class ZipCreator {
     });
   }
 
-  private async readStreamToBuffer(
-    s: NodeJS.ReadableStream,
-  ): Promise<{ buf: Buffer; size: number }> {
-    const chunks: Buffer[] = [];
-    let total = 0;
-    return new Promise((resolve, reject) => {
-      s.on('data', (c: Buffer) => {
-        chunks.push(c);
-        total += c.length;
-      });
-      s.on('end', () =>
-        resolve({ buf: Buffer.concat(chunks as Uint8Array[]), size: total }),
-      );
-      s.on('error', reject);
-    });
-  }
-
   public async generateRegionZipParts(
     municipios: MunicipioBucket[],
     createRelatorioStream: (
       relatorio: RelatorioModel,
-    ) => Promise<{ filename: string; pdfStream: NodeJS.ReadableStream }>,
+    ) => Promise<{ filename: string; filePath: string }>,
   ): Promise<string[]> {
     await this.ensureTmpDir();
 
@@ -95,49 +78,83 @@ export class ZipCreator {
     let partIndex = 0;
     let currentSize = 0;
 
-    for (const { municipio, relatorios } of [...municipios].sort((a, b) =>
-      a.municipio.localeCompare(b.municipio),
-    )) {
-      for (const relatorio of relatorios) {
+    // 1) Flatten all relatorios for this region (stable order by municipio)
+    const items = [...municipios]
+      .sort((a, b) => a.municipio.localeCompare(b.municipio))
+      .flatMap(({ municipio, relatorios }) =>
+        relatorios.map((relatorio) => ({ municipio, relatorio })),
+      );
+
+    console.log(items.length, 'relatórios to process');
+
+    // 2) Generate PDFs CONCURRENTLY (bounded by the limiter wrapped in createRelatorioStream)
+    const results = await Promise.all(
+      items.map(async ({ municipio, relatorio }) => {
         try {
-          const { filename, pdfStream } = await createRelatorioStream(
-            relatorio,
-          );
-          const { buf, size } = await this.readStreamToBuffer(pdfStream);
-
-          if (!archive) {
-            partIndex += 1;
-            ({ archive, output } = this.createNewArchive(
-              partIndex,
-              regionZipPaths,
-            ));
-            currentSize = 0;
-          }
-
-          if (currentSize > 0 && currentSize + size > this.maxSize) {
-            await this.finalizeArchive(archive, output);
-            partIndex += 1;
-            ({ archive, output } = this.createNewArchive(
-              partIndex,
-              regionZipPaths,
-            ));
-            currentSize = 0;
-          }
-
-          archive.append(buf, { name: filename });
-          currentSize += size;
+          i++;
+          console.log('[ZipCreator] Generating PDF #', i);
+          const { filename, filePath } = await createRelatorioStream(relatorio);
+          const { size } = await fsp.stat(filePath);
+          return { filename, filePath, size };
         } catch (err) {
           console.error(
             `[ZipCreator] Failed PDF for relatório ${relatorio.id} (${this.region} / ${municipio}):`,
             err,
           );
+          return null;
         }
+      }),
+    );
+
+    const files = results.filter(
+      (x): x is { filename: string; filePath: string; size: number } => !!x,
+    );
+
+    // 3) Append SEQUENTIALLY while respecting 40MB split
+    for (const { filename, filePath, size } of files) {
+      if (!archive) {
+        partIndex += 1;
+        ({ archive, output } = this.createNewArchive(
+          partIndex,
+          regionZipPaths,
+        ));
+        currentSize = 0;
       }
+
+      if (currentSize > 0 && currentSize + size > this.maxSize) {
+        await this.finalizeArchive(archive, output);
+        partIndex += 1;
+        ({ archive, output } = this.createNewArchive(
+          partIndex,
+          regionZipPaths,
+        ));
+        currentSize = 0;
+      }
+
+      archive.append(fs.createReadStream(filePath), { name: filename });
+      currentSize += size;
     }
 
     await this.finalizeArchive(archive, output);
 
-    // Rename RegionX_1.zip -> RegionX.zip if only one part
+    await this.cleanupTempFiles(files);
+    const finalRegionPaths = await this.mightRenameSinglePart(regionZipPaths);
+    return finalRegionPaths;
+  }
+
+  private async cleanupTempFiles(files: { filePath: string }[]) {
+    for (const f of files) {
+      try {
+        await fsp.unlink(f.filePath);
+      } catch {
+        console.warn(`[ZipCreator] Could not cleanup temp file: ${f.filePath}`);
+      }
+    }
+  }
+
+  private async mightRenameSinglePart(
+    regionZipPaths: string[],
+  ): Promise<string[]> {
     if (regionZipPaths.length === 1) {
       const oldPath = regionZipPaths[0];
       const newPath = path.join(
@@ -145,9 +162,8 @@ export class ZipCreator {
         `${this.sanitizeRegionName(this.region)}.zip`,
       );
       await fsp.rename(oldPath, newPath);
-      regionZipPaths[0] = newPath;
+      return [newPath];
     }
-
     return regionZipPaths;
   }
 

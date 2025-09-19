@@ -36,5 +36,8 @@
     "@graphQl-server": "graphQl",
     "@rest-api-server": "Node",
     "@pdf-gen": "pdf"
-  }
+  },
+  "editor.mouseWheelScrollSensitivity": 50,
+  "workbench.list.mouseWheelScrollSensitivity": 50,
+  "terminal.integrated.mouseWheelScrollSensitivity": 50
 }

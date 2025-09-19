@@ -81,8 +81,7 @@ export class WinstonLoggerService extends ConsoleLogger {
       // let winston capture the stack via format.errors
       this.winstonLogger.error(message);
       if (process.env.NODE_ENV !== 'production')
-        super.warn('bbbbbbbbbbbbbbbbbbbbbbbr');
-      // super.warn(message.stack || message.message);
+        super.warn(message.stack || message.message);
 
       return;
     }
@@ -93,7 +92,6 @@ export class WinstonLoggerService extends ConsoleLogger {
       this.winstonLogger.error(message);
     }
 
-    if (process.env.NODE_ENV !== 'production')
-      super.warn('bbbbbbbbbbbbbbbbbbbbbbbr');
+    if (process.env.NODE_ENV !== 'production') super.warn(message);
   }
 }

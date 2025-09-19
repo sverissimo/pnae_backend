@@ -1,5 +1,6 @@
+import * as os from 'os';
+import * as path from 'path';
 import * as fs from 'fs';
-
 import {
   Injectable,
   InternalServerErrorException,
@@ -7,6 +8,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import pLimit from 'p-limit';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/common/files/file.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
@@ -419,35 +421,39 @@ export class RelatorioService {
   private async createZipFilesForAllRegions(
     grouped: Array<Record<string, Array<Record<string, RelatorioModel[]>>>>,
   ): Promise<string[]> {
-    const allRegionZipPaths: string[] = [];
+    const regionLimit = pLimit(3);
+    const pdfLimit = pLimit(6); // inside each region, run 6 PDFs at a time
 
-    for (const regionEntry of grouped) {
-      const region = Object.keys(regionEntry)[0];
-      const municipiosArray = regionEntry[region];
-
-      // normalize to [{ municipio, relatorios }]
-      const municipiosList = municipiosArray.map((m) => {
-        const municipio = Object.keys(m)[0];
-        return { municipio, relatorios: m[municipio] as RelatorioModel[] };
-      });
-
-      try {
-        const creator = new ZipCreator(region, {
-          maxSizeBytes: 40 * 1024 * 1024,
+    const regionTasks = grouped.map((regionEntry) =>
+      regionLimit(async () => {
+        const region = Object.keys(regionEntry)[0];
+        const municipiosArray = regionEntry[region];
+        const municipiosList = municipiosArray.map((m) => {
+          const municipio = Object.keys(m)[0];
+          return { municipio, relatorios: m[municipio] as RelatorioModel[] };
         });
-        const regionParts = await creator.generateRegionZipParts(
-          municipiosList,
-          async (relatorio) => this.createPDFStream(relatorio.id, relatorio),
-        );
-        allRegionZipPaths.push(...regionParts);
-      } catch (err) {
-        console.error(`[Zip] Failed region "${region}":`, err);
-        this.logger.error(`[Zip] Failed region "${region}" : ${err}`);
-        // continue with next region
-      }
-    }
 
-    return allRegionZipPaths;
+        try {
+          const creator = new ZipCreator(region, {
+            maxSizeBytes: 40 * 1024 * 1024,
+          });
+
+          return creator.generateRegionZipParts(
+            municipiosList,
+            (relatorio) =>
+              pdfLimit(() => this.createPDFStream(relatorio.id, relatorio)), // ✅ concurrency per PDF
+          );
+        } catch (error) {
+          this.logger.error(
+            `[RelatorioService] Error creating zip for region ${region}: ${error.message}`,
+            { error },
+          );
+        }
+      }),
+    );
+
+    const regionPartsArrays = await Promise.all(regionTasks);
+    return regionPartsArrays.flat();
   }
 
   private async getUnsentRelatorios(): Promise<RelatorioModel[]> {
@@ -457,7 +463,7 @@ export class RelatorioService {
     // console.log('🚀RelatorioService idsSemSEI:', atendimentosSemDataSEI.length);
 
     const relatorios = await this.findAll();
-    return relatorios || [];
+    return relatorios ? relatorios.slice(0, 100) : [];
   }
 
   async createPDFStream(relatorioId: string, relatorioInput?: RelatorioModel) {
@@ -477,6 +483,8 @@ export class RelatorioService {
       dados_producao_in_natura,
     });
 
+    this.attachCleanup(pdfStream);
+
     const { municipio, atendimentoId, createdAt } = relatorio;
     const { nomeProdutor, cpfProdutor } = relatorio.produtor;
     const unformattedCPF = unformatCPF(cpfProdutor);
@@ -485,9 +493,10 @@ export class RelatorioService {
     const sanitizeSegment = (s: string) =>
       (s ?? '')
         .normalize('NFKC')
-        .replace(/[\/\\:*?"<>|]/g, '') // remove path-forbidden chars (Win/ZIP)
-        .replace(/\s+/g, ' ') // collapse multiple spaces
+        .replace(/[\/\\:*?"<>|]/g, '')
+        .replace(/\s+/g, ' ')
         .trim();
+
     const filename =
       [
         '2.3',
@@ -499,7 +508,27 @@ export class RelatorioService {
         'final',
       ].join('_') + '.pdf';
 
-    return { filename, pdfStream };
+    // ✅ write to tmp file instead of buffering
+    const tmpPath = path.join(os.tmpdir(), `${relatorioId}.pdf`);
+    const writeStream = fs.createWriteStream(tmpPath);
+    await new Promise<void>((resolve, reject) => {
+      pdfStream.pipe(writeStream);
+      pdfStream.on('error', reject);
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
+
+    return { filename, filePath: tmpPath };
+  }
+
+  private attachCleanup(pdfStream: NodeJS.ReadableStream) {
+    const child = (pdfStream as any).child;
+    pdfStream.on('close', () => {
+      if (child && !child.killed) {
+        child.kill();
+      }
+    });
+    return pdfStream;
   }
 
   private async removeFiles(relatorio: RelatorioDto) {
