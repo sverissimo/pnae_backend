@@ -160,18 +160,6 @@ export class FileService {
         ),
     );
 
-    // const outDatedFiles = existingFiles.filter(
-    //   (o) =>
-    //     !incoming.some(
-    //       (file) =>
-    //         o.id === file.originalname.split('.')[0] &&
-    //         o.description ===
-    //           (file.fieldname === 'foto'
-    //             ? 'FOTO_RELATORIO'
-    //             : 'ASSINATURA_PRODUTOR'),
-    //     ),
-    // );
-
     return { changedFiles };
   }
 

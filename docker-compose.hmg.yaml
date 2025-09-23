@@ -1,6 +1,7 @@
 services:
   pnae_backend_hmg:
     image: pnae_backend_hmg
+    container_name: pnae_backend_hmg
     build:
       context: .
       dockerfile: ./Dockerfile.hmg
@@ -37,21 +38,19 @@ services:
     restart: always
     networks:
       - pnae_hmg_default
-  # prisma-migrate:
-  #   image: pnae_backend_hmg
-  #   container_name: prisma_migrate
-  #   command: npx prisma db push
-  #   env_file:
-  #     - homolog.env
-  #   working_dir: /home/node/app/prisma
-  #   depends_on:
-  #     - postgres_pnae_hmg
-  #   networks:
-  #     - pnae_hmg_default
+
+  redis:
+    image: redis:alpine
+    container_name: redis_hmg
+    ports:
+      - "6379:6379"
+    networks:
+      - pnae_hmg_default
+    restart: always
+
 
 volumes:
   postgres_data_hmg:
-
 
 networks:
   pnae_hmg_default:

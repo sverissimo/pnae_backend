@@ -171,19 +171,27 @@ export class ZipCreator {
    * Packs all region-part zip files into a single final zip (root level),
    * then deletes the temporary part files.
    */
-  public static async generateFinalZip(filePaths: string[]): Promise<string> {
+  public static async generateFinalZip({
+    filePaths,
+    from,
+    to,
+  }: {
+    filePaths: string[];
+    from: string;
+    to: string;
+  }): Promise<string> {
     if (!filePaths.length) throw new Error('Nenhum arquivo para compactar.');
 
     const zipPathRoot =
       process.env.ZIP_FILES_PATH || path.resolve(process.cwd(), 'zips');
     await fsp.mkdir(zipPathRoot, { recursive: true });
 
-    const stamp = new Date()
-      .toISOString()
-      .replace(/[:.]/g, '')
-      .replace('T', '_')
-      .slice(0, 15);
-    const finalZipPath = path.join(zipPathRoot, `relatorios_${stamp}.zip`);
+    const finalZipName = `relatorios_${from}_a_${to}.zip`;
+    const finalZipPath = path.join(zipPathRoot, finalZipName);
+    console.log(
+      '🚀 - ZipCreator - generateFinalZip - finalZipPath:',
+      finalZipPath,
+    );
 
     const output = fs.createWriteStream(finalZipPath);
     const archive = archiver('zip', { zlib: { level: 9 } });
