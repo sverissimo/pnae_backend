@@ -24,7 +24,12 @@ import { RelatorioService } from './relatorios.service';
 import { AtendimentoService } from '../atendimento/atendimento.service';
 import { ProdutorService } from '../produtor/produtor.service';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
-import { formatCPF, unformatCPF, formatReverseDate } from 'src/utils';
+import {
+  formatCPF,
+  unformatCPF,
+  formatReverseDate,
+  parseAndValidateDateRange,
+} from 'src/utils';
 import { ProdutorFindManyOutputDTO } from '../produtor/types/produtores.output-dto';
 import { JobStatusDTO, ZipFileMetadata } from './dto/zip-job.dtos';
 import { cleanupOldZips } from './utils/cleanup-old-zips';
@@ -153,51 +158,6 @@ export class RelatorioExportService {
     }
   }
 
-  public async createZipFile({ from, to }: { from: string; to: string }) {
-    const unsentRelatorios = await this.relatorioService.getUnsentRelatorios({
-      from,
-      to,
-    });
-    if (!unsentRelatorios.length) {
-      return 'Não há nenhum relatório para ser enviado para a SEE.';
-    }
-
-    const relatoriosPorRegional = await this.getRelatoriosPorRegional(
-      unsentRelatorios,
-    );
-
-    const filePaths = await this.createZipFilesForAllRegions(
-      relatoriosPorRegional,
-    );
-
-    const finalZipPath = await ZipCreator.generateFinalZip({
-      from,
-      to,
-      filePaths,
-    });
-
-    await cleanupOldZips(this.historyDir, 5);
-
-    // const idsToRegisterDataSEI = unsentRelatorios.map((r) => r.atendimentoId);
-    // await this.atendimentoService.saveIdsToFile(idsToRegisterDataSEI);
-
-    return `Arquivo gerado: ${finalZipPath}`;
-  }
-
-  public async downloadRelatorioZip() {
-    try {
-      await this.atendimentoService.registerDataSEI();
-    } catch (error) {
-      console.log(
-        '🚀 - RelatorioService - downloadRelatorioZip - error:',
-        error,
-      );
-    }
-    const zipPath = process.env.ZIP_FILES_PATH;
-    const zipStream = fs.createReadStream(`${zipPath}/final.zip`);
-    return zipStream;
-  }
-
   public async createPDFStream(
     relatorioId: string,
     relatorioInput?: RelatorioModel,
@@ -256,7 +216,7 @@ export class RelatorioExportService {
     return { filename, filePath: tmpPath };
   }
 
-  public async queueZipJob({
+  public async createZipJob({
     userId,
     from,
     to,
@@ -266,13 +226,8 @@ export class RelatorioExportService {
     to: string;
   }): Promise<string> {
     try {
-      const start = new Date(from);
-      const end = new Date(to);
-      if (Number.isNaN(+start) || Number.isNaN(+end) || start > end) {
-        throw new Error('Intervalo de datas inválido.');
-      }
+      parseAndValidateDateRange(from, to); // throws if invalid
 
-      // enqueue single job (worker will generate and store final zip path)
       const job = await this.zipQueue.add(
         'build-zip',
         { userId, from, to },
@@ -283,18 +238,22 @@ export class RelatorioExportService {
         },
       );
 
-      // short-lived status record in Redis (TTL 24h)
-      await this.redis.set(
-        `zip:${job.id}`,
-        JSON.stringify({ userId, from, to, status: 'pending' }),
-        'EX',
-        60 * 60 * 24,
-      );
+      const jobState = await job.getState();
 
-      return job.id;
+      await Promise.all([
+        this.redis.set('zip:last', job.id), // ------------ REMOVE ?????
+        this.redis.set(
+          `zip:${job.id}`,
+          JSON.stringify({ userId, from, to, status: 'processing' }),
+          'EX',
+          60 * 60 * 24,
+        ),
+      ]);
+
+      return { jobId: job.id, status: jobState, ...job.data };
     } catch (error: any) {
       this.logger.error(
-        `RelatorioExportService ~ queueZipJob - ${
+        `RelatorioExportService ~ createZipJob - ${
           error?.message ?? String(error)
         }\n${error?.stack ?? ''}`,
       );
@@ -302,68 +261,67 @@ export class RelatorioExportService {
     }
   }
 
-  public async getZipJobStatus(jobId: string): Promise<JobStatusDTO> {
+  public async getZipJobStatus(jobId?: string): Promise<JobStatusDTO | null> {
     try {
-      const job = await this.zipQueue.getJob(jobId);
+      if (!jobId) {
+        const last = await this.redis.get('zip:last');
+        if (last) jobId = last;
+        else return null;
+      }
+      if (!jobId) {
+        return {
+          jobId: '',
+          status: 'failed',
+          errorMessage: 'Job não encontrado.',
+        };
+      }
 
+      const job = await this.zipQueue.getJob(jobId);
       if (job) {
-        const state = await job.getState(); // waiting | active | completed | failed | delayed | paused
-        console.log(
-          '🚀 - RelatorioExportService - getZipJobStatus - state:',
-          state,
-        );
+        const state = await job.getState(); // 'completed' | 'failed' | 'active' | 'waiting' | 'delayed' | 'paused'
+        const createdAt = new Date(job.timestamp).toISOString();
 
         if (state === 'completed') {
-          const finalPath: string | undefined =
-            (await job.returnvalue) || undefined;
-          if (finalPath) {
-            const filename = path.basename(finalPath);
+          const jobReturnedValue = (await job.returnvalue) || undefined;
+
+          if (jobReturnedValue && typeof jobReturnedValue === 'string') {
+            const noRelatorioFound = jobReturnedValue.startsWith('Não há nenh');
+            if (noRelatorioFound) {
+              return {
+                jobId,
+                status: 'empty',
+                createdAt,
+                errorMessage: jobReturnedValue,
+              };
+            }
+
+            const filename = path.basename(jobReturnedValue);
             return {
               jobId,
               status: 'completed',
+              createdAt,
               downloadUrl: `/relatorios/zip/download/${encodeURIComponent(
                 filename,
               )}`,
             };
           }
-          // completed but no path? fall through to redis/meta
         }
 
         if (state === 'active' || state === 'delayed' || state === 'waiting') {
-          return { jobId, status: 'processing' };
+          return { jobId, status: 'processing', createdAt };
         }
 
         if (state === 'failed') {
-          const failedReason = job.failedReason || 'Falha ao gerar ZIP';
-          return { jobId, status: 'failed', errorMessage: failedReason };
-        }
-      }
-
-      // Fallback to Redis (job metadata with TTL)
-      const cached = await this.redis.get(`zip:${jobId}`);
-      if (cached) {
-        const meta = JSON.parse(cached);
-        if (meta.status === 'completed' && meta.filePath) {
-          const filename = path.basename(meta.filePath);
-          return {
-            jobId,
-            status: 'completed',
-            downloadUrl: `/relatorios/zip/download/${encodeURIComponent(
-              filename,
-            )}`,
-          };
-        }
-        if (meta.status === 'failed') {
           return {
             jobId,
             status: 'failed',
-            errorMessage: meta.errorMessage || 'Falha ao gerar ZIP',
+            createdAt,
+            errorMessage: job.failedReason || 'Falha ao gerar ZIP',
           };
         }
-        return { jobId, status: 'pending' };
       }
 
-      // Not found anywhere
+      // If job metadata already aged out, fall back to generic not found
       return { jobId, status: 'failed', errorMessage: 'Job não encontrado.' };
     } catch (error: any) {
       this.logger.error(
@@ -371,9 +329,8 @@ export class RelatorioExportService {
           error?.message ?? String(error)
         }\n${error?.stack ?? ''}`,
       );
-      // keep KISS: surface a generic failed state
       return {
-        jobId,
+        jobId: jobId ?? '',
         status: 'failed',
         errorMessage: 'Erro ao consultar status do job.',
       };
@@ -427,40 +384,43 @@ export class RelatorioExportService {
     }
   }
 
-  public async getDownloadStream(filename: string): Promise<Readable> {
-    try {
-      // Delegate to FS service (placeholder call; implementation lives elsewhere)
-      // return this.fsService.getFileStream(filename);
-      const fullPath = path.join(this.historyDir, filename); // sanitize inside FS service ideally
-      // basic traversal guard
-      if (
-        filename.includes('..') ||
-        filename.includes('/') ||
-        filename.includes('\\')
-      ) {
-        throw new Error('Nome de arquivo inválido.');
-      }
-      // verify existence early to surface ENOENT predictably
-      await fsp.access(fullPath, fs.constants.R_OK);
-      return fs.createReadStream(fullPath);
-    } catch (error: any) {
-      this.logger.error(
-        `RelatorioExportService ~ getDownloadStream - ${
-          error?.message ?? String(error)
-        }\n${error?.stack ?? ''}`,
-      );
-      throw error;
-    }
-  }
+  public async createZipFile({ from, to }: { from: string; to: string }) {
+    await new Promise((resolve) => setTimeout(resolve, 6000));
+    console.log('done awaiting...');
+    const { selectedRelatorios, selectedAtendimentos } =
+      await this.relatorioService.findByDataSeeRange({
+        from,
+        to,
+      });
 
-  private attachCleanup(pdfStream: NodeJS.ReadableStream) {
-    const child = (pdfStream as any).child;
-    pdfStream.on('close', () => {
-      if (child && !child.killed) {
-        child.kill();
-      }
+    console.log(`@@@ Relatórios ${from} a ${to}: ${selectedRelatorios.length}`);
+
+    if (!selectedRelatorios.length) {
+      return 'Não há nenhum relatório para ser anexado no SEI.';
+    }
+
+    const relatoriosPorRegional = await this.getRelatoriosPorRegional(
+      selectedRelatorios,
+    );
+
+    const filePaths = await this.createZipFilesForAllRegions(
+      relatoriosPorRegional,
+    );
+
+    const finalZipPath = await ZipCreator.generateFinalZip({
+      from,
+      to,
+      filePaths,
     });
-    return pdfStream;
+
+    await cleanupOldZips(this.historyDir, 5);
+
+    const dsResult = await this.atendimentoService.setAtendimentosExportDate(
+      selectedAtendimentos,
+    );
+    console.log('🚀 - createZipFile - dsResult :', dsResult);
+
+    return `Arquivo gerado: ${finalZipPath}`;
   }
 
   private async getRelatoriosPorRegional(relatorios: RelatorioModel[]) {
@@ -511,5 +471,41 @@ export class RelatorioExportService {
 
     const regionPartsArrays = await Promise.all(regionTasks);
     return regionPartsArrays.flat();
+  }
+
+  private attachCleanup(pdfStream: NodeJS.ReadableStream) {
+    const child = (pdfStream as any).child;
+    pdfStream.on('close', () => {
+      if (child && !child.killed) {
+        child.kill();
+      }
+    });
+    return pdfStream;
+  }
+
+  public async getDownloadStream(filename: string): Promise<Readable> {
+    try {
+      // Delegate to FS service (placeholder call; implementation lives elsewhere)
+      // return this.fsService.getFileStream(filename);
+      const fullPath = path.join(this.historyDir, filename); // sanitize inside FS service ideally
+      // basic traversal guard
+      if (
+        filename.includes('..') ||
+        filename.includes('/') ||
+        filename.includes('\\')
+      ) {
+        throw new Error('Nome de arquivo inválido.');
+      }
+      // verify existence early to surface ENOENT predictably
+      await fsp.access(fullPath, fs.constants.R_OK);
+      return fs.createReadStream(fullPath);
+    } catch (error: any) {
+      this.logger.error(
+        `RelatorioExportService ~ getDownloadStream - ${
+          error?.message ?? String(error)
+        }\n${error?.stack ?? ''}`,
+      );
+      throw error;
+    }
   }
 }

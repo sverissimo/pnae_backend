@@ -5,34 +5,29 @@ import { Atendimento } from 'src/modules/atendimento/entities/atendimento.entity
 import {
   atendimentoQuery,
   atendimentosQuery,
-  checkDataSEIMutation,
+  setAtendimentosExportDateMutation,
   updateAtendimentoMutation,
 } from './queries/atendimento-queries';
 import { CreateAtendimentoStorageDto } from 'src/modules/atendimento/dto/create-atendimento.dto';
 
+type AtendimentoResponse = { atendimento: Atendimento };
+type AtendimentosResponse = { atendimentos: Atendimento[] };
+
 @Injectable()
 export class AtendimentoGraphQLAPI extends GraphQLAPI {
-  async findMany(ids: string[]) {
-    const document = atendimentosQuery;
-    const variables = { ids };
-    const { atendimentos } = (await this.client.request({
-      document,
-      variables,
-    })) as {
-      atendimentos: Atendimento[];
-    };
+  async findMany(ids: string[]): Promise<Atendimento[]> {
+    const { atendimentos } = await this.client.request<AtendimentosResponse>(
+      atendimentosQuery,
+      { ids },
+    );
     return atendimentos;
   }
 
   async findOne(id: string) {
-    const document = atendimentoQuery;
-    const variables = { id };
-    const { atendimento } = (await this.client.request({
-      document,
-      variables,
-    })) as {
-      atendimento: Atendimento;
-    };
+    const { atendimento } = await this.client.request<AtendimentoResponse>(
+      atendimentoQuery,
+      { id },
+    );
     return atendimento;
   }
 
@@ -55,10 +50,12 @@ export class AtendimentoGraphQLAPI extends GraphQLAPI {
     return result;
   }
 
-  async registerDataSEI(ids: string[]) {
-    const document = checkDataSEIMutation;
-    const variables = { atendimentosIds: ids };
-    const result = await this.client.request({ document, variables });
+  async setAtendimentosExportDate(ids: string[]) {
+    const result = await this.client.request(
+      setAtendimentosExportDateMutation,
+      { atendimentosIds: ids },
+    );
+    console.log('🚀 - setAtendimentosExportDate:', result);
     return result;
   }
 }

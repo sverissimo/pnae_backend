@@ -43,15 +43,19 @@ export class Atendimento {
   id_at_acao: string;
   id_at_status: number;
   ativo: boolean;
-  id_und_empresa: string;
   link_pdf: string;
   temas_atendimento?: string[];
-  data_criacao: string;
   data_inicio_atendimento: string;
+  data_see?: Date | null;
   data_fim_atendimento: string;
-  data_atualizacao: string;
   sn_pendencia: number;
   id_at_anterior?: string;
+  sn_validado?: number | null;
+  dt_export_ok?: Date | null;
+  id_und_empresa: string;
+  fk_und_empresa?: string | null;
+  data_atualizacao?: string;
+  data_criacao: string;
 
   at_atendimento_usuario?: at_atendimento_usuario;
   at_atendimento_indicador?: at_atendimento_indicador;

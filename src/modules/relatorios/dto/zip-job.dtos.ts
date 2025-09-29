@@ -1,11 +1,19 @@
-// dto/job-status.dto.ts
-export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type JobStatus =
+  | 'active'
+  | 'processing'
+  | 'waiting'
+  | 'delayed'
+  | 'empty'
+  | 'completed'
+  | 'failed';
 
 export interface JobStatusDTO {
   jobId: string;
   status: JobStatus;
   downloadUrl?: string;
   errorMessage?: string;
+  createdAt?: string; // ISO from BullMQ job.timestamp
+  progress?: number; // 0..100 from BullMQ job.getProgress()
 }
 
 export interface ZipFileMetadata {

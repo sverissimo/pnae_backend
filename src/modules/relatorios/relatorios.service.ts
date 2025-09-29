@@ -75,15 +75,15 @@ export class RelatorioService {
     const relatorios = await this.prismaService.relatorio.findMany({
       where: { id: { in: ids } },
     });
-    const relatoriosWithPermissions = (
-      await this.updateRelatoriosPermissions(relatorios)
+    const relatoriosWithReadOnly = (
+      await this.syncRelatoriosReadOnlyStatus(relatorios)
     ).map(Relatorio.toModel);
 
     const relatoriosResolvedAtendimentos = this.updateAtendimentoIds(
-      relatoriosWithPermissions,
+      relatoriosWithReadOnly,
     );
 
-    return relatoriosResolvedAtendimentos || relatoriosWithPermissions;
+    return relatoriosResolvedAtendimentos || relatoriosWithReadOnly;
   }
 
   async findMany(input: queryObject | string | string[]) {
@@ -103,59 +103,43 @@ export class RelatorioService {
       where: query,
     });
 
-    const relatoriosWithPermissions = (
-      await this.updateRelatoriosPermissions(relatorios)
+    const relatoriosWithReadOnly = (
+      await this.syncRelatoriosReadOnlyStatus(relatorios)
     ).map(Relatorio.toModel);
 
     const relatoriosResolvedAtendimentos = this.updateAtendimentoIds(
-      relatoriosWithPermissions,
+      relatoriosWithReadOnly,
     );
 
-    return relatoriosResolvedAtendimentos || relatoriosWithPermissions;
+    return relatoriosResolvedAtendimentos || relatoriosWithReadOnly;
   }
 
-  public async getUnsentRelatorios({
-    from,
-    to,
-  }: {
-    from: string;
-    to: string;
-  }): Promise<RelatorioModel[]> {
-    // const atendimentosSemDataSEI: Partial<Atendimento>[] =
-    //   await this.atendimentoService.getAtendimentosWithoutDataSEI();
-    // if (!atendimentosSemDataSEI.length) return [] as any;
-    // console.log('🚀RelatorioService idsSemSEI:', atendimentosSemDataSEI.length);
+  public async findByDataSeeRange({ from, to }: { from: string; to: string }) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
 
-    // --- Dont add atendimento.data_see filter: this should only care for to/from dates  ---
-    const toDateInclusive = new Date(to);
-    toDateInclusive.setHours(23, 59, 59, 999);
+    const relatorios = await this.findAll(); // Already fixes atendimentoIds
+    const atendimentoIds = relatorios.map((r) => r.atendimentoId);
+    const atendimentos = await this.atendimentoService.findMany(atendimentoIds);
 
-    const relatorios = await this.prismaService.relatorio.findMany({
-      where: {
-        createdAt: {
-          gte: new Date(from),
-          lte: toDateInclusive,
-        },
-      },
+    const selectedAtendimentos = atendimentos.filter((at) => {
+      const dataSEE = new Date(at.data_see);
+      return dataSEE >= fromDate && dataSEE <= toDate;
     });
 
-    const parsedRelatorios = relatorios.map(Relatorio.toModel);
-    return parsedRelatorios ? parsedRelatorios.slice(0, 50) : []; // Testing with 50 only
-    return parsedRelatorios || [];
-  }
-  async findManyCustom(query: object) {
-    const relatorios = await this.prismaService.relatorio.findMany({
-      where: query,
-    });
-    const relatoriosWithPermissions = (
-      await this.updateRelatoriosPermissions(relatorios)
-    ).map(Relatorio.toModel);
-
-    const relatoriosResolvedAtendimentos = this.updateAtendimentoIds(
-      relatoriosWithPermissions,
+    const selectedAtendimentoIds = new Set(
+      selectedAtendimentos.map((at) => at.id_at_atendimento),
     );
 
-    return relatoriosResolvedAtendimentos || relatoriosWithPermissions;
+    const relatoriosWithinDateRange = relatorios.filter((r) =>
+      selectedAtendimentoIds.has(r.atendimentoId),
+    );
+
+    return {
+      selectedRelatorios: relatoriosWithinDateRange,
+      selectedAtendimentos,
+    };
   }
 
   async findAll() {
@@ -262,8 +246,13 @@ export class RelatorioService {
     }
   }
 
-  async updateRelatoriosPermissions(relatorios: RelatorioDto[]) {
+  async syncRelatoriosReadOnlyStatus(relatorios: RelatorioDto[]) {
     const readOnlyIds = await this.getReadOnly(relatorios);
+    console.log(
+      '🚀 - RelatorioService - syncRelatoriosReadOnlyStatus - readOnlyIds:',
+      readOnlyIds.slice(0, 50),
+    );
+
     const editableIds = relatorios
       .filter((r) => !readOnlyIds.includes(r.id))
       .map((r) => r.id);
@@ -278,6 +267,7 @@ export class RelatorioService {
       ...r,
       readOnly: readOnlyIds.includes(r.id),
     }));
+
     return response;
   }
 

@@ -141,19 +141,17 @@ export class AtendimentoService {
     });
   }
 
-  async registerDataSEI() {
-    const zipPath = process.env.ZIP_FILES_PATH;
-    const idsString = await fs.readFile(
-      `${zipPath}/atendimentosIds.json`,
-      'utf-8',
+  setAtendimentosExportDate(atendimentos: Partial<Atendimento>[]) {
+    const shouldSetExportDate = atendimentos.filter((atendimento) => {
+      return !atendimento.dt_export_ok;
+    });
+
+    if (!shouldSetExportDate.length) return;
+
+    const ids = shouldSetExportDate.map(
+      (atendimento) => atendimento.id_at_atendimento,
     );
-
-    const atendimentosIds: string[] = JSON.parse(idsString);
-    if (!atendimentosIds.length) {
-      return;
-    }
-
-    return await this.graphQLAPI.registerDataSEI(atendimentosIds);
+    return this.graphQLAPI.setAtendimentosExportDate(ids);
   }
 
   async saveIdsToFile(atendimentosIds: string[]) {

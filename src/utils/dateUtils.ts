@@ -27,3 +27,15 @@ export function getYesterdayStringDate(): string {
   const yesterday = yesterdayString.replaceAll('/', '-');
   return yesterday;
 }
+
+export function parseAndValidateDateRange(
+  from: string,
+  to: string,
+): { start: Date; end: Date } {
+  const start = new Date(from);
+  const end = new Date(to);
+  if (Number.isNaN(+start) || Number.isNaN(+end) || start > end) {
+    throw new Error('Intervalo de datas inválido.');
+  }
+  return { start, end };
+}

@@ -1,4 +1,4 @@
-import { formatDate } from './formatDate';
+import { formatDate } from './dateUtils';
 
 export const parseValue = (value: unknown) => {
   switch (typeof value) {

@@ -2,7 +2,7 @@ import { join } from 'path';
 import { writeFile } from 'node:fs/promises';
 import * as wkhtmltopdf from 'wkhtmltopdf';
 import * as ejs from 'ejs';
-import { formatDate } from 'src/utils/formatDate';
+import { formatDate } from 'src/utils/dateUtils';
 import { Base64ImageService } from './utils/ base64-image.service';
 import { CreatePdfInput } from './types/create-pdf-input';
 

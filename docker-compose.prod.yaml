@@ -40,6 +40,15 @@ services:
     networks:
       - pnae_prod_default
 
+  redis:
+    image: redis:alpine
+    container_name: redis_prod
+    ports:
+      - "6399:6379"
+    networks:
+      - pnae_prod_default
+    restart: always
+
 volumes:
   postgres_data_prod:
 

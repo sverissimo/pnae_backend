@@ -29,13 +29,18 @@ export const atendimentosQuery = gql`
   query Atendimentos($ids: [BigInt]) {
     atendimentos(ids: $ids) {
       id_at_atendimento
-      data_criacao
-      data_atualizacao
+      data_inicio_atendimento
       data_validacao
       data_sei
-      id_und_empresa
+      data_see
+      dt_export_ok
       ativo
       link_pdf
+      data_criacao
+      sn_pendencia
+      sn_validacao
+      id_und_empresa
+      fk_und_empresa
       at_atendimento_usuario {
         usuario {
           nome_usuario
@@ -59,9 +64,9 @@ export const updateAtendimentoMutation = gql`
   }
 `;
 
-export const checkDataSEIMutation = gql`
-  mutation checkDataSEI($atendimentosIds: [String]) {
-    checkDataSEI(atendimentosIds: $atendimentosIds)
+export const setAtendimentosExportDateMutation = gql`
+  mutation setAtendimentosExportDate($atendimentosIds: [String]) {
+    setAtendimentosExportDate(atendimentosIds: $atendimentosIds)
   }
 `;
 

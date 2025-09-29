@@ -1,4 +1,4 @@
-import { formatDate, formatReverseDate } from './formatDate';
+import { formatDate, formatReverseDate } from './dateUtils';
 
 describe('formatDate', () => {
   it('should format a Date object correctly', () => {

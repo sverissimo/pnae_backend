@@ -15,7 +15,6 @@ import {
   Res,
   Req,
   HttpException,
-  StreamableFile,
   ForbiddenException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -113,185 +112,6 @@ export class RelatorioController {
     }
   }
 
-  @Get('/pdf/:id')
-  async generatePdf(@Param('id') id: string, @Res() res: Response) {
-    try {
-      const {
-        relatorio,
-        perfilPDFModel,
-        nome_propriedade,
-        dados_producao_agro_industria,
-        dados_producao_in_natura,
-      } = await this.relatorioExportService.createPDFInput(id);
-
-      const { numeroRelatorio, produtor } = relatorio;
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader(
-        'Content-Disposition',
-        `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.pdf`,
-      );
-
-      const pdfStream = await PdfGenerator.generatePdf({
-        relatorio,
-        perfilPDFModel,
-        nome_propriedade,
-        dados_producao_agro_industria,
-        dados_producao_in_natura,
-      });
-      pdfStream.pipe(res);
-
-      console.log('🚀 ...done!! ');
-    } catch (error) {
-      this.logger.error(
-        '🚀 ~ file: relatorios.controller.ts:118 ~ genPDF ~ error:' +
-          error.message,
-        error.trace,
-      );
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Erro ao gerar PDF');
-    }
-  }
-
-  @Post('/zip/create-job')
-  async generateZipJob(
-    @Body() body: { from: string; to: string; userId: string },
-  ) {
-    const { from, to, userId } = body;
-
-    if (!from || !to || !userId) {
-      throw new BadRequestException('from, to e userId são obrigatórios.');
-    }
-
-    this.ensureUserAllowed(userId);
-    // const a = (
-    //   await this.relatorioService.getUnsentRelatorios({ from, to })
-    // ).map((r) => ({
-    //   id: r.id,
-    //   // assunto: r.assunto,
-    //   // contratoId: r.contratoId,
-    //   createdAt: r.createdAt,
-    // }));
-    // console.log('length', a.length);
-    // return a;
-    try {
-      const jobId = await this.relatorioExportService.queueZipJob({
-        userId,
-        from,
-        to,
-      });
-      return { jobId };
-    } catch (error: any) {
-      this.logger.error(
-        `RelatorioController ~ generateZipJob - ${
-          error?.message ?? String(error)
-        }\n${error?.stack ?? ''}`,
-      );
-      throw new InternalServerErrorException(
-        `Erro ao enfileirar geração do ZIP: ${
-          error?.message ?? 'erro interno'
-        }`,
-      );
-    }
-  }
-
-  @Get('/zip/status/:jobId')
-  async getZipJobStatus(@Param('jobId') jobId: string): Promise<JobStatusDTO> {
-    if (!jobId) throw new BadRequestException('jobId é obrigatório.');
-    try {
-      const status = await this.relatorioExportService.getZipJobStatus(jobId);
-      console.log(
-        '🚀 - RelatorioController - getZipJobStatus - status:',
-        status,
-      );
-
-      if (!status) throw new NotFoundException('Job não encontrado.');
-      return status;
-    } catch (error: any) {
-      this.logger.error(
-        `RelatorioController ~ getZipJobStatus - ${
-          error?.message ?? String(error)
-        }\n${error?.stack ?? ''}`,
-      );
-      throw error;
-    }
-  }
-
-  @Get('/zip/history')
-  async listZipHistory(@Req() req: Request): Promise<ZipFileMetadata[]> {
-    try {
-      const baseUrl = `https://${req.headers.host}`;
-      const url = await this.relatorioExportService.getZipHistory();
-      return url.map((item) => ({
-        ...item,
-        downloadUrl: `${baseUrl}/${item.downloadUrl}`,
-      }));
-    } catch (error: any) {
-      this.logger.error(
-        `RelatorioController ~ listZipHistory - ${
-          error?.message ?? String(error)
-        }\n${error?.stack ?? ''}`,
-      );
-      throw new InternalServerErrorException(
-        `Erro ao obter histórico: ${error?.message ?? 'erro interno'}`,
-      );
-    }
-  }
-
-  @Get('/zip/download/:filename')
-  async downloadZipFile(
-    @Param('filename') filename: string,
-    @Res() res: Response,
-  ) {
-    if (!filename) throw new BadRequestException('filename é obrigatório.');
-
-    if (
-      filename.includes('..') ||
-      filename.includes('/') ||
-      filename.includes('\\')
-    ) {
-      throw new BadRequestException('Nome de arquivo inválido.');
-    }
-
-    try {
-      const stream = await this.relatorioExportService.getDownloadStream(
-        filename,
-      );
-
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="${encodeURIComponent(filename)}"`,
-      );
-
-      stream.pipe(res); // ✅ direct streaming, no JSON issue
-    } catch (error: any) {
-      this.logger.error(
-        `RelatorioController ~ downloadZipFile - ${
-          error?.message ?? String(error)
-        }\n${error?.stack ?? ''}`,
-      );
-
-      if (error.code === 'ENOENT') {
-        throw new NotFoundException('Arquivo não encontrado.');
-      }
-      throw new InternalServerErrorException(
-        `Erro ao preparar download: ${error?.message ?? 'erro interno'}`,
-      );
-    }
-  }
-
-  private ensureUserAllowed(userId: string): void {
-    const allowedUserIds =
-      process.env.ALLOWED_USER_IDS?.split(',').map((id) => id.trim()) ?? [];
-
-    if (!allowedUserIds.includes(userId)) {
-      throw new ForbiddenException('Usuário não autorizado.');
-    }
-  }
-
   @Patch(':id')
   @UseInterceptors(
     FileFieldsInterceptor([
@@ -355,6 +175,179 @@ export class RelatorioController {
         error.trace,
       );
       throw error;
+    }
+  }
+
+  // ------------ PDF and ZIP generation ------------
+
+  @Get('/pdf/:id')
+  async generatePdf(@Param('id') id: string, @Res() res: Response) {
+    try {
+      const {
+        relatorio,
+        perfilPDFModel,
+        nome_propriedade,
+        dados_producao_agro_industria,
+        dados_producao_in_natura,
+      } = await this.relatorioExportService.createPDFInput(id);
+
+      const { numeroRelatorio, produtor } = relatorio;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.pdf`,
+      );
+
+      const pdfStream = await PdfGenerator.generatePdf({
+        relatorio,
+        perfilPDFModel,
+        nome_propriedade,
+        dados_producao_agro_industria,
+        dados_producao_in_natura,
+      });
+      pdfStream.pipe(res);
+
+      console.log('🚀 ...done!! ');
+    } catch (error) {
+      this.logger.error(
+        '🚀 ~ file: relatorios.controller.ts:118 ~ genPDF ~ error:' +
+          error.message,
+        error.trace,
+      );
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Erro ao gerar PDF');
+    }
+  }
+
+  @Post('/zip/create-job')
+  async createZipJob(
+    @Body() body: { from: string; to: string; userId: string },
+  ) {
+    const { from, to, userId } = body;
+
+    if (!from || !to || !userId) {
+      throw new BadRequestException('from, to e userId são obrigatórios.');
+    }
+
+    this.ensureUserAllowed(userId); // If not allowed, an exception is thrown
+
+    try {
+      const job = await this.relatorioExportService.createZipJob({
+        userId,
+        from,
+        to,
+      });
+      return job;
+    } catch (error: any) {
+      this.logger.error(
+        `RelatorioController ~ generateZipJob - ${
+          error?.message ?? String(error)
+        }\n${error?.stack ?? ''}`,
+      );
+      throw new InternalServerErrorException(
+        `Erro ao enfileirar geração do ZIP: ${
+          error?.message ?? 'erro interno'
+        }`,
+      );
+    }
+  }
+
+  @Get('/zip/status') //Get last job status if no jobId provided
+  getLastZipJobStatus(): Promise<JobStatusDTO | null> {
+    return this.relatorioExportService.getZipJobStatus();
+  }
+
+  @Get('/zip/status/:jobId')
+  async getZipJobStatus(
+    @Param('jobId') jobId: string | undefined,
+  ): Promise<JobStatusDTO> {
+    try {
+      const job = await this.relatorioExportService.getZipJobStatus(jobId);
+      if (!job) throw new NotFoundException('Job não encontrado.');
+      return job;
+    } catch (error: any) {
+      this.logger.error(
+        `RelatorioController ~ getZipJobStatus - ${
+          error?.message ?? String(error)
+        }\n${error?.stack ?? ''}`,
+      );
+      throw error;
+    }
+  }
+
+  @Get('/zip/history')
+  async listZipHistory(@Req() req: Request): Promise<ZipFileMetadata[]> {
+    try {
+      const baseUrl = `https://${req.headers.host}`;
+      const url = await this.relatorioExportService.getZipHistory();
+      return url.map((item) => ({
+        ...item,
+        downloadUrl: `${baseUrl}/${item.downloadUrl}`,
+      }));
+    } catch (error: any) {
+      this.logger.error(
+        `RelatorioController ~ listZipHistory - ${
+          error?.message ?? String(error)
+        }\n${error?.stack ?? ''}`,
+      );
+      throw new InternalServerErrorException(
+        `Erro ao obter histórico: ${error?.message ?? 'erro interno'}`,
+      );
+    }
+  }
+
+  private ensureUserAllowed(userId: string): void {
+    const allowedUserIds =
+      process.env.ALLOWED_USER_IDS?.split(',').map((id) => id.trim()) ?? [];
+
+    if (!allowedUserIds.includes(userId)) {
+      throw new ForbiddenException('Usuário não autorizado.');
+    }
+  }
+
+  @Get('/zip/download/:filename')
+  async downloadZipFile(
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ) {
+    if (!filename) throw new BadRequestException('filename é obrigatório.');
+
+    if (
+      filename.includes('..') ||
+      filename.includes('/') ||
+      filename.includes('\\')
+    ) {
+      throw new BadRequestException('Nome de arquivo inválido.');
+    }
+
+    try {
+      const stream = await this.relatorioExportService.getDownloadStream(
+        filename,
+      );
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${encodeURIComponent(filename)}"`,
+      );
+
+      stream.pipe(res);
+    } catch (error: any) {
+      this.logger.error(
+        `RelatorioController ~ downloadZipFile - ${
+          error?.message ?? String(error)
+        }\n${error?.stack ?? ''}`,
+      );
+
+      if (error.code === 'ENOENT') {
+        throw new NotFoundException('Arquivo não encontrado.');
+      }
+      throw new InternalServerErrorException(
+        `Erro ao preparar download: ${error?.message ?? 'erro interno'}`,
+      );
     }
   }
 }
