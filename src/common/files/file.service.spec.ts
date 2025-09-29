@@ -56,6 +56,8 @@ describe('FileService', () => {
     await fileService.save([], relatorioMock);
 
     expect(fileService).toBeDefined();
-    expect(existsSync).toBeCalledWith('path/to/mock/folder/contrato_1/HA0605/12345678901');
+    expect(existsSync).toHaveBeenCalledWith(
+      'path/to/mock/folder/contrato_1/HA0605/12345678901',
+    );
   });
 });

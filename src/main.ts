@@ -23,6 +23,7 @@ async function bootstrap() {
 
   // app.useGlobalFilters(new TempErrorNormalizeFilter());
   app.useGlobalFilters(new PlainTextExceptionFilter()); // TEMPORARY: normalize error responses to plain string for older mobile client
+  app.enableShutdownHooks();
   await app.listen(PORT, '0.0.0.0');
   console.log(`Application is running on: ${PORT}`);
 }

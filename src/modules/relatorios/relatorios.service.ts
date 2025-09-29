@@ -71,21 +71,6 @@ export class RelatorioService {
     return relatorio;
   }
 
-  async findManyById(ids: string[]) {
-    const relatorios = await this.prismaService.relatorio.findMany({
-      where: { id: { in: ids } },
-    });
-    const relatoriosWithReadOnly = (
-      await this.syncRelatoriosReadOnlyStatus(relatorios)
-    ).map(Relatorio.toModel);
-
-    const relatoriosResolvedAtendimentos = this.updateAtendimentoIds(
-      relatoriosWithReadOnly,
-    );
-
-    return relatoriosResolvedAtendimentos || relatoriosWithReadOnly;
-  }
-
   async findMany(input: queryObject | string | string[]) {
     let query = {};
 
@@ -104,7 +89,7 @@ export class RelatorioService {
     });
 
     const relatoriosWithReadOnly = (
-      await this.syncRelatoriosReadOnlyStatus(relatorios)
+      await this.setRelatoriosReadOnlyStatus(relatorios)
     ).map(Relatorio.toModel);
 
     const relatoriosResolvedAtendimentos = this.updateAtendimentoIds(
@@ -246,23 +231,23 @@ export class RelatorioService {
     }
   }
 
-  async syncRelatoriosReadOnlyStatus(relatorios: RelatorioDto[]) {
+  async setRelatoriosReadOnlyStatus(relatorios: RelatorioDto[]) {
     const readOnlyIds = await this.getReadOnly(relatorios);
     console.log(
-      '🚀 - RelatorioService - syncRelatoriosReadOnlyStatus - readOnlyIds:',
+      '🚀 - RelatorioService - setRelatoriosReadOnlyStatus - readOnlyIds:',
       readOnlyIds.slice(0, 50),
     );
+    // DO NOT UPDATE THE DATABASE EVERY TIME WE FETCH REPORTS
+    // const editableIds = relatorios
+    //   .filter((r) => !readOnlyIds.includes(r.id))
+    //   .map((r) => r.id);
+    // const editableUpdates = { ids: editableIds, update: { readOnly: false } };
+    // const readOnlyUpdates = { ids: readOnlyIds, update: { readOnly: true } };
 
-    const editableIds = relatorios
-      .filter((r) => !readOnlyIds.includes(r.id))
-      .map((r) => r.id);
-    const editableUpdates = { ids: editableIds, update: { readOnly: false } };
-    const readOnlyUpdates = { ids: readOnlyIds, update: { readOnly: true } };
-
-    await Promise.all([
-      this.updateMany(editableUpdates),
-      this.updateMany(readOnlyUpdates),
-    ]);
+    // await Promise.all([
+    //   this.updateMany(editableUpdates),
+    //   this.updateMany(readOnlyUpdates),
+    // ]);
     const response = relatorios.map((r) => ({
       ...r,
       readOnly: readOnlyIds.includes(r.id),
