@@ -40,18 +40,6 @@ export class AtendimentoController {
     return await this.atendimentoService.findMany(ids);
   }
 
-  @Get('getAtendimentosWithoutDataSEI')
-  async getAtendimentosWithoutDataSEI() {
-    try {
-      return await this.atendimentoService.getAtendimentosWithoutDataSEI();
-    } catch (error) {
-      this.logger.error(
-        'AtendimentoController:47 ~ getAtendimentosWithoutSEI:' + error.message,
-        error.trace,
-      );
-    }
-  }
-
   @Get('getTemasAtendimento')
   getTemasAtendimento() {
     try {

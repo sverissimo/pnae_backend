@@ -62,10 +62,10 @@ describe('inputToOutputDTO method', () => {
     const prodNatura = dto.dados_producao_in_natura;
     const prodInd = dto.dados_producao_agro_industria;
 
-    expect(prodNatura.valor_total_obtido_pnae).toBe('11000');
-    expect(prodNatura.valor_total_obtido_outros).toBe('12000');
+    expect(prodNatura.valor_total_obtido_pnae).toBe('11.000,00');
+    expect(prodNatura.valor_total_obtido_outros).toBe('12000,41');
     expect(prodInd.valor_total_obtido_pnae).toBe('22000');
-    expect(prodInd.valor_total_obtido_outros).toBe('33000');
+    expect(prodInd.valor_total_obtido_outros).toBe('33.000,00');
   });
 
   it('should return a DTO object with the correct GROUP >> producao_pnae/total values for NATURA', () => {

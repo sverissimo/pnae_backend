@@ -35,7 +35,7 @@ export class RelatorioService {
         data: relatorioDto,
       });
 
-      await this.checkAtendimentoDate(relatorioInput);
+      await this.fixAtendimentoDate(relatorioInput);
 
       return createdRelatorio;
     } catch (error) {
@@ -141,13 +141,13 @@ export class RelatorioService {
     console.log('🚀 - RelatorioService - update - update:', updateInput);
 
     const { id, atendimentoId, temas_atendimento, ...update } = updateInput;
-    const { numeroRelatorio: oldRelatorioNumber, readOnly } =
-      await this.findOne(id);
+    const [readOnly] = await this.restAPI.getReadOnlyRelatorios([id]);
     if (readOnly) {
       throw new UnauthorizedException(
         'Não é possível alterar relatório, pois já foi validado pela gerência.',
       );
     }
+    const { numeroRelatorio: oldRelatorioNumber } = await this.findOne(id);
 
     const data = Relatorio.updateFieldsToDTO({
       ...update,
@@ -218,41 +218,17 @@ export class RelatorioService {
     return `Relatorio ${id} removed.`;
   }
 
-  async getReadOnly(relatorios: RelatorioDto[]) {
-    try {
-      const ids = relatorios.map((r) => r.id);
-      const readOnly = await this.restAPI.getReadOnlyRelatorios(ids);
-      return readOnly;
-    } catch (error) {
-      console.log(
-        '🚀 ~ file: relatorios.service.ts:100 ~ RelatorioService ~ getReadOnly ~ error:',
-        error,
-      );
-    }
-  }
-
   async setRelatoriosReadOnlyStatus(relatorios: RelatorioDto[]) {
-    const readOnlyIds = await this.getReadOnly(relatorios);
-    console.log(
-      '🚀 - RelatorioService - setRelatoriosReadOnlyStatus - readOnlyIds:',
-      readOnlyIds.slice(0, 50),
+    const readOnlyIds = await this.restAPI.getReadOnlyRelatorios(
+      relatorios.map((r) => r.id),
     );
-    // DO NOT UPDATE THE DATABASE EVERY TIME WE FETCH REPORTS
-    // const editableIds = relatorios
-    //   .filter((r) => !readOnlyIds.includes(r.id))
-    //   .map((r) => r.id);
-    // const editableUpdates = { ids: editableIds, update: { readOnly: false } };
-    // const readOnlyUpdates = { ids: readOnlyIds, update: { readOnly: true } };
 
-    // await Promise.all([
-    //   this.updateMany(editableUpdates),
-    //   this.updateMany(readOnlyUpdates),
-    // ]);
+    console.log('🚀 RelatorioService readOnlyIds:', readOnlyIds.slice(0, 50));
+
     const response = relatorios.map((r) => ({
       ...r,
       readOnly: readOnlyIds.includes(r.id),
     }));
-
     return response;
   }
 
@@ -294,15 +270,15 @@ export class RelatorioService {
     return updatedRelatorios;
   }
 
-  private async checkAtendimentoDate(relatorio: RelatorioModel) {
+  private async fixAtendimentoDate(relatorio: RelatorioModel) {
     try {
       const { atendimentoId, createdAt } = relatorio;
-      await this.atendimentoService.checkDates({
+      await this.atendimentoService.fixDatesIfNeeded({
         atendimentoId: String(atendimentoId),
         createdAt,
       });
     } catch (error) {
-      console.log('🚀 RelatorioService checkAtendimentoDate:', error);
+      console.log('🚀 RelatorioService fixAtendimentoDate:', error);
     }
   }
 
@@ -312,19 +288,5 @@ export class RelatorioService {
     if (fileIds.length > 0) {
       await this.fileService.remove(fileIds, relatorio);
     }
-  }
-
-  private async updateMany({
-    ids,
-    update,
-  }: {
-    ids: string[];
-    update: Partial<RelatorioDto>;
-  }) {
-    const updated = await this.prismaService.relatorio.updateMany({
-      where: { id: { in: ids } },
-      data: update,
-    });
-    return updated;
   }
 }

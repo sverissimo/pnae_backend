@@ -24,8 +24,9 @@ services:
     restart: always
     networks:
       - pnae_prod_default
-    # depends_on:
-    #   - postgres_pnae_prod
+    depends_on:
+      - postgres_pnae_prod
+      - redis
 
   postgres_pnae_prod:
     container_name: postgres_pnae_prod

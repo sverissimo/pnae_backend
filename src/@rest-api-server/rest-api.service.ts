@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { correctValoresPnaeOrder } from './utils/correctValoresPnaeOrder';
 import { UpdateTemasAndVisitaAtendimentoDTO } from 'src/modules/atendimento/dto/update-temas-and-visita-atendimento.dto';
-import { AtendimentoUpdate } from 'src/@domain/relatorio/types/atendimento-updates';
+import { PerfilOptionDTO } from 'src/modules/perfil/types/perfil-option.dto';
+import { PerfilOptions } from 'src/modules/perfil/types/perfil.options';
 
 @Injectable()
 export class RestAPI {
@@ -18,139 +19,78 @@ export class RestAPI {
     };
   }
 
+  private async get<T>(url: string): Promise<T | null> {
+    try {
+      const response = await fetch(url, { headers: this.headers });
+
+      if (!response.ok) {
+        console.warn(
+          `[RestAPI] Non-OK response: ${response.status} for ${url}`,
+        );
+        return null;
+      }
+
+      const text = await response.text();
+      if (!text) return null;
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        console.warn(`[RestAPI] Invalid JSON response from ${url}:`, text);
+        return null;
+      }
+
+      return parsed as T;
+    } catch (err) {
+      console.error(`[RestAPI] Fetch failed for ${url}:`, err);
+    }
+  }
+
   async getPerfilOptions() {
-    try {
-      const result = await fetch(`${this.url}/api/getPerfilOptions`, {
-        headers: this.headers,
-      });
+    const data: PerfilOptions = await this.get(
+      `${this.url}/api/getPerfilOptions`,
+    );
 
-      const data = (await result.json()) as Record<string, any>;
-      data?.ValorPnae && correctValoresPnaeOrder(data);
-
-      return data;
-    } catch (error) {
-      console.log(
-        '🚀 ~ file: rest-api.service.ts:13 ~ RestAPI ~ getPerfilOptions ~ error:',
-        error,
-      );
-    }
+    if (data?.ValorPnae) correctValoresPnaeOrder(data);
+    return data;
   }
 
-  async getPerfilOptionsRaw() {
-    try {
-      const result = await fetch(`${this.url}/api/getPerfilOptionsRaw`, {
-        headers: this.headers,
-      });
-      const data = await result.json();
-      return data;
-    } catch (error) {
-      console.log(
-        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getPerfilOptions ~ error:',
-        error,
-      );
-      throw error;
-    }
+  getPerfilOptionsRaw() {
+    return (
+      this.get<PerfilOptionDTO[]>(`${this.url}/api/getPerfilOptionsRaw`) || []
+    );
   }
 
-  async getGruposProdutos() {
-    try {
-      const result = await fetch(`${this.url}/api/getGruposProdutos`, {
-        headers: this.headers,
-      });
-      const data = await result.json();
-      return data;
-    } catch (error) {
-      console.log(
-        '🚀 ~ rest-api.service.ts:39 ~ RestAPI ~ getGruposProdutos ~ error:',
-        error,
-      );
-    }
+  getGruposProdutos() {
+    return this.get(`${this.url}/api/getGruposProdutos`);
   }
 
-  async getContractInfo() {
-    try {
-      const result = await fetch(`${this.url}/api/getContractInfo`, {
-        headers: this.headers,
-      });
-
-      const data = await result.json();
-      return data;
-    } catch (error) {
-      console.log(
-        '🚀 ~ file: rest-api.service.ts:57 ~ RestAPI ~ getPerfilOptions ~ error:',
-        error,
-      );
-    }
+  getContractInfo() {
+    return this.get(`${this.url}/api/getContractInfo`);
   }
 
-  //### TODO: Implement this
-  async getReadOnlyRelatorios(ids: string[]) {
-    try {
-      if (!ids || ids.length === 0) return [];
-      const result = await fetch(
-        `${this.url}/api/getReadOnlyRelatorios/${ids}`,
-        {
-          headers: this.headers,
-        },
-      );
-      const data = await result.json();
-      return data;
-    } catch (error) {
-      console.log(
-        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getReadOnlyRelatorios ~ error:',
-        error,
-      );
-    }
+  getRegionaisEmater() {
+    return this.get(`${this.url}/api/getRegionaisEmater`);
   }
 
-  async getAtendimentosWithoutDataSEI() {
-    try {
-      const result = await fetch(
-        `${this.url}/api/getAtendimentosWithoutDataSEI`,
-        {
-          headers: this.headers,
-        },
-      );
-      const data = await result.json();
-      return data;
-    } catch (error) {
-      console.log(
-        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getAtendimentosWithoutDataSEI ~ error:',
-        error,
-      );
-    }
+  async getReadOnlyRelatorios(ids: string[]): Promise<string[]> {
+    if (!ids || ids.length === 0) return [];
+
+    const paramIds = ids.map(encodeURIComponent).join(',');
+    const result = await this.get<string[]>(
+      `${this.url}/api/getReadOnlyRelatorios/${paramIds}`,
+    );
+
+    return result || [];
   }
 
-  async getTemasAtendimento() {
-    try {
-      const result = await fetch(`${this.url}/api/getTemasAtendimento`, {
-        headers: this.headers,
-      });
-      const data = await result.json();
-      console.log('🚀 - RestAPI - getTemasAtendimento - data:', data);
-
-      return data;
-    } catch (error) {
-      console.log(
-        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getTemasAtendimento ~ error:',
-        error,
-      );
-    }
+  getTemasAtendimento() {
+    return this.get(`${this.url}/api/getTemasAtendimento`);
   }
 
-  async getRegionaisEmater() {
-    try {
-      const result = await fetch(`${this.url}/api/getRegionaisEmater`, {
-        headers: this.headers,
-      });
-      const data = await result.json();
-      return data;
-    } catch (error) {
-      console.log(
-        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getRegionaisEmater ~ error:',
-        error,
-      );
-    }
+  getReplacedAtendimentos() {
+    return this.get(`${this.url}/api/getReplacedAtendimentos`);
   }
 
   async updateTemasAndVisitaAtendimento({
@@ -175,20 +115,6 @@ export class RestAPI {
     } catch (error) {
       console.log(
         '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ updateTemasAtendimento ~ error:',
-        error,
-      );
-    }
-  }
-
-  async getReplacedAtendimentos() {
-    try {
-      const result = await fetch(`${this.url}/api/getReplacedAtendimentos`, {
-        headers: this.headers,
-      });
-      return result.json() as Promise<AtendimentoUpdate[]>;
-    } catch (error) {
-      console.log(
-        '🚀 ~ file: rest-api.service.ts:23 ~ RestAPI ~ getReplacedAtendimentos ~ error:',
         error,
       );
     }

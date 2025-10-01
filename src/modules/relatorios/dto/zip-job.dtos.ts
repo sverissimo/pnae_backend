@@ -11,8 +11,10 @@ export interface JobStatusDTO {
   jobId: string;
   status: JobStatus;
   downloadUrl?: string;
-  errorMessage?: string;
   createdAt?: string; // ISO from BullMQ job.timestamp
+  fromDate?: string;
+  toDate?: string;
+  errorMessage?: string;
   progress?: number; // 0..100 from BullMQ job.getProgress()
 }
 

@@ -12,11 +12,13 @@ ENV="$1"
 
 echo
 echo "### Stopping and removing containers for environment ------ $ENV"
-docker compose -f docker-compose.$ENV.yaml down pnae_backend_$ENV
+docker compose -f docker-compose.$ENV.yaml down
+# docker compose -f docker-compose.$ENV.yaml down pnae_backend_$ENV
 
 echo
 echo "### Rebuilding and starting containers for environment ------ $ENV"
-COMPOSE_BAKE=true docker compose -f docker-compose.$ENV.yaml up pnae_backend_$ENV --build -d
+COMPOSE_BAKE=true docker compose -f docker-compose.$ENV.yaml up --build -d
+# COMPOSE_BAKE=true docker compose -f docker-compose.$ENV.yaml up pnae_backend_$ENV --build -d
 
 echo
 echo "### Restarting Nginx for environment ------ $ENV"

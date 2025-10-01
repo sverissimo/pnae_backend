@@ -244,7 +244,14 @@ export class RelatorioExportService {
         this.redis.set('zip:last', job.id), // ------------ REMOVE ?????
         this.redis.set(
           `zip:${job.id}`,
-          JSON.stringify({ userId, from, to, status: 'processing' }),
+          JSON.stringify({
+            userId,
+            from,
+            to,
+            status: jobState || 'processing',
+            fromDate: from,
+            toDate: to,
+          }),
           'EX',
           60 * 60 * 24,
         ),
@@ -277,6 +284,7 @@ export class RelatorioExportService {
       }
 
       const job = await this.zipQueue.getJob(jobId);
+
       if (job) {
         const state = await job.getState(); // 'completed' | 'failed' | 'active' | 'waiting' | 'delayed' | 'paused'
         const createdAt = new Date(job.timestamp).toISOString();
@@ -291,6 +299,8 @@ export class RelatorioExportService {
                 jobId,
                 status: 'empty',
                 createdAt,
+                fromDate: job?.data?.from,
+                toDate: job?.data?.to,
                 errorMessage: jobReturnedValue,
               };
             }
@@ -385,7 +395,7 @@ export class RelatorioExportService {
   }
 
   public async createZipFile({ from, to }: { from: string; to: string }) {
-    await new Promise((resolve) => setTimeout(resolve, 6000));
+    // await new Promise((resolve) => setTimeout(resolve, 4000));
     console.log('done awaiting...');
     const { selectedRelatorios, selectedAtendimentos } =
       await this.relatorioService.findByDataSeeRange({
@@ -399,9 +409,8 @@ export class RelatorioExportService {
       return 'Não há nenhum relatório para ser anexado no SEI.';
     }
 
-    const relatoriosPorRegional = await this.getRelatoriosPorRegional(
-      selectedRelatorios,
-    );
+    const relatoriosPorRegional =
+      await this.getRelatoriosPorRegional(selectedRelatorios);
 
     const filePaths = await this.createZipFilesForAllRegions(
       relatoriosPorRegional,
@@ -415,9 +424,10 @@ export class RelatorioExportService {
 
     await cleanupOldZips(this.historyDir, 5);
 
-    const dsResult = await this.atendimentoService.setAtendimentosExportDate(
-      selectedAtendimentos,
-    );
+    const dsResult =
+      await this.atendimentoService.setAtendimentosExportDate(
+        selectedAtendimentos,
+      );
     console.log('🚀 - createZipFile - dsResult :', dsResult);
 
     return `Arquivo gerado: ${finalZipPath}`;

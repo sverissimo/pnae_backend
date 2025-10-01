@@ -50,11 +50,6 @@ export class AtendimentoService {
     return atendimento;
   }
 
-  async getAtendimentosWithoutDataSEI() {
-    const atendimentos = await this.restAPI.getAtendimentosWithoutDataSEI();
-    return atendimentos;
-  }
-
   getTemasAtendimento() {
     return this.restAPI.getTemasAtendimento();
   }
@@ -89,9 +84,8 @@ export class AtendimentoService {
     const newAtendimentoDto =
       AtendimentoDataMapper.entityToCreateStorageDto(newAtendimento);
 
-    const newAtendimentoId = await this.graphQLAPI.createAtendimento(
-      newAtendimentoDto,
-    );
+    const newAtendimentoId =
+      await this.graphQLAPI.createAtendimento(newAtendimentoDto);
 
     return newAtendimentoId;
   }
@@ -167,7 +161,7 @@ export class AtendimentoService {
   }
 
   // Workaround cause frontEnd doesn't send dates
-  async checkDates({
+  async fixDatesIfNeeded({
     createdAt,
     atendimentoId,
   }: {

@@ -12,9 +12,14 @@ ENV="$1"
 
 echo
 echo "### Restarting containers for environment ------ $ENV"
-docker compose -f docker-compose.$ENV.yaml down pnae_backend_$ENV
-docker compose -f docker-compose.$ENV.yaml up pnae_backend_$ENV -d
+docker compose -f docker-compose.$ENV.yaml down
+docker compose -f docker-compose.$ENV.yaml up -d
 echo
+
+# echo "### Starting Redis for environment ------ $ENV"
+# docker compose -f docker-compose.$ENV.yaml up redis -d
+# echo
+
 echo "### Restarting Nginx for environment ------ $ENV"
 docker exec nginx_$ENV nginx -s reload
 echo

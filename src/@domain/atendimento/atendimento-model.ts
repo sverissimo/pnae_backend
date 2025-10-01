@@ -1,4 +1,4 @@
-interface AtendimentoModel {
+export interface AtendimentoModel {
   id_at_atendimento: bigint;
   ativo: boolean;
   data_inicio_atendimento: Date;

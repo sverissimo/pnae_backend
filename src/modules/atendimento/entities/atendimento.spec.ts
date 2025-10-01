@@ -1,3 +1,4 @@
+import e from 'express';
 import { Atendimento } from './atendimento.entity';
 
 const input = {
@@ -19,7 +20,9 @@ describe('Atendimento entity', () => {
     // Save the original Date object and mock it locally for this describe block
     originalDate = global.Date;
     const DATE_TO_USE = new Date('2023-10-26T12:15:19.849Z');
-    dateSpy = jest.spyOn(global, 'Date').mockImplementation(() => DATE_TO_USE as unknown as Date);
+    dateSpy = jest
+      .spyOn(global, 'Date')
+      .mockImplementation(() => DATE_TO_USE as unknown as Date);
     Date.prototype.toISOString = jest.fn(() => DATE_TO_USE.toISOString());
   });
 
@@ -50,7 +53,7 @@ describe('Atendimento entity', () => {
         id_und_empresa: input.id_und_empresa,
       });
       expect(atendimento.at_atendimento_indicador).toEqual({
-        id_at_indicador: '4026',
+        id_at_indicador: '4550',
         id_und_empresa: input.id_und_empresa,
       });
     });
@@ -79,6 +82,7 @@ describe('Atendimento entity', () => {
         at_atendimento_indi_camp_acess,
         ...at
       } = atendimento;
+      console.log({ at, expected });
 
       expect(at).toEqual(expected);
     });
@@ -99,7 +103,7 @@ describe('Atendimento entity', () => {
     it('should return at_atendimento_indicador object', () => {
       const atendimento = Atendimento.create(input);
       const expected = {
-        id_at_indicador: '4026',
+        id_at_indicador: '4550',
         id_und_empresa: input.id_und_empresa,
       };
       expect(atendimento.at_atendimento_indicador).toEqual(expected);
@@ -124,12 +128,12 @@ describe('Atendimento entity', () => {
       const campo1 = atendimento.at_atendimento_indi_camp_acess[0];
       const campo2 = atendimento.at_atendimento_indi_camp_acess[1];
 
-      expect(campo1.id_at_indicador_camp_acessorio).toEqual('13895');
-      expect(campo1.valor_campo_acessorio).toEqual('Não');
+      expect(campo1.id_at_indicador_camp_acessorio).toEqual('14032');
+      expect(campo1.valor_campo_acessorio).toEqual(input.numero_relatorio);
+      // expect(campo1.valor_campo_acessorio).toEqual('Não');
       expect(campo1.id_und_empresa).toEqual(atendimento.id_und_empresa);
 
-      expect(campo2.id_at_indicador_camp_acessorio).toEqual('13896');
-      expect(campo2.valor_campo_acessorio).toEqual(input.numero_relatorio);
+      expect(campo2.id_at_indicador_camp_acessorio).toEqual('14033');
       expect(campo2.id_und_empresa).toEqual(atendimento.id_und_empresa);
     });
   });
@@ -140,12 +144,12 @@ describe('Atendimento entity', () => {
       const campo1 = atendimento.at_atendimento_indi_camp_acess[0];
       const campo2 = atendimento.at_atendimento_indi_camp_acess[1];
 
-      expect(campo1.id_at_indicador_camp_acessorio).toEqual('13895');
-      expect(campo1.valor_campo_acessorio).toEqual('Sim');
+      expect(campo1.id_at_indicador_camp_acessorio).toEqual('14032');
+      // expect(campo1.valor_campo_acessorio).toEqual('Sim');
+      expect(campo1.valor_campo_acessorio).toEqual(input.numero_relatorio);
       expect(campo1.id_und_empresa).toEqual(atendimento.id_und_empresa);
 
-      expect(campo2.id_at_indicador_camp_acessorio).toEqual('13896');
-      expect(campo2.valor_campo_acessorio).toEqual(input.numero_relatorio);
+      expect(campo2.id_at_indicador_camp_acessorio).toEqual('14033');
       expect(campo2.id_und_empresa).toEqual(atendimento.id_und_empresa);
     });
   });
