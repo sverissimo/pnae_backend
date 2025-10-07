@@ -25,6 +25,7 @@ services:
       - pnae_hmg_default
     depends_on:
       - postgres_pnae_hmg
+      - redis_hmg
 
   postgres_pnae_hmg:
     container_name: postgres_pnae_hmg
@@ -39,7 +40,7 @@ services:
     networks:
       - pnae_hmg_default
 
-  redis:
+  redis_hmg:
     image: redis:alpine
     container_name: redis_hmg
     ports:

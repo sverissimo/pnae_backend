@@ -2,6 +2,7 @@ import IORedis from 'ioredis';
 import { Worker } from 'bullmq';
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { RelatorioExportService } from '../relatorios.export.service';
+import { createRedisConnection } from 'src/redis/redis.provider';
 
 @Injectable()
 export class ZipWorkerService implements OnModuleInit, OnModuleDestroy {
@@ -13,11 +14,7 @@ export class ZipWorkerService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly exportService: RelatorioExportService) {}
 
   async onModuleInit(): Promise<void> {
-    this.connection = new IORedis({
-      host: process.env.REDIS_HOST || 'redis',
-      port: Number(process.env.REDIS_PORT) || 6379,
-      maxRetriesPerRequest: null,
-    });
+    this.connection = createRedisConnection();
 
     this.worker = new Worker(
       this.QUEUE_NAME,
@@ -25,22 +22,14 @@ export class ZipWorkerService implements OnModuleInit, OnModuleDestroy {
         const { from, to } = job.data as { from: string; to: string };
         return this.exportService.createZipFile({ from, to });
       },
-      {
-        connection: {
-          host: process.env.REDIS_HOST || 'redis',
-          port: Number(process.env.REDIS_PORT) || 6379,
-          maxRetriesPerRequest: null,
-        },
-      },
+      { connection: this.connection },
     );
 
     this.worker.on('completed', (job, result) => {
-      // Optional logging
       console.log(`[ZipWorker] Job ${job.id} completed:`, result);
     });
 
     this.worker.on('failed', (job, err) => {
-      // Optional logging
       console.error(
         `[ZipWorker] Job ${job?.id} failed: ${err.message}`,
         err.stack,

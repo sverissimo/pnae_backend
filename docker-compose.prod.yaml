@@ -9,7 +9,12 @@ services:
         - HOST_GID=${HOST_GID}
     env_file:
       - production.env
-    entrypoint: "dockerize -wait tcp://postgres_pnae_prod:5432 -timeout 20s /usr/local/bin/docker-entrypoint.sh"
+    entrypoint: >
+      dockerize
+      -wait tcp://postgres_pnae_prod:5432
+      -wait tcp://redis_prod:6379
+      -timeout 20s
+      /usr/local/bin/docker-entrypoint.sh
     command: "npm run start:prod"
     volumes:
       - /home/pnae/pnae_app/data:/home/node/data
@@ -26,7 +31,7 @@ services:
       - pnae_prod_default
     depends_on:
       - postgres_pnae_prod
-      - redis
+      - redis_prod
 
   postgres_pnae_prod:
     container_name: postgres_pnae_prod
@@ -41,7 +46,7 @@ services:
     networks:
       - pnae_prod_default
 
-  redis:
+  redis_prod:
     image: redis:alpine
     container_name: redis_prod
     ports:
