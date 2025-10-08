@@ -1,11 +1,20 @@
 // auth.middleware.ts
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
+import {
+  ForbiddenException,
+  Injectable,
+  NestMiddleware,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Request, NextFunction } from 'express';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
+  constructor(private readonly jwt: JwtService) {}
+
+  async use(req: Request, res: any, next: NextFunction) {
     if (
+      req.method === 'OPTIONS' || // CORS preflight
       req.baseUrl.match('/relatorios/pdf') ||
       req.baseUrl.match('/relatorios/zip') ||
       req.baseUrl.match('/cmc')
@@ -14,22 +23,34 @@ export class AuthMiddleware implements NestMiddleware {
     }
 
     const authHeader = req.headers['authorization'];
-
     if (!authHeader) {
-      return res.status(403).json({
-        message:
-          'É necessária autenticação de usuário para acessar essa página.',
+      throw new ForbiddenException('É necessária autenticação de usuário.');
+    }
+
+    const [scheme, token] = authHeader.split(' ');
+
+    if (!token || !/^Bearer$/i.test(scheme)) {
+      throw new UnauthorizedException('Erro na autenticação de usuário.');
+    }
+
+    // 1) Mobile: static client token still works
+    if (token === process.env.CLIENT_TOKEN) {
+      return next();
+    }
+
+    console.log(
+      '🚀 - AuthMiddleware - use - process.env.JWT_SECRET:',
+      process.env.JWT_SECRET,
+    );
+    // 2) Web: verify JWT cryptographically
+    try {
+      const decoded = await this.jwt.verifyAsync(token, {
+        secret: process.env.JWT_SECRET,
       });
+      (req as any).user = decoded; // optional: expose decoded claims to downstream
+      return next();
+    } catch {
+      throw new UnauthorizedException('Token inválido ou expirado.');
     }
-    const token = authHeader.split(' ')[1];
-
-    const authToken = process.env.CLIENT_TOKEN;
-    if (token !== authToken) {
-      return res
-        .status(401)
-        .json({ message: 'Autenticação de usuário inválida.' });
-    }
-
-    next();
   }
 }

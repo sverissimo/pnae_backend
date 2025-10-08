@@ -14,12 +14,14 @@ import { getPerfisUsuarios } from 'src/utils';
 import { UsuarioLdapService } from './usuario.ldap.service';
 import { UserNotFoundError } from './errors/user-not-found.error';
 import { Usuario } from './entity/usuario-model';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('usuario')
 export class UsuarioController {
   constructor(
     private readonly userLdapService: UsuarioLdapService,
     private readonly api: UsuarioGraphQLAPI,
+    private readonly jwtService: JwtService,
   ) {}
 
   @Get(':id')
@@ -72,12 +74,21 @@ export class UsuarioController {
       );
 
       if (authenticated) {
-        const user = await this.api.getUsuarios({ matriculas: login });
+        const userResponse = await this.api.getUsuarios({ matriculas: login });
 
-        if (!user?.usuarios?.length) throw new InternalServerErrorException();
+        if (!userResponse?.usuarios?.length)
+          throw new InternalServerErrorException();
 
-        const usuariosWithPermissions = getPerfisUsuarios(user?.usuarios);
+        const usuariosWithPermissions = getPerfisUsuarios(
+          userResponse?.usuarios,
+        );
         const [usuario] = usuariosWithPermissions;
+
+        const token = this.jwtService.sign(usuario);
+
+        // return both token + user info
+        return { ...usuario, token };
+
         return usuario;
       }
     } catch (error) {

@@ -9,12 +9,14 @@ import { config } from './config';
 import { UsuarioController } from './modules/usuario/usuario.controller';
 import { UsuarioGraphQLAPI } from './@graphQL-server/usuario-api.service';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module';
-import { SyncModulte } from './modules/@sync/sync.module';
 import { UsuarioLdapService } from './modules/usuario/usuario.ldap.service';
 import { WinstonLoggerService } from './common/logging/winston-logger.service';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthMiddleware } from './auth/auth.middleware';
 import { AuthController } from './auth/auth.controller';
+import { UserContextMiddleware } from './auth/user-context.middleware';
+import { JwtModule } from '@nestjs/jwt';
+import { SyncModule } from './modules/@sync/sync.module';
 
 @Module({
   imports: [
@@ -23,7 +25,11 @@ import { AuthController } from './auth/auth.controller';
     ProdutorModule,
     PerfilModule,
     AtendimentoModule,
-    SyncModulte,
+    SyncModule,
+    JwtModule.register({
+      secret: process.env.CLIENT_TOKEN,
+      signOptions: { expiresIn: '2h' },
+    }),
   ],
   controllers: [AppController, UsuarioController, AuthController],
   providers: [
@@ -38,6 +44,6 @@ import { AuthController } from './auth/auth.controller';
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AuthMiddleware).forRoutes('*');
+    consumer.apply(AuthMiddleware, UserContextMiddleware).forRoutes('*');
   }
 }

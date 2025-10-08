@@ -9,4 +9,4 @@ import { ProdutorModule } from '../produtor/produtor.module';
   providers: [SyncService],
   imports: [ProdutorModule, RelatorioModule],
 })
-export class SyncModulte {}
+export class SyncModule {}

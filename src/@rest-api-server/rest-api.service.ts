@@ -99,7 +99,7 @@ export class RestAPI {
     numeroVisita,
   }: Partial<UpdateTemasAndVisitaAtendimentoDTO>): Promise<void> {
     try {
-      const result = await fetch(
+      await fetch(
         `${this.url}/api/updateTemasAndVisitaAtendimento/${atendimentoId}`,
         {
           method: 'PATCH',
@@ -110,7 +110,7 @@ export class RestAPI {
           body: JSON.stringify({ temasAtendimento, numeroVisita }),
         },
       );
-      console.log('🚀 - RestAPI - result:', result);
+
       return;
     } catch (error) {
       console.log(

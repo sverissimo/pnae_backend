@@ -39,6 +39,6 @@
   },
   "editor.mouseWheelScrollSensitivity": 9,
   "workbench.list.mouseWheelScrollSensitivity": 9,
-  "terminal.integrated.mouseWheelScrollSensitivity": 11,
+  "terminal.integrated.mouseWheelScrollSensitivity": 9,
   "screencastMode.mouseIndicatorSize": 20
 }
