@@ -16,7 +16,7 @@ RUN apt-get update && \
 RUN usermod -u 1001 node && \
     groupmod -g 1001 node && \
     chown -R node:node /home/node/app && \
-    chown -R node:node /home/node/logs
+    mkdir -p /home/node/logs && chown -R node:node /home/node/logs
 
 WORKDIR /home/node/app
 USER node
