@@ -100,38 +100,37 @@ export class AtendimentoService {
     });
   }
 
-  updateTemasAndVisita(
-    updateAtendimentoProps: UpdateTemasAndVisitaAtendimentoDTO,
-  ): Promise<void> {
-    const {
-      atendimentoId,
-      temasAtendimento,
-      numeroVisita,
-      oldRelatorioNumber,
-    } = updateAtendimentoProps;
+  updateTemasAndVisita({
+    atendimentoId,
+    temasAtendimento,
+    numeroVisita,
+  }: UpdateTemasAndVisitaAtendimentoDTO): Promise<void> {
+    if (!atendimentoId || (!temasAtendimento && !numeroVisita)) return;
 
-    const hasNumero = !!numeroVisita;
+    const parsedTemas = Array.isArray(temasAtendimento)
+      ? temasAtendimento.join(',').trim()
+      : temasAtendimento;
 
-    const numeroVisitaUpdate =
-      hasNumero && numeroVisita !== String(oldRelatorioNumber)
-        ? String(numeroVisita)
-        : undefined;
+    const isValidTema = (tema: string) =>
+      !!tema &&
+      typeof tema === 'string' &&
+      tema.trim() !== '' &&
+      tema !== 'undefined';
 
-    const temasDTO = temasAtendimento
-      ? Atendimento.temasAtendimentoListToDTO(temasAtendimento)
+    const temas = isValidTema(parsedTemas)
+      ? Atendimento.temasAtendimentoListToDTO(parsedTemas)
       : undefined;
 
-    if (!atendimentoId || (!temasDTO && !numeroVisitaUpdate)) return;
-    console.log({
-      atendimentoId,
-      temasDTO,
-      numeroVisitaUpdate,
-    });
+    const numero =
+      !numeroVisita ||
+      (typeof numeroVisita === 'string' && numeroVisita.trim() === '')
+        ? undefined
+        : numeroVisita;
 
     return this.restAPI.updateTemasAndVisitaAtendimento({
       atendimentoId,
-      temasAtendimento: temasDTO,
-      numeroVisita: numeroVisitaUpdate,
+      temasAtendimento: temas,
+      numeroVisita: numero,
     });
   }
 
@@ -157,6 +156,7 @@ export class AtendimentoService {
   }
 
   async logicRemove(id: string) {
+    if (!id) return;
     await this.update(id, { ativo: false });
   }
 
@@ -190,7 +190,7 @@ export class AtendimentoService {
 
     const d1 = parsedCreated.toISOString().slice(0, 10);
     const d2 = parsedInicio.toISOString().slice(0, 10);
-    d1 === d2 && console.log('Dates are the same, no update needed.');
+
     if (d1 !== d2) {
       console.log('Dates are different, updating atendimento...');
       await this.update(atendimentoId, {

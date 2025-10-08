@@ -50,36 +50,23 @@ export class RelatorioController {
     @Body() relatorio: RelatorioModel,
   ) {
     try {
-      //throw error if duplicate and abort creation
-      await this.relatorioService.checkForDuplicateRelatorios(relatorio);
-      const savedRelatorio = await this.relatorioService.create(relatorio);
-
-      if (files) {
-        await this.fileService.save(files, relatorio);
-      }
-
-      return savedRelatorio?.id;
-    } catch (error) {
-      console.log('🚀 - RelatorioController 57 - error:', error);
-      this.logger.error(
-        'RelatorioController ~ create' + error?.message ||
-          error?.stack ||
-          String(error),
-        error?.trace,
+      const savedRelatorio = await this.relatorioService.create(
+        relatorio,
+        files,
       );
-
-      if (error instanceof HttpException) throw error;
-
-      const status = Number(error?.status ?? error?.statusCode);
-      if (!Number.isNaN(status)) {
-        throw new HttpException(error?.message ?? String(error), status);
-      }
-      throw new BadRequestException(error?.message ?? String(error));
+      return savedRelatorio?.id;
+    } catch (error: any) {
+      this.errorHandler({
+        error,
+        relatorio,
+        caller: 'RelatorioController.create',
+      });
     }
   }
 
   @Get('/all')
-  async findAll() {
+  async findAll(@Req() req: Request) {
+    console.log({ user: (req as any).user });
     return await this.relatorioService.findAll();
   }
 
@@ -125,57 +112,62 @@ export class RelatorioController {
     @Body() update: UpdateRelatorioDto,
   ) {
     try {
-      const relatorioUpdate = { id, ...update };
-
-      //  Needed to get files folder name where to save updated files, if present.
-      if (!update.produtorId || !update.contratoId) {
-        const relatorio = await this.relatorioService.findOne(id);
-        if (!relatorio) {
-          throw new NotFoundException('Relatório não encontrado');
-        }
-        Object.assign(relatorioUpdate, {
-          produtorId: update.produtorId || relatorio.produtorId,
-          contratoId: update.contratoId || relatorio.contratoId,
-        });
-      }
-
-      const newAtendimentoId = await this.relatorioService.update(
-        relatorioUpdate,
-      );
-
-      if (files && Object.keys(files).length > 0) {
-        await this.fileService.update(files, relatorioUpdate);
-      }
-      return newAtendimentoId;
+      await this.relatorioService.update({ ...update, id, files });
+      return;
     } catch (error) {
-      this.logger.error(
-        '🚀 ~ file: relatorios.controller.ts:147 ~ update ~ error:' +
-          error.message,
-        error.trace,
-      );
-      throw error;
+      this.errorHandler({
+        error,
+        relatorio: { id } as RelatorioModel,
+        caller: 'RelatorioController.update',
+      });
     }
   }
 
   @Delete(':id')
-  async remove(@Req() req: Request, @Param('id') id: string) {
+  async remove(@Param('id') id: string) {
     try {
       if (!id) throw new BadRequestException('Id inválido');
-      const userIP = req.headers['x-real-ip'] || req.headers['x-forwarded-for'];
+
+      this.logger.error(`@@@ Called delete on relatorio ${id}`, '');
 
       const result = await this.relatorioService.remove(id);
+      this.logger.error(`#### DELETED RELATORIO #### \n ${result}`, ''); // Not an error, use method to write to log file.
 
-      this.logger.error(`#### DELETED RELATORIO ${id}. User IP: ${userIP}`, ''); // Not an error, use method to write to log file.
-
-      return result;
+      return `Relatório ${id} removido com sucesso.`;
     } catch (error) {
-      this.logger.error(
-        '####### ~ file: relatorios.controller.ts:161 ~ remove ~ error:' +
-          error.message,
-        error.trace,
-      );
-      throw error;
+      this.errorHandler({
+        error,
+        relatorio: { id } as RelatorioModel,
+        caller: 'RelatorioController.remove',
+      });
     }
+  }
+
+  private errorHandler(errorInputObj: {
+    error: any;
+    relatorio?: RelatorioModel;
+    caller?: string;
+  }) {
+    const { error, relatorio, caller } = errorInputObj;
+    console.log(`🚀 - RelatorioController ${caller} - error:`, error);
+    this.logger.error(
+      `Erro em ${caller}: relatório nº ${relatorio?.numeroRelatorio} - produtor ${relatorio?.produtorId}, tecnico ${relatorio?.tecnicoId}, atendimento ${relatorio?.atendimentoId} id ${relatorio?.id}:
+      ${error.message}`,
+      { stack: error.stack, error },
+    );
+
+    if (error instanceof HttpException) throw error;
+    const status = Number(error?.status ?? error?.statusCode);
+    if (!Number.isNaN(status)) {
+      throw new HttpException(error?.message ?? String(error), status);
+    }
+    if (error?.message?.toLowerCase().includes('validation')) {
+      throw new BadRequestException(error.message);
+    }
+
+    throw new InternalServerErrorException(
+      'Erro interno ao processar a requisição.',
+    );
   }
 
   // ------------ PDF and ZIP generation ------------
@@ -324,9 +316,8 @@ export class RelatorioController {
     }
 
     try {
-      const stream = await this.relatorioExportService.getDownloadStream(
-        filename,
-      );
+      const stream =
+        await this.relatorioExportService.getDownloadStream(filename);
 
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader(

@@ -352,7 +352,12 @@ export class RelatorioExportService {
       const dir = this.historyDir; // e.g., /var/app/zip-history
       const entries = await fsp.readdir(dir, { withFileTypes: true });
       const files = entries
-        .filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.zip'))
+        .filter(
+          (e) =>
+            e.isFile() &&
+            e.name.startsWith('relatorios_') &&
+            e.name.toLowerCase().endsWith('.zip'),
+        )
         .map((e) => e.name);
 
       const withStats = await Promise.all(
@@ -396,7 +401,6 @@ export class RelatorioExportService {
 
   public async createZipFile({ from, to }: { from: string; to: string }) {
     // await new Promise((resolve) => setTimeout(resolve, 4000));
-    console.log('done awaiting...');
     const { selectedRelatorios, selectedAtendimentos } =
       await this.relatorioService.findByDataSeeRange({
         from,
@@ -424,11 +428,9 @@ export class RelatorioExportService {
 
     await cleanupOldZips(this.historyDir, 5);
 
-    const dsResult =
-      await this.atendimentoService.setAtendimentosExportDate(
-        selectedAtendimentos,
-      );
-    console.log('🚀 - createZipFile - dsResult :', dsResult);
+    await this.atendimentoService.setAtendimentosExportDate(
+      selectedAtendimentos,
+    );
 
     return `Arquivo gerado: ${finalZipPath}`;
   }

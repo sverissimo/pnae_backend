@@ -1,5 +1,6 @@
 import { RelatorioDto } from 'src/modules/relatorios/dto/relatorio.dto';
 import { RelatorioModel } from './relatorio-model';
+import { toBRTimezone } from 'src/utils';
 
 export class Relatorio {
   constructor(private readonly relatorio: RelatorioModel) {
@@ -43,8 +44,8 @@ export class Relatorio {
       tecnicoId: String(tecnicoId),
       atendimentoId: atendimentoId ? String(atendimentoId) : undefined,
       numeroRelatorio: +numeroRelatorio,
-      createdAt: createdAt ? createdAt.toISOString() : undefined,
-      updatedAt: updatedAt ? updatedAt.toISOString() : undefined,
+      createdAt: createdAt ? toBRTimezone(createdAt).toISOString() : undefined,
+      updatedAt: updatedAt ? toBRTimezone(updatedAt).toISOString() : undefined,
     };
     return relatorioModel;
   }
@@ -69,13 +70,18 @@ export class Relatorio {
       atendimentoId: atendimentoId ? BigInt(atendimentoId) : undefined,
       createdAt: createdAt ? new Date(createdAt) : undefined,
       updatedAt: updatedAt ? new Date(updatedAt) : undefined,
-      readOnly: relatorio.readOnly === true || String(relatorio.readOnly) === 'true' ? true : false,
+      readOnly:
+        relatorio.readOnly === true || String(relatorio.readOnly) === 'true'
+          ? true
+          : false,
     };
 
     return relatorioDto;
   }
 
-  static updateFieldsToDTO(relatorioModel: Partial<RelatorioModel>): Partial<RelatorioDto> {
+  static updateFieldsToDTO(
+    relatorioModel: Partial<RelatorioModel>,
+  ): Partial<RelatorioDto> {
     const {
       produtorId,
       tecnicoId,
@@ -103,8 +109,8 @@ export class Relatorio {
         readOnly === undefined
           ? undefined
           : readOnly === true || String(readOnly) === 'true'
-          ? true
-          : false,
+            ? true
+            : false,
     };
     return relatorioDto;
   }

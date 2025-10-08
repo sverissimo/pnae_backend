@@ -1,3 +1,10 @@
+jest.mock('graphql-request', () => ({
+  gql: (literals: TemplateStringsArray) => literals[0],
+  GraphQLClient: jest.fn().mockImplementation(() => ({
+    request: jest.fn(),
+  })),
+}));
+
 jest.mock('fs', () => ({
   promises: {
     mkdir: jest.fn().mockResolvedValue('folderSubPath'),

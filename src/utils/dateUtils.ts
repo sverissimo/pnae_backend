@@ -39,3 +39,13 @@ export function parseAndValidateDateRange(
   }
   return { start, end };
 }
+
+export function toBRTimezone(date: Date): Date {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return date;
+  }
+  // Convert to Brazil timezone (UTC-3)
+  const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+  const brazilOffset = -3 * 60 * 60000; // UTC-3
+  return new Date(utc + brazilOffset);
+}

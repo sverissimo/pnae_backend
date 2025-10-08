@@ -1,4 +1,3 @@
-import e from 'express';
 import { Atendimento } from './atendimento.entity';
 
 const input = {
@@ -73,6 +72,9 @@ describe('Atendimento entity', () => {
         data_inicio_atendimento: input.data_criacao,
         data_fim_atendimento: input.data_criacao,
         sn_pendencia: 0,
+        id_at_anterior: undefined,
+        temas_atendimento: undefined,
+        temas_atendimento_list: ['Agroindústria', 'Culturas', 'Pecuária'],
       };
 
       const {
@@ -82,7 +84,6 @@ describe('Atendimento entity', () => {
         at_atendimento_indi_camp_acess,
         ...at
       } = atendimento;
-      console.log({ at, expected });
 
       expect(at).toEqual(expected);
     });

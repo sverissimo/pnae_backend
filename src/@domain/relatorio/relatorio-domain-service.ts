@@ -90,12 +90,12 @@ export class RelatorioDomainService {
   ) {
     const outDatedURIs: Record<string, string | boolean> = {};
 
-    console.log('🚀 - RelatorioDomainService - clientRelatorio:', {
-      clientRelatorioAssinatura: clientRelatorio.assinaturaURI,
-      clientRelatorioPicture: clientRelatorio.pictureURI,
-      serverRelatorioAssinatura: serverRelatorio.assinaturaURI,
-      serverRelatorioPicture: serverRelatorio.pictureURI,
-    });
+    // console.log('🚀 - RelatorioDomainService - clientRelatorio:', {
+    //   clientRelatorioAssinatura: clientRelatorio.assinaturaURI,
+    //   clientRelatorioPicture: clientRelatorio.pictureURI,
+    //   serverRelatorioAssinatura: serverRelatorio.assinaturaURI,
+    //   serverRelatorioPicture: serverRelatorio.pictureURI,
+    // });
     if (clientRelatorio.assinaturaURI !== serverRelatorio.assinaturaURI) {
       outDatedURIs.assinaturaURI = true;
     }

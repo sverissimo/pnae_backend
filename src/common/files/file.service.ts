@@ -84,9 +84,8 @@ export class FileService {
   }
 
   async update(files: FilesInputDto, relatorio: UpdateRelatorioDto) {
-    const { id: relatorioId } = relatorio;
     const existingFiles = await this.prismaService.pictureFile.findMany({
-      where: { relatorioId },
+      where: { relatorioId: relatorio.id },
     });
 
     const { changedFiles } = await this.getModifiedFiles(files, existingFiles);

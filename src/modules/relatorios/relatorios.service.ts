@@ -1,9 +1,9 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/common/files/file.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
@@ -15,6 +15,8 @@ import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { AtendimentoUpdate } from 'src/@domain/relatorio/types/atendimento-updates';
 import { RelatorioDomainService } from 'src/@domain/relatorio/relatorio-domain-service';
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { UpdateTemasAndVisitaAtendimentoDTO } from '../atendimento/dto/update-temas-and-visita-atendimento.dto';
+import { FilesInputDto } from 'src/common/files/files-input.dto';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -28,22 +30,45 @@ export class RelatorioService {
     private readonly logger: WinstonLoggerService,
   ) {}
 
-  async create(relatorioInput: RelatorioModel) {
+  async create(relatorioInput: RelatorioModel, files?: FilesInputDto) {
+    await this.checkForDuplicateRelatorios(relatorioInput);
+    const relatorioDto = new Relatorio(relatorioInput).toDto();
+
     try {
-      const relatorioDto = new Relatorio(relatorioInput).toDto();
       const createdRelatorio = await this.prismaService.relatorio.create({
         data: relatorioDto,
       });
-
-      await this.fixAtendimentoDate(relatorioInput);
-
+      void this.fixAtendimentoDate(relatorioInput);
+      await this.handleFileSave(files, createdRelatorio); // if throws, orientacao is saved, can add files later
       return createdRelatorio;
-    } catch (error) {
-      await this.atendimentoService.logicRemove(relatorioInput.atendimentoId);
-      if (error.code === 'P2002' && error.meta?.target?.includes('id')) {
-        throw new Error('Relatório com este ID já existe');
-      }
-      throw error;
+    } catch (error: any) {
+      await this.rollbackAtendimento(relatorioInput.atendimentoId);
+      this.handlePersistenceError(error);
+    }
+  }
+
+  private async handleFileSave(files: FilesInputDto, created: any) {
+    if (!files || Object.keys(files).length === 0) return;
+    try {
+      await this.fileService.save(files, created);
+    } catch (fileErr: any) {
+      this.logger.error(
+        `Falha ao salvar arquivos do relatório ${created.id}: ${fileErr.message}`,
+        { stack: fileErr.stack, error: fileErr },
+      );
+      throw fileErr;
+    }
+  }
+
+  private async rollbackAtendimento(atendimentoId?: string) {
+    if (!atendimentoId) return;
+    try {
+      await this.atendimentoService.logicRemove(atendimentoId);
+    } catch (rollbackErr: any) {
+      this.logger.error(
+        `Rollback (logicRemove) failed for atendimento ${atendimentoId}: ${rollbackErr.message}`,
+        { stack: rollbackErr.stack, error: rollbackErr },
+      );
     }
   }
 
@@ -73,17 +98,20 @@ export class RelatorioService {
 
   async findMany(input: queryObject | string | string[]) {
     let query = {};
-
     if (typeof input === 'string') {
       query = { produtorId: { in: [BigInt(input)] } };
     } else if (Array.isArray(input)) {
       query = { produtorId: { in: input.map((id) => BigInt(id)) } };
     } else if (input.ids || input.produtorIds) {
-      const produtorIds = input.produtorIds.map((id) => BigInt(id));
+      const produtorIds = input?.produtorIds?.map((id) => BigInt(id)) || [];
       query = {
-        OR: [{ id: { in: input.ids } }, { produtorId: { in: produtorIds } }],
+        OR: [
+          { id: { in: input?.ids || [] } },
+          { produtorId: { in: produtorIds } },
+        ],
       };
     }
+
     const relatorios = await this.prismaService.relatorio.findMany({
       where: query,
     });
@@ -105,7 +133,9 @@ export class RelatorioService {
     toDate.setHours(23, 59, 59, 999);
 
     const relatorios = await this.findAll(); // Already fixes atendimentoIds
-    const atendimentoIds = relatorios.map((r) => r.atendimentoId);
+    const atendimentoIds = relatorios
+      .map((r) => r.atendimentoId)
+      .filter((id): id is string => !!id);
     const atendimentos = await this.atendimentoService.findMany(atendimentoIds);
 
     const selectedAtendimentos = atendimentos.filter((at) => {
@@ -137,93 +167,115 @@ export class RelatorioService {
     return updatedRelatorios || relatorioModels;
   }
 
-  async update(updateInput: UpdateRelatorioDto) {
-    console.log('🚀 - RelatorioService - update - update:', updateInput);
-
-    const { id, atendimentoId, temas_atendimento, ...update } = updateInput;
-    const [readOnly] = await this.restAPI.getReadOnlyRelatorios([id]);
-    if (readOnly) {
-      throw new UnauthorizedException(
-        'Não é possível alterar relatório, pois já foi validado pela gerência.',
-      );
+  async update(
+    updateInput: UpdateRelatorioDto & { id: string; files?: FilesInputDto },
+  ) {
+    const [relatorio] = await this.findMany({ ids: [updateInput.id] }); // get updated readOnly and atendimentoId props
+    if (!relatorio) throw new NotFoundException('Relatório não encontrado');
+    if (relatorio.readOnly) {
+      return;
+      // throw new ConflictException(
+      //   'Não é possível alterar relatório, pois já foi validado pela gerência.',
+      // );
     }
-    const { numeroRelatorio: oldRelatorioNumber } = await this.findOne(id);
 
-    const data = Relatorio.updateFieldsToDTO({
-      ...update,
-      // atendimentoId: newAtendimentoId, // Wont change anymore cause no 134
-    });
-
-    await this.prismaService.relatorio.update({
-      where: { id },
-      data,
-    });
-
-    // ************ ITEM 134 (Rel é sub de outro) FOI REMOVIDO DO BANCO. ************
-    // const newAtendimentoId = await this.atendimentoService.updateIfNecessary(atendimentoId, String(numeroRelatorio));
-    // *****************************************************************************
-    //INSTEAD:
-
-    await this.atendimentoService.updateTemasAndVisita({
+    const {
+      id,
       atendimentoId,
-      temasAtendimento: temas_atendimento,
-      numeroVisita: update.numeroRelatorio
-        ? String(update.numeroRelatorio)
-        : undefined,
-      oldRelatorioNumber: oldRelatorioNumber,
+      temas_atendimento,
+      readOnly,
+      files,
+      ...updateData
+    } = updateInput;
+
+    if (files && Object.keys(files).length > 0) {
+      await this.fileService.update(files, {
+        ...updateInput,
+        id,
+        produtorId: updateInput.produtorId || relatorio.produtorId,
+        contratoId: updateInput.contratoId || relatorio.contratoId,
+      });
+    }
+
+    const data = Relatorio.updateFieldsToDTO(updateData); // atendimentoId: newAtendimentoId, // Wont change anymore cause no 134
+    // console.log('🚀 - RelatorioService - update - data:', { data, updateData });
+
+    await this.prismaService.relatorio.update({ where: { id }, data });
+
+    await this.syncAtendimentoTemasAndNumero({
+      atendimentoId: relatorio.atendimentoId?.toString(), // UPDATED AtendimentoId
+      temasAtendimento: temas_atendimento || undefined,
+      numeroVisita:
+        !!updateInput.numeroRelatorio &&
+        !isNaN(Number(updateInput.numeroRelatorio))
+          ? String(updateInput.numeroRelatorio)
+          : undefined,
+      oldRelatorioNumber:
+        !!relatorio.numeroRelatorio && !isNaN(Number(relatorio.numeroRelatorio))
+          ? String(relatorio.numeroRelatorio)
+          : undefined,
     });
 
+    // ITEM 134 (Rel é sub de outro) FOI REMOVIDO DO BANCO. ************
+    // const newAtendimentoId = await this.atendimentoService.updateIfNecessary(atendimentoId, String(numeroRelatorio));
     // return newAtendimentoId;
   }
 
+  private async syncAtendimentoTemasAndNumero({
+    atendimentoId,
+    temasAtendimento,
+    numeroVisita,
+    oldRelatorioNumber,
+  }: UpdateTemasAndVisitaAtendimentoDTO) {
+    if (!atendimentoId) return;
+
+    const shouldUpdateNumero =
+      !!numeroVisita && numeroVisita !== oldRelatorioNumber;
+
+    const shouldUpdateTemas = !!temasAtendimento && temasAtendimento.length > 0;
+
+    if (!shouldUpdateTemas && !shouldUpdateNumero) return;
+
+    await this.atendimentoService.updateTemasAndVisita({
+      atendimentoId,
+      temasAtendimento: shouldUpdateTemas ? temasAtendimento : undefined,
+      numeroVisita: shouldUpdateNumero ? numeroVisita : undefined,
+    });
+  }
+
   async remove(id: string) {
-    const relatorio = await this.findOne(id);
+    const [relatorio] = await this.findMany({ ids: [id] }); // get updated readOnly and atendimentoId props
+    if (!relatorio) throw new NotFoundException('Relatório não encontrado');
     if (relatorio.readOnly) {
       throw new UnauthorizedException(
         'Não é possível remover relatório, pois já foi validado pela gerência.',
       );
     }
-    const relatorioModel = Relatorio.toModel(relatorio);
-    const relatorioWithUpdatedAtendimentoId = this.updateAtendimentoIds([
-      relatorioModel,
-    ])?.[0];
 
-    const atendimentoId = relatorioWithUpdatedAtendimentoId
-      ? relatorioWithUpdatedAtendimentoId.atendimentoId?.toString()
-      : relatorio?.atendimentoId?.toString();
+    const atendimentoId = relatorio.atendimentoId?.toString();
+    const relatorioDto = new Relatorio(relatorio).toDto();
 
     try {
       if (atendimentoId) {
         await this.atendimentoService.logicRemove(atendimentoId);
       }
+      await this.removeFiles(relatorioDto);
     } catch (error) {
       this.logger.error(
-        `🚀 RelatorioService.ts logicRemove error - atendimentoId: ${atendimentoId} / relatorioId: ${relatorio.id}` +
-          error.message,
-        { error },
-      );
-    }
-
-    try {
-      await this.removeFiles(relatorio);
-    } catch (error) {
-      this.logger.error(
-        `🚀 RelatorioService.ts removeFiles error - relatorioId: ${relatorio.id}` +
-          error.message,
-        { error },
+        `Erro ao remover relatório ${id}, atendimento ${relatorio.atendimentoId}:\n
+         ${error.message}`,
+        { stack: error.stack, error },
       );
     }
 
     await this.prismaService.relatorio.delete({ where: { id } });
-    return `Relatorio ${id} removed.`;
+    return `Relatorio ${id} removed. \n Produtor ${relatorio.produtorId}, técnico ${relatorio.tecnicoId} atendimento ${relatorio.atendimentoId}`;
   }
 
   async setRelatoriosReadOnlyStatus(relatorios: RelatorioDto[]) {
     const readOnlyIds = await this.restAPI.getReadOnlyRelatorios(
       relatorios.map((r) => r.id),
     );
-
-    console.log('🚀 RelatorioService readOnlyIds:', readOnlyIds.slice(0, 50));
 
     const response = relatorios.map((r) => ({
       ...r,
@@ -234,9 +286,15 @@ export class RelatorioService {
 
   async checkForDuplicateRelatorios(relatorio: RelatorioModel) {
     const relatorioDto = new Relatorio(relatorio).toDto();
-    const { produtorId, tecnicoId, numeroRelatorio, contratoId } = relatorioDto;
+    const { produtorId, tecnicoId, numeroRelatorio, contratoId, createdAt } =
+      relatorioDto;
 
     if (!produtorId || !numeroRelatorio || !contratoId || !tecnicoId) return;
+    const startOfDay = new Date(createdAt);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(createdAt);
+    endOfDay.setHours(23, 59, 59, 999);
 
     const duplicateCandidate = await this.prismaService.relatorio.findFirst({
       where: {
@@ -244,15 +302,13 @@ export class RelatorioService {
         tecnicoId,
         numeroRelatorio,
         contratoId,
+        createdAt: { gte: startOfDay, lte: endOfDay },
       },
     });
 
-    console.log('RelatorioService checkForDuplicate :', duplicateCandidate);
-
     if (duplicateCandidate) {
-      //Remove antendimento previamente cadastrado
-      await this.atendimentoService.logicRemove(relatorio.atendimentoId);
-      throw new Error(`Relatório já cadastrado.`);
+      await this.atendimentoService.logicRemove(relatorio.atendimentoId); //Remove antendimento previamente cadastrado
+      throw new ConflictException('Relatório já cadastrado.');
     }
   }
 
@@ -271,14 +327,19 @@ export class RelatorioService {
   }
 
   private async fixAtendimentoDate(relatorio: RelatorioModel) {
+    const { atendimentoId, createdAt } = relatorio;
+    if (!atendimentoId || !createdAt) return;
+
     try {
-      const { atendimentoId, createdAt } = relatorio;
       await this.atendimentoService.fixDatesIfNeeded({
         atendimentoId: String(atendimentoId),
         createdAt,
       });
     } catch (error) {
-      console.log('🚀 RelatorioService fixAtendimentoDate:', error);
+      this.logger.error(
+        `Falha ao corrigir data do atendimento ${atendimentoId}: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
@@ -288,5 +349,12 @@ export class RelatorioService {
     if (fileIds.length > 0) {
       await this.fileService.remove(fileIds, relatorio);
     }
+  }
+
+  private handlePersistenceError(error: any) {
+    if (error.code === 'P2002' && error.meta?.target?.includes('id')) {
+      throw new ConflictException('Relatório com este ID já existe.');
+    }
+    throw error;
   }
 }

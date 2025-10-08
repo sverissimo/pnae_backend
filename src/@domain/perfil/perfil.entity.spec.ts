@@ -64,8 +64,8 @@ describe('inputToOutputDTO method', () => {
 
     expect(prodNatura.valor_total_obtido_pnae).toBe('11.000,00');
     expect(prodNatura.valor_total_obtido_outros).toBe('12000,41');
-    expect(prodInd.valor_total_obtido_pnae).toBe('22000');
-    expect(prodInd.valor_total_obtido_outros).toBe('33.000,00');
+    expect(prodInd.valor_total_obtido_pnae).toBe('22.000');
+    expect(prodInd.valor_total_obtido_outros).toBe('33000');
   });
 
   it('should return a DTO object with the correct GROUP >> producao_pnae/total values for NATURA', () => {
