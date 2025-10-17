@@ -38,10 +38,6 @@ export class AuthMiddleware implements NestMiddleware {
       return next();
     }
 
-    console.log(
-      '🚀 - AuthMiddleware - use - process.env.JWT_SECRET:',
-      process.env.JWT_SECRET,
-    );
     // 2) Web: verify JWT cryptographically
     try {
       const decoded = await this.jwt.verifyAsync(token, {

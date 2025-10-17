@@ -166,7 +166,9 @@ export class RelatorioController {
     }
 
     throw new InternalServerErrorException(
-      'Erro interno ao processar a requisição.',
+      error?.message ||
+        String(error) ||
+        'Erro interno ao processar a requisição.',
     );
   }
 

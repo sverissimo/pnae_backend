@@ -32,9 +32,9 @@ export class RelatorioService {
 
   async create(relatorioInput: RelatorioModel, files?: FilesInputDto) {
     await this.checkForDuplicateRelatorios(relatorioInput);
-    const relatorioDto = new Relatorio(relatorioInput).toDto();
 
     try {
+      const relatorioDto = new Relatorio(relatorioInput).toDto();
       const createdRelatorio = await this.prismaService.relatorio.create({
         data: relatorioDto,
       });
@@ -77,7 +77,10 @@ export class RelatorioService {
       return 'Nenhum relatório para criar';
     }
 
-    const data = relatorios.map((r) => new Relatorio(r).toDto());
+    const data = relatorios
+      .map((r) => new Relatorio(r).toDto())
+      .filter((r) => !!r.assunto);
+
     await this.prismaService.relatorio.createMany({
       data,
       skipDuplicates: true,

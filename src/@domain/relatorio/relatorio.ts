@@ -24,6 +24,16 @@ export class Relatorio {
     }
   }
 
+  public static validate(relatorio: RelatorioModel) {
+    const { assunto, orientacao } = new Relatorio(relatorio).toModel();
+    if (!assunto) {
+      throw new Error('O campo assunto é obrigatório.');
+    }
+    if (!orientacao) {
+      throw new Error('O campo orientação é obrigatório.');
+    }
+  }
+
   toModel(): RelatorioModel {
     return this.relatorio;
   }
@@ -56,6 +66,7 @@ export class Relatorio {
       tecnicoId,
       contratoId,
       numeroRelatorio,
+      orientacao,
       atendimentoId,
       createdAt,
       updatedAt,
@@ -66,6 +77,7 @@ export class Relatorio {
       produtorId: BigInt(produtorId),
       tecnicoId: BigInt(tecnicoId),
       numeroRelatorio: Number(numeroRelatorio),
+      orientacao: orientacao || '',
       contratoId: Number(contratoId),
       atendimentoId: atendimentoId ? BigInt(atendimentoId) : undefined,
       createdAt: createdAt ? new Date(createdAt) : undefined,
