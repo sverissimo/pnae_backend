@@ -49,3 +49,30 @@ export function toBRTimezone(date: Date): Date {
   const brazilOffset = -3 * 60 * 60000; // UTC-3
   return new Date(utc + brazilOffset);
 }
+
+export function parseSyncedDates(
+  clientDate?: string | Date | null,
+  serverDate?: string | Date | null,
+): { clientMs: number | null; serverMs: number | null } {
+  try {
+    const clientAsDate = clientDate
+      ? new Date(clientDate as string | number | Date)
+      : null;
+    const clientMsRaw = clientAsDate
+      ? toBRTimezone(clientAsDate).getTime()
+      : NaN;
+    const serverMsRaw = serverDate ? Date.parse(serverDate as any) : NaN;
+
+    return {
+      clientMs: isNaN(clientMsRaw) ? null : clientMsRaw,
+      serverMs: isNaN(serverMsRaw) ? null : serverMsRaw,
+    };
+  } catch (err) {
+    console.warn('[parseSyncedDates] Invalid date input skipped:', {
+      clientDate,
+      serverDate,
+      err,
+    });
+    return { clientMs: null, serverMs: null };
+  }
+}

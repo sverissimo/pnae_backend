@@ -3,6 +3,7 @@ import { RelatorioModel } from './relatorio-model';
 import { SyncInfoResponse } from 'src/modules/@sync/dto/sync-response';
 import { AtendimentoUpdate } from './types/atendimento-updates';
 import { ProdutorFindManyOutputDTO } from 'src/modules/produtor/types/produtores.output-dto';
+import { parseSyncedDates } from 'src/utils/dateUtils';
 
 export class RelatorioDomainService {
   static getSyncInfo(
@@ -36,75 +37,69 @@ export class RelatorioDomainService {
         continue;
       }
 
-      const clientUpdatedAt =
-        clientRelatorio.updatedAt && new Date(clientRelatorio.updatedAt);
-      const serverUpdatedAt =
-        serverRelatorio.updatedAt && new Date(serverRelatorio.updatedAt);
+      const update = { id: clientRelatorio.id } as Partial<RelatorioModel>;
 
-      const isUpToDate =
-        (!clientUpdatedAt && !serverUpdatedAt) ||
-        clientUpdatedAt?.getTime() === serverUpdatedAt?.getTime();
-
-      if (isUpToDate) {
-        syncInfo.upToDateIds.push(clientRelatorio.id);
+      // If Server doesnt have the URIs, but Client does, update server no matter the dates
+      const uriUpdates = this.checkOutdatedURIs(
+        clientRelatorio,
+        serverRelatorio,
+      );
+      if (
+        (uriUpdates.assinaturaURI && !serverRelatorio.assinaturaURI) ||
+        (uriUpdates.pictureURI && !serverRelatorio.pictureURI)
+      ) {
+        Object.assign(update, uriUpdates);
+        syncInfo.outdatedOnServer.push(update);
         continue;
       }
 
-      if (
-        clientUpdatedAt < serverUpdatedAt ||
-        (!clientUpdatedAt && serverUpdatedAt)
-      ) {
+      // Date comparison
+      const { clientMs, serverMs } = parseSyncedDates(
+        clientRelatorio.updatedAt,
+        serverRelatorio.updatedAt,
+      );
+
+      if (clientMs < serverMs || (!clientMs && serverMs)) {
         syncInfo.outdatedOnClient.push(serverRelatorio);
         continue;
       }
 
-      if (
-        clientUpdatedAt > serverUpdatedAt ||
-        (clientUpdatedAt && !serverUpdatedAt)
-      ) {
-        const update = { id: clientRelatorio.id } as Record<
-          string,
-          string | boolean
-        >;
+      if (clientMs > serverMs || (clientMs && !serverMs)) {
         const outDatedURIs = this.checkOutdatedURIs(
           clientRelatorio,
           serverRelatorio,
         );
 
-        Object.assign(update, outDatedURIs);
-
+        if (outDatedURIs.assinaturaURI || outDatedURIs.pictureURI) {
+          Object.assign(update, outDatedURIs);
+        }
         syncInfo.outdatedOnServer.push(update);
         continue;
       }
-
       syncInfo.upToDateIds.push(clientRelatorio.id);
     }
-
-    // console.log('🚀 - SyncService - updateRelatoriosData - syncInfo:', syncInfo);
     return syncInfo;
   }
 
   private static checkOutdatedURIs(
     clientRelatorio: RelatorioSyncInfo,
     serverRelatorio: RelatorioModel,
-  ) {
-    const outDatedURIs: Record<string, string | boolean> = {};
+  ): Partial<RelatorioModel> {
+    const updates: Partial<RelatorioModel> = {};
 
-    // console.log('🚀 - RelatorioDomainService - clientRelatorio:', {
-    //   clientRelatorioAssinatura: clientRelatorio.assinaturaURI,
-    //   clientRelatorioPicture: clientRelatorio.pictureURI,
-    //   serverRelatorioAssinatura: serverRelatorio.assinaturaURI,
-    //   serverRelatorioPicture: serverRelatorio.pictureURI,
-    // });
-    if (clientRelatorio.assinaturaURI !== serverRelatorio.assinaturaURI) {
-      outDatedURIs.assinaturaURI = true;
+    if (
+      clientRelatorio.assinaturaURI &&
+      clientRelatorio.assinaturaURI !== serverRelatorio.assinaturaURI
+    ) {
+      updates.assinaturaURI = clientRelatorio.assinaturaURI;
     }
-
-    if (clientRelatorio.pictureURI !== serverRelatorio.pictureURI) {
-      outDatedURIs.pictureURI = true;
+    if (
+      clientRelatorio.pictureURI &&
+      clientRelatorio.pictureURI !== serverRelatorio.pictureURI
+    ) {
+      updates.pictureURI = clientRelatorio.pictureURI;
     }
-
-    return outDatedURIs;
+    return updates;
   }
 
   public static updateAtendimentoIds(

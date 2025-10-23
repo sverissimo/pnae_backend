@@ -174,13 +174,9 @@ export class RelatorioService {
     updateInput: UpdateRelatorioDto & { id: string; files?: FilesInputDto },
   ) {
     const [relatorio] = await this.findMany({ ids: [updateInput.id] }); // get updated readOnly and atendimentoId props
-    if (!relatorio) throw new NotFoundException('Relatório não encontrado');
-    if (relatorio.readOnly) {
-      return;
-      // throw new ConflictException(
-      //   'Não é possível alterar relatório, pois já foi validado pela gerência.',
-      // );
-    }
+    if (!relatorio)
+      throw new NotFoundException('Relatório a atualizar não foi encontrado.');
+    if (relatorio.readOnly) return;
 
     const {
       id,
@@ -191,18 +187,7 @@ export class RelatorioService {
       ...updateData
     } = updateInput;
 
-    if (files && Object.keys(files).length > 0) {
-      await this.fileService.update(files, {
-        ...updateInput,
-        id,
-        produtorId: updateInput.produtorId || relatorio.produtorId,
-        contratoId: updateInput.contratoId || relatorio.contratoId,
-      });
-    }
-
     const data = Relatorio.updateFieldsToDTO(updateData); // atendimentoId: newAtendimentoId, // Wont change anymore cause no 134
-    // console.log('🚀 - RelatorioService - update - data:', { data, updateData });
-
     await this.prismaService.relatorio.update({ where: { id }, data });
 
     await this.syncAtendimentoTemasAndNumero({
@@ -219,9 +204,12 @@ export class RelatorioService {
           : undefined,
     });
 
-    // ITEM 134 (Rel é sub de outro) FOI REMOVIDO DO BANCO. ************
-    // const newAtendimentoId = await this.atendimentoService.updateIfNecessary(atendimentoId, String(numeroRelatorio));
-    // return newAtendimentoId;
+    await this.fileService.update(files, {
+      ...updateInput,
+      id,
+      produtorId: updateInput.produtorId || relatorio.produtorId,
+      contratoId: updateInput.contratoId || relatorio.contratoId,
+    });
   }
 
   private async syncAtendimentoTemasAndNumero({
@@ -350,7 +338,7 @@ export class RelatorioService {
     const { pictureURI, assinaturaURI } = relatorio;
     const fileIds = [pictureURI, assinaturaURI].filter((f) => !!f);
     if (fileIds.length > 0) {
-      await this.fileService.remove(fileIds, relatorio);
+      await this.fileService.remove(fileIds);
     }
   }
 

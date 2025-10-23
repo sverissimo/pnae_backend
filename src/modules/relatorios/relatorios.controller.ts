@@ -66,7 +66,7 @@ export class RelatorioController {
 
   @Get('/all')
   async findAll(@Req() req: Request) {
-    console.log({ user: (req as any).user });
+    // console.log({ user: (req as any).user });
     return await this.relatorioService.findAll();
   }
 
@@ -212,7 +212,9 @@ export class RelatorioController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new InternalServerErrorException('Erro ao gerar PDF');
+      throw new InternalServerErrorException(
+        error?.message || 'Erro ao gerar PDF',
+      );
     }
   }
 

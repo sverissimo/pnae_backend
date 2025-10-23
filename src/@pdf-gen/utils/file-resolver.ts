@@ -3,7 +3,7 @@ import { access, constants, readdir, readFile } from 'fs/promises';
 import { ProdutorPDFInput } from 'src/modules/relatorios/entities/relatorio-pdf.entity';
 
 export class FileResolver {
-  public static async findFileBase64(
+  public static async findFilePath(
     produtor: ProdutorPDFInput,
     contratoId: number,
     fileName: string,
@@ -19,9 +19,7 @@ export class FileResolver {
 
     // 1) direct path
     const direct = join(contractFolder, id_und_empresa, cpfFolder, fileName);
-    if (await this.exists(direct)) {
-      return readFile(direct, 'base64');
-    }
+    if (await this.exists(direct)) return direct;
 
     // 2) workaround for undefined contract folder
     const undefinedContractFolder = join(dataFolder, 'contrato_undefined');
@@ -31,21 +29,28 @@ export class FileResolver {
       cpfFolder,
       fileName,
     );
-    if (await this.exists(workaround)) {
-      return readFile(workaround, 'base64');
-    }
+    if (await this.exists(workaround)) return workaround;
 
     // 3) scan one level deep
-    const entries = await readdir(contractFolder, { withFileTypes: true });
+    const entries = await readdir(contractFolder, {
+      withFileTypes: true,
+    }).catch(() => []);
     for (const e of entries) {
       if (!e.isDirectory()) continue;
       const candidate = join(contractFolder, e.name, cpfFolder, fileName);
-      if (await this.exists(candidate)) {
-        return readFile(candidate, 'base64');
-      }
+      if (await this.exists(candidate)) return candidate;
     }
 
     return '';
+  }
+
+  public static async findFileBase64(
+    produtor: ProdutorPDFInput,
+    contratoId: number,
+    fileName: string,
+  ): Promise<string> {
+    const path = await this.findFilePath(produtor, contratoId, fileName);
+    return path ? readFile(path, 'base64') : '';
   }
 
   private static async exists(path: string): Promise<boolean> {

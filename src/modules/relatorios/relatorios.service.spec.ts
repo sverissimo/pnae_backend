@@ -282,29 +282,39 @@ describe('RelatorioService', () => {
     });
 
     it('should not call fileService.update if no files', async () => {
-      (service.findMany as jest.Mock).mockResolvedValue([{ id: '1' }]);
+      (service.findMany as jest.Mock).mockResolvedValue([
+        { id: '1', produtorId: 22, contratoId: 45 },
+      ]);
       prisma.relatorio.update.mockResolvedValue({ id: '1' });
 
       const input = { id: '1', files: undefined } as any;
       await service.update(input);
 
-      expect(fileService.update).not.toHaveBeenCalled();
+      expect(fileService.update).toHaveBeenCalled();
+      expect(fileService.update).toHaveBeenCalledWith(
+        input.files,
+        expect.objectContaining({
+          id: '1',
+          produtorId: 22,
+          contratoId: 45,
+        }),
+      );
+
       expect(prisma.relatorio.update).toHaveBeenCalled();
       expect(
         RelatorioService.prototype['syncAtendimentoTemasAndNumero'],
       ).toHaveBeenCalledTimes(1);
     });
 
-    it('should stop if fileService.update throws', async () => {
+    it('should Update anyway, EVEN IF fileService.update throws', async () => {
       (service.findMany as jest.Mock).mockResolvedValue([
         { id: '1', produtorId: 10, contratoId: 20 },
       ]);
       fileService.update.mockRejectedValue(new Error('disk error'));
 
       const input = { id: '1', files: { foto: [{}] } } as any;
-
       await expect(service.update(input)).rejects.toThrow('disk error');
-      expect(prisma.relatorio.update).not.toHaveBeenCalled();
+      expect(prisma.relatorio.update).toHaveBeenCalled();
     });
 
     it('should not call atendimentoService.updateTemasAndVisita if no atendimentoId', async () => {
