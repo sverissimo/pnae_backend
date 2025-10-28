@@ -18,9 +18,10 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "moduleResolution": "Node",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   },
   "allowJs": true,
-  "include": ["src/**/*.ts", "src/**/*.ejs", "src/**/*.json"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.ejs", "src/**/*.json"],
   "exclude": ["node_modules", "test"]
 }

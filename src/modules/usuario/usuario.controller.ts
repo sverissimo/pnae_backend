@@ -4,102 +4,75 @@ import {
   Controller,
   Get,
   InternalServerErrorException,
-  NotFoundException,
   Param,
   Post,
   Query,
+  UnauthorizedException,
+  Res,
 } from '@nestjs/common';
-import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
-import { getPerfisUsuarios } from 'src/utils';
-import { UsuarioLdapService } from './usuario.ldap.service';
-import { UserNotFoundError } from './errors/user-not-found.error';
-import { Usuario } from './entity/usuario-model';
 import { JwtService } from '@nestjs/jwt';
+import { UsuarioModel } from 'src/@domain/usuario/usuario-model';
+import { UsuarioService } from './usuario.service';
+import { Response } from 'express';
 
 @Controller('usuario')
 export class UsuarioController {
   constructor(
-    private readonly userLdapService: UsuarioLdapService,
-    private readonly api: UsuarioGraphQLAPI,
     private readonly jwtService: JwtService,
+    private readonly usuarioService: UsuarioService,
   ) {}
 
-  @Get(':id')
-  async find(@Param('id') id?: string, @Query('matricula') matricula?: string) {
-    if (!id && !matricula) {
-      throw new BadRequestException('É necessário informar um id ou matricula');
-    }
-    let { usuarios } = await this.api.getUsuarios({
-      ids: id,
-      matriculas: matricula,
-    });
+  @Post('/login')
+  async login(
+    @Body() user: Partial<UsuarioModel & { password: string }>,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    try {
+      const usuario = await this.usuarioService.login(user);
+      const token = this.jwtService.sign(usuario);
 
-    if (!usuarios?.length) {
-      const { usuarios: comissionados } = await this.api.getUsuarios({
-        ids: id,
-        matriculas: matricula.length === 4 ? 'C' + matricula : matricula,
+      res.cookie('auth_token', token, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: true,
+        path: '/',
+      });
+      return usuario;
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      console.error('🚀 LoginError: ', error?.message || JSON.stringify(error));
+      throw new InternalServerErrorException('Erro ao processar login.');
+    }
+  }
+
+  @Get('/logout')
+  async logout(@Res({ passthrough: true }) res: Response) {
+    try {
+      res.clearCookie('auth_token', {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: true,
+        path: '/',
+        maxAge: 4 * 60 * 60 * 1000, // 4 hours
       });
 
-      if (!comissionados?.length) {
-        throw new NotFoundException('Usuário não encontrado');
-      }
-      usuarios = comissionados;
-    }
-
-    const usuariosWithPerfis = getPerfisUsuarios(usuarios);
-    return usuarios.length === 1 ? usuariosWithPerfis[0] : usuariosWithPerfis;
-  }
-
-  @Get()
-  async findByMatricula(@Query('matricula') matricula: string) {
-    const usuarios = await this.find(null, matricula);
-    return usuarios;
-  }
-
-  @Post('/login')
-  async login(@Body() user: Partial<Usuario & { password: string }>) {
-    try {
-      if (!user.matricula_usuario || !user.password) {
-        throw new NotFoundException('Usuário não encontrado');
-      }
-      const { matricula_usuario, password } = user;
-      const login =
-        matricula_usuario.length === 4
-          ? 'C' + matricula_usuario
-          : matricula_usuario;
-
-      const authenticated = await this.userLdapService.authenticate(
-        login,
-        password,
-      );
-
-      if (authenticated) {
-        const userResponse = await this.api.getUsuarios({ matriculas: login });
-
-        if (!userResponse?.usuarios?.length)
-          throw new InternalServerErrorException();
-
-        const usuariosWithPermissions = getPerfisUsuarios(
-          userResponse?.usuarios,
-        );
-        const [usuario] = usuariosWithPermissions;
-
-        const token = this.jwtService.sign(usuario);
-
-        // return both token + user info
-        return { ...usuario, token };
-
-        return usuario;
-      }
+      return { message: 'Logout realizado com sucesso.' };
     } catch (error) {
-      console.log('🚀 - UsuarioController - login - error:', error);
-      if (error instanceof UserNotFoundError) {
-        throw new NotFoundException(error.message);
-      }
-      if (error.message === 'Usuário ou senha inválidos.') {
-        throw new BadRequestException('Usuário ou senha inválidos.');
-      }
-      throw error;
+      console.error(
+        '🚀 LogoutError: ',
+        error?.message || JSON.stringify(error),
+      );
+      throw new InternalServerErrorException('Erro ao processar logout.');
     }
+  }
+
+  @Get(':id')
+  find(@Param('id') id?: string, @Query('matricula') matricula?: string) {
+    return this.usuarioService.find(id, matricula);
   }
 }

@@ -19,7 +19,6 @@ import {
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
-import { FileService } from 'src/common/files/file.service';
 import { RelatorioService } from './relatorios.service';
 import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
 import { FilesInputDto } from 'src/common/files/files-input.dto';
@@ -34,7 +33,6 @@ export class RelatorioController {
   constructor(
     private readonly relatorioService: RelatorioService,
     private readonly relatorioExportService: RelatorioExportService,
-    private readonly fileService: FileService,
     private readonly logger: WinstonLoggerService,
   ) {}
 
@@ -66,8 +64,14 @@ export class RelatorioController {
 
   @Get('/all')
   async findAll(@Req() req: Request) {
-    // console.log({ user: (req as any).user });
-    return await this.relatorioService.findAll();
+    try {
+      return await this.relatorioService.getAuthorizedRelatorios(
+        req.user,
+        true,
+      );
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   @Get(':id')
@@ -76,8 +80,6 @@ export class RelatorioController {
     if (!relatorio) {
       throw new NotFoundException('Nenhum relatório encontrado');
     }
-    //TODO: Handle dates!!!!!!!!!
-    //relatorio.updatedAt = relatorio.updatedAt.toISOString();
     return relatorio;
   }
 
@@ -223,7 +225,6 @@ export class RelatorioController {
     @Body() body: { from: string; to: string; userId: string },
   ) {
     const { from, to, userId } = body;
-
     if (!from || !to || !userId) {
       throw new BadRequestException('from, to e userId são obrigatórios.');
     }

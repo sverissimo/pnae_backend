@@ -1,5 +1,7 @@
-export interface Usuario {
-  id_usuario: bigint;
+import { PerfilUsuario } from './perfil-usuario.enum';
+
+export interface UsuarioModel {
+  id_usuario: string;
   login_usuario: string;
   nome_usuario?: string | null;
   email_usuario?: string | null;
@@ -17,4 +19,6 @@ export interface Usuario {
   orgao_classe?: string | null;
   sexo_usuario?: string | null;
   dt_update_record?: Date | null;
+  id_reg_empresa?: string | null;
+  perfis: PerfilUsuario[];
 }

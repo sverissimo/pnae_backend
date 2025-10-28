@@ -1,5 +1,4 @@
-import { Produtor } from 'src/@domain/produtor/produtor';
-import { Usuario } from 'src/modules/usuario/entity/usuario-model';
+import { UsuarioModel } from 'src/@domain/usuario/usuario-model';
 
 export type RelatorioPDF = {
   id: string;
@@ -16,7 +15,7 @@ export type RelatorioPDF = {
   pictureURI?: string;
   assinaturaURI?: string;
   municipio?: string;
-  outrosExtensionistas?: Usuario[];
+  outrosExtensionistas?: UsuarioModel[];
   data?: string | Date;
   createdAt: any;
   updatedAt?: any;

@@ -7,19 +7,20 @@ export class UserContextMiddleware implements NestMiddleware {
   constructor(private readonly jwtService: JwtService) {}
 
   use(req: Request, _res: Response, next: NextFunction) {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader) return next();
-
-    const token = authHeader.split(' ')[1];
-    if (!token || token === process.env.CLIENT_TOKEN) return next(); // ignore mobile client token
+    const cookies =
+      (req as Request & { cookies?: Record<string, string> }).cookies ?? {};
+    const token = cookies.auth_token;
+    if (!token) return next();
+    if (token === process.env.CLIENT_TOKEN) return next();
 
     try {
       const decoded = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET,
       });
       (req as any).user = decoded;
-    } catch {
-      // invalid or expired JWT → ignore silently (not fatal)          }
+      // (req as any).user = { ...decoded, id_usuario: 2412 }; // Testing ONLY !!!
+      // (req as any).user = { ...decoded, id_usuario: 3138 }; // Testing ONLY !!!
+    } catch (_e) {
     } finally {
       next();
     }

@@ -5,6 +5,7 @@ import { BigIntInterceptor } from './interceptors/big-int.interceptor';
 import { WinstonLoggerService } from './common/logging/winston-logger.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { PlainTextExceptionFilter } from './common/filters/plain-text-exception.filter';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const PORT = process.env.PORT || 3000;
@@ -17,8 +18,9 @@ async function bootstrap() {
 
   app.use(bodyParser.json({ limit: '5mb' }));
   app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
+  app.use(cookieParser());
 
-  app.enableCors();
+  app.enableCors({ credentials: true });
   app.useGlobalInterceptors(new BigIntInterceptor());
 
   // app.useGlobalFilters(new TempErrorNormalizeFilter());

@@ -47,6 +47,55 @@ export class RestAPI {
     }
   }
 
+  private async post(url: string, body: any) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          ...this.headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const payload = await response.text();
+
+      if (!response.ok) {
+        // if (payload) console.warn(`[RestAPI] notOkResponse obj: ${payload}`);
+        return null;
+      }
+
+      if (!payload) return null;
+
+      try {
+        return JSON.parse(payload);
+      } catch (parseError) {
+        console.warn(`[RestAPI] Invalid JSON from ${url}`, parseError);
+        return payload;
+      }
+    } catch (error) {
+      console.error(`[RestAPI] POST ${url} failed:`, error);
+      return null;
+    }
+  }
+
+  async login({
+    matricula,
+    password,
+  }: {
+    matricula: string;
+    password: string;
+  }) {
+    if (!matricula || !password) return null;
+
+    const data = await this.post(`${this.url}/api/login`, {
+      matricula_usuario: matricula,
+      password,
+    });
+
+    return data;
+  }
+
   async getPerfilOptions() {
     const data: PerfilOptions = await this.get(
       `${this.url}/api/getPerfilOptions`,

@@ -1,7 +1,6 @@
 import { Controller, Delete, Get, Param, Res } from '@nestjs/common';
 import { FileService } from './file.service';
 import { Response } from 'express';
-import { join } from 'path';
 
 @Controller('files')
 export class FileController {

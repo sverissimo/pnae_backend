@@ -4,6 +4,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/common/files/file.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
@@ -17,6 +18,11 @@ import { RelatorioDomainService } from 'src/@domain/relatorio/relatorio-domain-s
 import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
 import { UpdateTemasAndVisitaAtendimentoDTO } from '../atendimento/dto/update-temas-and-visita-atendimento.dto';
 import { FilesInputDto } from 'src/common/files/files-input.dto';
+import { Usuario } from '../../@domain/usuario/usuario.entity';
+import { ProdutorService } from '../produtor/produtor.service';
+import { RelatorioDataMapper } from './data-mapper/relatorio.data-mapper';
+import { ProdutorModel } from 'src/@domain/produtor/produtor-model';
+import { RelatorioPresentationModel } from './dto/relatorio.presentation-model';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -25,6 +31,7 @@ export class RelatorioService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly atendimentoService: AtendimentoService,
+    private readonly produtorService: ProdutorService,
     private readonly fileService: FileService,
     private readonly restAPI: RestAPI,
     private readonly logger: WinstonLoggerService,
@@ -130,44 +137,62 @@ export class RelatorioService {
     return relatoriosResolvedAtendimentos || relatoriosWithReadOnly;
   }
 
-  public async findByDataSeeRange({ from, to }: { from: string; to: string }) {
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-    toDate.setHours(23, 59, 59, 999);
-
-    const relatorios = await this.findAll(); // Already fixes atendimentoIds
-    const atendimentoIds = relatorios
-      .map((r) => r.atendimentoId)
-      .filter((id): id is string => !!id);
-    const atendimentos = await this.atendimentoService.findMany(atendimentoIds);
-
-    const selectedAtendimentos = atendimentos.filter((at) => {
-      const dataSEE = new Date(at.data_see);
-      return dataSEE >= fromDate && dataSEE <= toDate;
-    });
-
-    const selectedAtendimentoIds = new Set(
-      selectedAtendimentos.map((at) => at.id_at_atendimento),
-    );
-
-    const relatoriosWithinDateRange = relatorios.filter((r) =>
-      selectedAtendimentoIds.has(r.atendimentoId),
-    );
-
-    return {
-      selectedRelatorios: relatoriosWithinDateRange,
-      selectedAtendimentos,
-    };
+  async getAuthorizedRelatorios(user?: Usuario, expand = false) {
+    const filter = this.createFilter(user);
+    return this.findAll(filter, { expand });
   }
 
-  async findAll() {
+  async findAll(
+    filter: Prisma.RelatorioWhereInput = {},
+    options: { expand?: boolean } = {},
+  ) {
     const relatorios = await this.prismaService.relatorio.findMany({
-      where: { contratoId: 2 },
+      where: filter,
       orderBy: { createdAt: 'desc' },
     });
+
+    if (!relatorios || relatorios.length === 0) return [];
+
     const relatorioModels = relatorios.map(Relatorio.toModel);
     const updatedRelatorios = await this.updateAtendimentoIds(relatorioModels);
-    return updatedRelatorios || relatorioModels;
+    const parsedRelatorios = updatedRelatorios || relatorioModels;
+
+    if (options.expand) return this.hydrateRelatorios(parsedRelatorios);
+    return parsedRelatorios;
+  }
+
+  private async hydrateRelatorios(
+    relatorios: RelatorioModel[],
+  ): Promise<RelatorioPresentationModel[]> {
+    const produtorIds = [
+      ...new Set(relatorios.map((r) => r.produtorId).filter(Boolean)),
+    ];
+    const atendimentoIds = [
+      ...new Set(relatorios.map((r) => r.atendimentoId).filter(Boolean)),
+    ];
+
+    const [produtores, atendimentos] = await Promise.all([
+      this.produtorService.findManyById(produtorIds) as Promise<
+        ProdutorModel[]
+      >,
+      this.atendimentoService.findMany(atendimentoIds),
+    ]);
+
+    return RelatorioDataMapper.manyToPresentationModel({
+      relatorios,
+      produtores,
+      atendimentos: atendimentos,
+    });
+  }
+
+  private createFilter(user?: Usuario) {
+    const baseFilter = { contratoId: 2 };
+    if (!user) return { id: 'no-access' };
+    if (user.isAdmin() || user.isDeveloper()) return baseFilter;
+    if (user.isStaff()) {
+      return { ...baseFilter, tecnicoId: BigInt(user.id_usuario) };
+    }
+    return { id: 'no-access' };
   }
 
   async update(

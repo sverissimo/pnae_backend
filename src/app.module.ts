@@ -9,7 +9,6 @@ import { config } from './config';
 import { UsuarioController } from './modules/usuario/usuario.controller';
 import { UsuarioGraphQLAPI } from './@graphQL-server/usuario-api.service';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module';
-import { UsuarioLdapService } from './modules/usuario/usuario.ldap.service';
 import { WinstonLoggerService } from './common/logging/winston-logger.service';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthMiddleware } from './auth/auth.middleware';
@@ -17,6 +16,9 @@ import { AuthController } from './auth/auth.controller';
 import { UserContextMiddleware } from './auth/user-context.middleware';
 import { JwtModule } from '@nestjs/jwt';
 import { SyncModule } from './modules/@sync/sync.module';
+import { RestAPI } from './@rest-api-server/rest-api.service';
+import { UserHydrationInterceptor } from './interceptors/user-hydration.interceptor';
+import { UsuarioModule } from './modules/usuario/usuario.module';
 
 @Module({
   imports: [
@@ -26,6 +28,7 @@ import { SyncModule } from './modules/@sync/sync.module';
     PerfilModule,
     AtendimentoModule,
     SyncModule,
+    UsuarioModule,
     JwtModule.register({
       secret: process.env.CLIENT_TOKEN,
       signOptions: { expiresIn: '2h' },
@@ -35,10 +38,14 @@ import { SyncModule } from './modules/@sync/sync.module';
   providers: [
     AppService,
     UsuarioGraphQLAPI,
-    UsuarioLdapService,
+    RestAPI,
     {
       provide: APP_INTERCEPTOR,
       useClass: WinstonLoggerService,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: UserHydrationInterceptor,
     },
   ],
 })

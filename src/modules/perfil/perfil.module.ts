@@ -15,5 +15,6 @@ import { WinstonLoggerService } from 'src/common/logging/winston-logger.service'
     RestAPI,
     { provide: WinstonLoggerService, useClass: WinstonLoggerService },
   ],
+  exports: [PerfilService],
 })
 export class PerfilModule {}

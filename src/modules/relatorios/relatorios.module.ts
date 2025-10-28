@@ -11,12 +11,12 @@ import { WinstonLoggerService } from 'src/common/logging/winston-logger.service'
 import { ProdutorService } from '../produtor/produtor.service';
 import { RelatorioExportService } from './relatorios.export.service';
 import { ZipWorkerService } from './workers/zip.worker.service';
+import { PerfilModule } from '../perfil/perfil.module';
 
 @Module({
   controllers: [RelatorioController],
   providers: [
     PrismaService,
-    // RelatorioGraphQLAPI,
     ProdutorGraphQLAPI,
     RelatorioService,
     RelatorioExportService,
@@ -26,7 +26,7 @@ import { ZipWorkerService } from './workers/zip.worker.service';
     { provide: RestAPI, useClass: RestAPI },
     { provide: WinstonLoggerService, useClass: WinstonLoggerService },
   ],
-  imports: [FileModule, AtendimentoModule],
+  imports: [FileModule, AtendimentoModule, PerfilModule],
   exports: [RelatorioService],
 })
 export class RelatorioModule {}

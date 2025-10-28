@@ -9,13 +9,14 @@ import {
   updateAtendimentoMutation,
 } from './queries/atendimento-queries';
 import { CreateAtendimentoStorageDto } from 'src/modules/atendimento/dto/create-atendimento.dto';
+import { AtendimentoModel } from 'src/@domain/atendimento/atendimento-model';
 
 type AtendimentoResponse = { atendimento: Atendimento };
-type AtendimentosResponse = { atendimentos: Atendimento[] };
+type AtendimentosResponse = { atendimentos: AtendimentoModel[] };
 
 @Injectable()
 export class AtendimentoGraphQLAPI extends GraphQLAPI {
-  async findMany(ids: string[]): Promise<Atendimento[]> {
+  async findMany(ids: string[]): Promise<AtendimentoModel[]> {
     const { atendimentos } = await this.client.request<AtendimentosResponse>(
       atendimentosQuery,
       { ids },

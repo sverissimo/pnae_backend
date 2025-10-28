@@ -7,6 +7,7 @@ import { Atendimento } from './entities/atendimento.entity';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 import { AtendimentoDataMapper } from './data-mapper/atendimento.data-mapper';
 import { UpdateTemasAndVisitaAtendimentoDTO } from './dto/update-temas-and-visita-atendimento.dto';
+import { AtendimentoModel } from 'src/@domain/atendimento/atendimento-model';
 
 @Injectable()
 export class AtendimentoService {
@@ -26,7 +27,7 @@ export class AtendimentoService {
     return newAtendimentoId;
   }
 
-  async findMany(ids: string[]) {
+  async findMany(ids: string[]): Promise<AtendimentoModel[]> {
     const atendimentos = await this.graphQLAPI.findMany(ids);
     const parsedAtendimentos = atendimentos.map((atendimento) => {
       const { at_atendimento_usuario } = atendimento;
@@ -134,7 +135,7 @@ export class AtendimentoService {
     });
   }
 
-  setAtendimentosExportDate(atendimentos: Partial<Atendimento>[]) {
+  setAtendimentosExportDate(atendimentos: Partial<AtendimentoModel>[]) {
     const shouldSetExportDate = atendimentos.filter((atendimento) => {
       return !atendimento.dt_export_ok;
     });

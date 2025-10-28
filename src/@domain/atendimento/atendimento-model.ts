@@ -1,5 +1,5 @@
 export interface AtendimentoModel {
-  id_at_atendimento: bigint;
+  id_at_atendimento: string;
   ativo: boolean;
   data_inicio_atendimento: Date;
   data_fim_atendimento?: Date | null;
@@ -14,10 +14,10 @@ export interface AtendimentoModel {
   fk_und_empresa?: string | null;
   data_criacao: Date;
   data_atualizacao?: Date;
-  id_at_acao?: bigint;
+  id_at_acao?: string;
   descricao?: string | null;
   id_at_status?: number;
-  usuario_validacao?: bigint | null;
+  usuario_validacao?: string | null;
   qtd_alunos?: number | null;
   id_sincronismo?: string | null;
   orientacao_tecnica?: string | null;
@@ -27,7 +27,7 @@ export interface AtendimentoModel {
   sincroniza?: number | null;
   processamento?: number | null;
   login_usuario?: string | null;
-  id_at_anterior?: bigint | null;
+  id_at_anterior?: string | null;
   auto_atendimento?: number | null;
   at_arquivo?: any[]; // at_arquivo[]
   usuario?: any | null; // Usuario?

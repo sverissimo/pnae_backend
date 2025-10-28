@@ -32,7 +32,13 @@ export class FileService {
       select: { produtorId: true, contratoId: true },
     });
 
-    const { produtorId, contratoId } = relatorio;
+    const { produtorId, contratoId } = relatorio || {};
+    if (!produtorId || !contratoId) {
+      const error = `Relatório não encontrado para o arquivo: ${fileUUIDName}`;
+      this.logger?.error?.(error);
+      throw error;
+    }
+
     const folder = await this.getFolderPath({
       produtorId: String(produtorId),
       contratoId,

@@ -15,7 +15,6 @@ import pLimit from 'p-limit';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { RelatorioDomainService } from 'src/@domain/relatorio/relatorio-domain-service';
 import { Perfil, PerfilModel } from 'src/@domain/perfil';
-import { Usuario } from '../usuario/entity/usuario-model';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
@@ -33,6 +32,7 @@ import {
 import { ProdutorFindManyOutputDTO } from '../produtor/types/produtores.output-dto';
 import { JobStatusDTO, ZipFileMetadata } from './dto/zip-job.dtos';
 import { cleanupOldZips } from './utils/cleanup-old-zips';
+import { UsuarioModel } from 'src/@domain/usuario/usuario-model';
 
 @Injectable()
 export class RelatorioExportService {
@@ -76,10 +76,10 @@ export class RelatorioExportService {
       const { usuarios } = (await this.usuarioApi.getUsuarios({
         ids: tecnicoIds,
       })) as {
-        usuarios: Usuario[];
+        usuarios: UsuarioModel[];
       };
       const usuario = usuarios.find((u) => u.id_usuario == relatorio.tecnicoId);
-      let outrosExtensionistas: Usuario[] | undefined;
+      let outrosExtensionistas: UsuarioModel[] | undefined;
 
       if (outroExtensionista) {
         outrosExtensionistas = usuarios
@@ -400,9 +400,8 @@ export class RelatorioExportService {
   }
 
   public async createZipFile({ from, to }: { from: string; to: string }) {
-    // await new Promise((resolve) => setTimeout(resolve, 4000));
     const { selectedRelatorios, selectedAtendimentos } =
-      await this.relatorioService.findByDataSeeRange({
+      await this.findByDataSeeRange({
         from,
         to,
       });
@@ -445,6 +444,53 @@ export class RelatorioExportService {
     )) as ProdutorFindManyOutputDTO[];
 
     return RelatorioDomainService.groupByRegionAndCity(relatorios, produtores);
+  }
+
+  private async findByDataSeeRange({ from, to }: { from: string; to: string }) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    const relatorios = await this.relatorioService.findAll(); // Already fixes atendimentoIds
+
+    const atendimentoIds = relatorios
+      .map((r) => r.atendimentoId)
+      .filter((id): id is string => !!id);
+
+    if (atendimentoIds.length === 0) {
+      return {
+        selectedRelatorios: [],
+        selectedAtendimentos: [],
+      };
+    }
+
+    const atendimentos = await this.atendimentoService.findMany(atendimentoIds);
+
+    const selectedAtendimentos = atendimentos.filter((at) => {
+      const dataSEE = new Date(at.data_see);
+      console.log('🚀 - RelatorioExportService - ', {
+        dataSEE,
+        fromDate,
+        toDate,
+        isBefore: dataSEE < fromDate,
+        isAfter: dataSEE > toDate,
+      });
+
+      return dataSEE >= fromDate && dataSEE <= toDate;
+    });
+
+    const selectedAtendimentoIds = new Set(
+      selectedAtendimentos.map((at) => at.id_at_atendimento),
+    );
+
+    const relatoriosWithinDateRange = relatorios.filter((r) =>
+      selectedAtendimentoIds.has(r.atendimentoId),
+    );
+
+    return {
+      selectedRelatorios: relatoriosWithinDateRange,
+      selectedAtendimentos,
+    };
   }
 
   private async createZipFilesForAllRegions(
