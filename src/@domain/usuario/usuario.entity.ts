@@ -57,7 +57,9 @@ export class Usuario {
   }
 
   isCoordenadorRegional(): boolean {
-    return false;
+    return (
+      !this.isAdmin() && this.perfis.includes(PerfilUsuario.ADMINISTRADOR2)
+    );
   }
 
   isStaff(): boolean {
@@ -86,7 +88,11 @@ export class Usuario {
     );
   }
 
-  isOwnerOf(entity: { usuarioId?: string | null } & Object): boolean {
-    return this.id_usuario === entity?.usuarioId;
+  isOwnerOf(entity: Record<string, any>): boolean {
+    return (
+      this.id_usuario === entity?.usuarioId ||
+      this.id_usuario === entity?.tecnicoId ||
+      this.id_usuario === entity?.id_usuario
+    );
   }
 }

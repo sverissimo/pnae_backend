@@ -71,8 +71,15 @@ export class UsuarioController {
     }
   }
 
+  // New: handles GET /usuario?matricula=...
+  @Get()
+  findByQuery(@Query('matricula') matricula?: string) {
+    return this.usuarioService.find(undefined, matricula);
+  }
+
+  // Adjusted: handles GET /usuario/:id
   @Get(':id')
-  find(@Param('id') id?: string, @Query('matricula') matricula?: string) {
-    return this.usuarioService.find(id, matricula);
+  findById(@Param('id') id?: string) {
+    return this.usuarioService.find(id);
   }
 }

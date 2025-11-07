@@ -25,12 +25,34 @@ export class RelatorioDataMapper {
       const produtor = produtorMap.get(r.produtorId);
       const atendimento = atendimentoMap.get(r.atendimentoId);
 
-      // preserve previous behavior: merge produtor, atendimento and regional fields into the returned object
+      this.checkAndUpdateReadOnly(r, atendimento);
       return {
         ...r,
         ...(produtor || {}),
         ...(atendimento || {}),
       };
     });
+  }
+
+  private static checkAndUpdateReadOnly(
+    relatorio: RelatorioModel,
+    atendimento?: AtendimentoModel,
+  ): void {
+    if (!atendimento) {
+      relatorio.readOnly = false;
+      return;
+    }
+
+    const { ativo, data_validacao, data_sei, data_see, sn_pendencia } =
+      atendimento;
+    if (
+      data_validacao &&
+      ativo &&
+      (data_sei || data_see || sn_pendencia === 0)
+    ) {
+      relatorio.readOnly = true;
+    } else {
+      relatorio.readOnly = false;
+    }
   }
 }

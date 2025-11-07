@@ -164,7 +164,14 @@ describe('FileService class tests', () => {
         expect.any(Buffer),
         expect.objectContaining({ flag: 'wx' }),
       );
-      expect(loggerMock.error).not.toHaveBeenCalled();
+      expect(loggerMock.error).toHaveBeenCalledWith(
+        'FileService.save - file already in DB, skipping write to DB',
+        expect.objectContaining({
+          id: 'dupId',
+          relatorioId: 'relatorio_id_01',
+        }),
+      );
+      expect(loggerMock.error).toHaveBeenCalledTimes(1);
     });
 
     it('skips writing when saveMetadata signals duplicate and file exists on disk', async () => {
@@ -181,7 +188,7 @@ describe('FileService class tests', () => {
 
       expect(writeFileSpy).not.toHaveBeenCalled();
       expect(loggerMock.error).toHaveBeenCalledWith(
-        'FileService.save - file already in FS/DB, skipping write',
+        'FileService.save - file already in DB, skipping write to DB',
         expect.objectContaining({
           id: 'dupId',
           relatorioId: 'relatorio_id_01',
@@ -220,11 +227,9 @@ describe('FileService class tests', () => {
         }),
       );
 
-      expect(writeFileSpy).toHaveBeenCalledTimes(1);
-      expect(loggerMock.error).toHaveBeenCalledWith(
-        'FileService.save - File already exists, skipping write',
-        expect.objectContaining({ targetPath: '/uploads/computedId' }),
-      );
+      expect(writeFileSpy).not.toHaveBeenCalled();
+      // !existsSync will not log nor throw an error, just wont call writeFile
+      expect(loggerMock.error).not.toHaveBeenCalled();
     });
 
     it('continues processing the next file if one file errors (per-file try/catch)', async () => {
@@ -279,7 +284,10 @@ describe('FileService class tests', () => {
       expect(writeFileSpy).not.toHaveBeenCalled();
       expect(loggerMock.error).toHaveBeenCalledWith(
         'FileService.save - Missing file buffer, skipping',
-        expect.objectContaining({ id: 'nobuf' }),
+        expect.objectContaining({
+          fileName: 'nobuf.jpg',
+          relatorioId: 'relatorio_id_01',
+        }),
       );
     });
   });

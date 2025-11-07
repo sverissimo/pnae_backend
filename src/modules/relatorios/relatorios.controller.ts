@@ -63,12 +63,9 @@ export class RelatorioController {
   }
 
   @Get('/all')
-  async findAll(@Req() req: Request) {
+  findAll(@Req() req: Request) {
     try {
-      return await this.relatorioService.getAuthorizedRelatorios(
-        req.user,
-        true,
-      );
+      return this.relatorioService.getAuthorizedRelatorios(req.user, true);
     } catch (error) {
       console.log(error);
     }

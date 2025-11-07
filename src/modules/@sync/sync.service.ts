@@ -11,7 +11,7 @@ import { CheckForUpdatesOutputDto } from './dto/check-for-updates-output.dto';
 import { compareClientAndServerDates } from './utils/compareClientAndServerDates';
 import { ProdutorDTO } from '../produtor/dto';
 import { FileService } from 'src/common/files/file.service';
-let i = 0;
+
 @Injectable()
 export class SyncService {
   constructor(
@@ -66,10 +66,19 @@ export class SyncService {
       ids,
       produtorIds,
     });
+
     const updateInfoOutput = RelatorioDomainService.getSyncInfo(
       relatoriosFromClient,
       existingRelatorios,
     );
+    // console.log(
+    //   '🚀 - SyncService - getRelatorioSyncData - existingRelatorios:',
+    //   existingRelatorios.map((r) => ({
+    //     id: r.id,
+    //     pictureURI: r.pictureURI,
+    //     assinaturaURI: r.assinaturaURI,
+    //   })),
+    // );
 
     const relatoriosWithFileStatus =
       await this.checkForMissingFiles(relatoriosFromClient);
@@ -79,6 +88,11 @@ export class SyncService {
       relatoriosWithFileStatus,
       outdatedOnServer: updateInfoOutput.outdatedOnServer,
     });
+
+    console.log(
+      '🚀 - SyncService - getRelatorioSyncData - updateInfoOutput:',
+      updateInfoOutput,
+    );
     return updateInfoOutput;
   }
 

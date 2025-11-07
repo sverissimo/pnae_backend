@@ -3,7 +3,7 @@ import { RelatorioModel } from './relatorio-model';
 import { SyncInfoResponse } from 'src/modules/@sync/dto/sync-response';
 import { AtendimentoUpdate } from './types/atendimento-updates';
 import { ProdutorFindManyOutputDTO } from 'src/modules/produtor/types/produtores.output-dto';
-import { parseSyncedDates } from 'src/utils/dateUtils';
+import { brToUTCTimezone } from 'src/utils/dateUtils';
 
 export class RelatorioDomainService {
   static getSyncInfo(
@@ -18,88 +18,159 @@ export class RelatorioDomainService {
       missingOnClient: [],
     };
 
-    const clientIds = new Set(relatoriosFromClient.map((r) => r.id));
-    const serverIds = new Set(existingRelatorios.map((r) => r.id));
+    const serverRelatorios = (existingRelatorios || []).map((r) => ({
+      ...r,
+      updatedAt: r.updatedAt
+        ? brToUTCTimezone(r.updatedAt).toISOString()
+        : r.updatedAt,
+    }));
 
-    syncInfo.missingOnClient = existingRelatorios.filter(
+    const clientIds = new Set(relatoriosFromClient.map((r) => r.id));
+    const serverIds = new Set(serverRelatorios.map((r) => r.id));
+
+    syncInfo.missingOnClient = serverRelatorios.filter(
       (r) => !clientIds.has(r.id),
     );
     syncInfo.missingIdsOnServer = relatoriosFromClient
       .filter((r) => !serverIds.has(r.id))
       .map((r) => r.id);
 
-    for (const serverRelatorio of existingRelatorios) {
-      const clientRelatorio = relatoriosFromClient.find(
-        (r) => r.id === serverRelatorio.id,
-      );
+    const clientMap = new Map(relatoriosFromClient.map((r) => [r.id, r]));
+
+    for (const serverRelatorio of serverRelatorios) {
+      const clientRelatorio = clientMap.get(serverRelatorio.id);
 
       if (!clientRelatorio) {
         continue;
       }
 
-      const update = { id: clientRelatorio.id } as Partial<RelatorioModel>;
+      const clientNewer = this.isNewerThan(clientRelatorio, serverRelatorio);
+      const serverNewer = this.isNewerThan(serverRelatorio, clientRelatorio);
 
-      // If Server doesnt have the URIs, but Client does, update server no matter the dates
-      const uriUpdates = this.checkOutdatedURIs(
-        clientRelatorio,
-        serverRelatorio,
-      );
-      if (
-        (uriUpdates.assinaturaURI && !serverRelatorio.assinaturaURI) ||
-        (uriUpdates.pictureURI && !serverRelatorio.pictureURI)
-      ) {
-        Object.assign(update, uriUpdates);
-        syncInfo.outdatedOnServer.push(update);
+      if (clientNewer) {
+        const serverUpdate: Partial<RelatorioModel> = {
+          id: clientRelatorio.id,
+        };
+
+        this.injectURIsIfNeeded(serverUpdate, clientRelatorio, serverRelatorio);
+        syncInfo.outdatedOnServer.push(serverUpdate);
         continue;
       }
 
-      // Date comparison
-      const { clientMs, serverMs } = parseSyncedDates(
-        clientRelatorio.updatedAt,
-        serverRelatorio.updatedAt,
-      );
-
-      if (clientMs < serverMs || (!clientMs && serverMs)) {
+      if (serverNewer) {
+        this.stripUnchangedUris(serverRelatorio, clientRelatorio);
         syncInfo.outdatedOnClient.push(serverRelatorio);
         continue;
       }
 
-      if (clientMs > serverMs || (clientMs && !serverMs)) {
-        const outDatedURIs = this.checkOutdatedURIs(
-          clientRelatorio,
-          serverRelatorio,
-        );
+      // - If one side is missing a URI and the other has it => copy to the missing side.
+      const { serverUriPatch, clientUriPatch } = this.reconcileUrisOnEqual(
+        serverRelatorio,
+        clientRelatorio,
+      );
 
-        if (outDatedURIs.assinaturaURI || outDatedURIs.pictureURI) {
-          Object.assign(update, outDatedURIs);
-        }
-        syncInfo.outdatedOnServer.push(update);
+      if (Object.keys(serverUriPatch).length > 1) {
+        // has id + at least one URI
+        syncInfo.outdatedOnServer.push(serverUriPatch);
         continue;
       }
+      if (Object.keys(clientUriPatch).length > 1) {
+        // has id + at least one URI
+        syncInfo.outdatedOnClient.push(clientUriPatch as RelatorioModel);
+        continue;
+      }
+
       syncInfo.upToDateIds.push(clientRelatorio.id);
     }
+
     return syncInfo;
   }
 
-  private static checkOutdatedURIs(
-    clientRelatorio: RelatorioSyncInfo,
-    serverRelatorio: RelatorioModel,
-  ): Partial<RelatorioModel> {
-    const updates: Partial<RelatorioModel> = {};
+  private static isNewerThan(
+    a?: { updatedAt?: string | Date | null },
+    b?: { updatedAt?: string | Date | null },
+  ): boolean {
+    const aMs = a?.updatedAt ? Date.parse(a.updatedAt as any) : NaN;
+    const bMs = b?.updatedAt ? Date.parse(b.updatedAt as any) : NaN;
+    const aValid = !Number.isNaN(aMs);
+    const bValid = !Number.isNaN(bMs);
+    if (aValid && bValid) return aMs > bMs;
+    if (aValid && !bValid) return true;
+    return false;
+  }
 
-    if (
-      clientRelatorio.assinaturaURI &&
-      clientRelatorio.assinaturaURI !== serverRelatorio.assinaturaURI
-    ) {
-      updates.assinaturaURI = clientRelatorio.assinaturaURI;
+  /**
+   * Inject URIs from "newer" into "target" only if they are present and different from "older".
+   * Used when we want the client to upload only the changed files back to the server.
+   */
+  private static injectURIsIfNeeded(
+    target: Partial<RelatorioModel>,
+    newer: { assinaturaURI?: string; pictureURI?: string },
+    older: { assinaturaURI?: string; pictureURI?: string },
+  ): void {
+    if (newer.assinaturaURI && newer.assinaturaURI !== older.assinaturaURI) {
+      (target as any).assinaturaURI = newer.assinaturaURI;
     }
-    if (
-      clientRelatorio.pictureURI &&
-      clientRelatorio.pictureURI !== serverRelatorio.pictureURI
-    ) {
-      updates.pictureURI = clientRelatorio.pictureURI;
+    if (newer.pictureURI && newer.pictureURI !== older.pictureURI) {
+      (target as any).pictureURI = newer.pictureURI;
     }
-    return updates;
+  }
+
+  /**
+   * When server is newer and we push the full object to the client,
+   * remove URI fields that are identical to the client's copy to avoid unnecessary overwrites.
+   */
+  private static stripUnchangedUris(
+    clientUpdate: Partial<RelatorioModel>,
+    clientRelatorio: { assinaturaURI?: string; pictureURI?: string },
+  ): void {
+    if (clientUpdate.assinaturaURI === clientRelatorio.assinaturaURI) {
+      delete (clientUpdate as any).assinaturaURI;
+    }
+    if (clientUpdate.pictureURI === clientRelatorio.pictureURI) {
+      delete (clientUpdate as any).pictureURI;
+    }
+  }
+
+  /**
+   * Equal timestamps reconciliation:
+   * - If server is missing a URI but client has it -> patch server.
+   * - If client is missing a URI but server has it -> patch client.
+   * - If both have URIs and they differ -> ignore (do nothing).
+   */
+  private static reconcileUrisOnEqual(
+    serverRelatorio: {
+      id: string;
+      assinaturaURI?: string;
+      pictureURI?: string;
+    },
+    clientRelatorio: {
+      id: string;
+      assinaturaURI?: string;
+      pictureURI?: string;
+    },
+  ): {
+    serverUriPatch: Partial<RelatorioModel>;
+    clientUriPatch: Partial<RelatorioModel>;
+  } {
+    const serverUriPatch: Partial<RelatorioModel> = { id: clientRelatorio.id };
+    const clientUriPatch: Partial<RelatorioModel> = { id: clientRelatorio.id };
+
+    if (!serverRelatorio.assinaturaURI && clientRelatorio.assinaturaURI) {
+      serverUriPatch.assinaturaURI = clientRelatorio.assinaturaURI;
+    } else if (
+      !clientRelatorio.assinaturaURI &&
+      serverRelatorio.assinaturaURI
+    ) {
+      clientUriPatch.assinaturaURI = serverRelatorio.assinaturaURI;
+    }
+    if (!serverRelatorio.pictureURI && clientRelatorio.pictureURI) {
+      serverUriPatch.pictureURI = clientRelatorio.pictureURI;
+    } else if (!clientRelatorio.pictureURI && serverRelatorio.pictureURI) {
+      clientUriPatch.pictureURI = serverRelatorio.pictureURI;
+    }
+
+    return { serverUriPatch, clientUriPatch };
   }
 
   public static updateAtendimentoIds(

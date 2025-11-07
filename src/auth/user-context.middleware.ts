@@ -18,8 +18,6 @@ export class UserContextMiddleware implements NestMiddleware {
         secret: process.env.JWT_SECRET,
       });
       (req as any).user = decoded;
-      // (req as any).user = { ...decoded, id_usuario: 2412 }; // Testing ONLY !!!
-      // (req as any).user = { ...decoded, id_usuario: 3138 }; // Testing ONLY !!!
     } catch (_e) {
     } finally {
       next();

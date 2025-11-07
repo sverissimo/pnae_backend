@@ -50,6 +50,16 @@ export function toBRTimezone(date: Date): Date {
   return new Date(utc + brazilOffset);
 }
 
+// Convert a Brazil-local time (UTC-3) back to canonical UTC by adding 3 hours
+export function brToUTCTimezone(date: Date | string): Date {
+  const d = new Date(date as any);
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) {
+    return d as any;
+  }
+  const threeHoursMs = 3 * 60 * 60 * 1000;
+  return new Date(d.getTime() + threeHoursMs);
+}
+
 export function parseSyncedDates(
   clientDate?: string | Date | null,
   serverDate?: string | Date | null,

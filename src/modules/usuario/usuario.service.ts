@@ -63,6 +63,10 @@ export class UsuarioService {
     if (!usuario?.id_usuario) {
       throw new UnauthorizedException('Usuário ou senha inválidos.');
     }
+    // usuario.id_usuario = 'some_id'; // for testing purposes
+    // usuario.perfis = [PerfilUsuario.ADMINISTRADOR2];
+    // usuario.perfis = [PerfilUsuario.MOD_ATIV_TECNICO];
+    // usuario.id_und_empresa = 'G0040';
     return usuario;
   }
 

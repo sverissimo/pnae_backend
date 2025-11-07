@@ -100,9 +100,7 @@ export class RelatorioService {
       where: { id: id },
     });
 
-    if (!relatorio) {
-      throw new NotFoundException('Nenhum relatório encontrado');
-    }
+    if (!relatorio) throw new NotFoundException('Nenhum relatório encontrado');
     return relatorio;
   }
 
@@ -138,13 +136,16 @@ export class RelatorioService {
   }
 
   async getAuthorizedRelatorios(user?: Usuario, expand = false) {
-    const filter = this.createFilter(user);
-    return this.findAll(filter, { expand });
+    const filter = await this.createFilter(user);
+    const regionalFilter = user?.isCoordenadorRegional()
+      ? user.id_und_empresa
+      : undefined;
+    return this.findAll(filter, { expand, regionalFilter });
   }
 
   async findAll(
     filter: Prisma.RelatorioWhereInput = {},
-    options: { expand?: boolean } = {},
+    options: { expand?: boolean; regionalFilter?: string } = {},
   ) {
     const relatorios = await this.prismaService.relatorio.findMany({
       where: filter,
@@ -157,8 +158,15 @@ export class RelatorioService {
     const updatedRelatorios = await this.updateAtendimentoIds(relatorioModels);
     const parsedRelatorios = updatedRelatorios || relatorioModels;
 
-    if (options.expand) return this.hydrateRelatorios(parsedRelatorios);
-    return parsedRelatorios;
+    if (!options.expand) return parsedRelatorios;
+    if (options.expand) {
+      const hydratedRelatorios = await this.hydrateRelatorios(parsedRelatorios);
+      if (!options.regionalFilter) return hydratedRelatorios;
+
+      return hydratedRelatorios.filter(
+        (r) => r.id_reg_empresa === options.regionalFilter,
+      );
+    }
   }
 
   private async hydrateRelatorios(
@@ -185,10 +193,11 @@ export class RelatorioService {
     });
   }
 
-  private createFilter(user?: Usuario) {
+  private async createFilter(user?: Usuario) {
     const baseFilter = { contratoId: 2 };
     if (!user) return { id: 'no-access' };
-    if (user.isAdmin() || user.isDeveloper()) return baseFilter;
+    if (user.isAdmin() || user.isDeveloper() || user.isCoordenadorRegional())
+      return baseFilter;
     if (user.isStaff()) {
       return { ...baseFilter, tecnicoId: BigInt(user.id_usuario) };
     }
@@ -237,28 +246,6 @@ export class RelatorioService {
     });
   }
 
-  private async syncAtendimentoTemasAndNumero({
-    atendimentoId,
-    temasAtendimento,
-    numeroVisita,
-    oldRelatorioNumber,
-  }: UpdateTemasAndVisitaAtendimentoDTO) {
-    if (!atendimentoId) return;
-
-    const shouldUpdateNumero =
-      !!numeroVisita && numeroVisita !== oldRelatorioNumber;
-
-    const shouldUpdateTemas = !!temasAtendimento && temasAtendimento.length > 0;
-
-    if (!shouldUpdateTemas && !shouldUpdateNumero) return;
-
-    await this.atendimentoService.updateTemasAndVisita({
-      atendimentoId,
-      temasAtendimento: shouldUpdateTemas ? temasAtendimento : undefined,
-      numeroVisita: shouldUpdateNumero ? numeroVisita : undefined,
-    });
-  }
-
   async remove(id: string) {
     const [relatorio] = await this.findMany({ ids: [id] }); // get updated readOnly and atendimentoId props
     if (!relatorio) throw new NotFoundException('Relatório não encontrado');
@@ -288,7 +275,29 @@ export class RelatorioService {
     return `Relatorio ${id} removed. \n Produtor ${relatorio.produtorId}, técnico ${relatorio.tecnicoId} atendimento ${relatorio.atendimentoId}`;
   }
 
-  async setRelatoriosReadOnlyStatus(relatorios: RelatorioDto[]) {
+  private async syncAtendimentoTemasAndNumero({
+    atendimentoId,
+    temasAtendimento,
+    numeroVisita,
+    oldRelatorioNumber,
+  }: UpdateTemasAndVisitaAtendimentoDTO) {
+    if (!atendimentoId) return;
+
+    const shouldUpdateNumero =
+      !!numeroVisita && numeroVisita !== oldRelatorioNumber;
+
+    const shouldUpdateTemas = !!temasAtendimento && temasAtendimento.length > 0;
+
+    if (!shouldUpdateTemas && !shouldUpdateNumero) return;
+
+    await this.atendimentoService.updateTemasAndVisita({
+      atendimentoId,
+      temasAtendimento: shouldUpdateTemas ? temasAtendimento : undefined,
+      numeroVisita: shouldUpdateNumero ? numeroVisita : undefined,
+    });
+  }
+
+  private async setRelatoriosReadOnlyStatus(relatorios: RelatorioDto[]) {
     const readOnlyIds = await this.restAPI.getReadOnlyRelatorios(
       relatorios.map((r) => r.id),
     );

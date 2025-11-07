@@ -1,10 +1,10 @@
+import * as fg from 'fast-glob';
 import { basename, join, parse } from 'path';
 import { promises as fs, existsSync, createReadStream } from 'fs';
-import * as fg from 'fast-glob';
+import { Readable } from 'stream';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FilesInputDto } from './files-input.dto';
-import { Readable } from 'stream';
 import { ProdutorService } from 'src/modules/produtor/produtor.service';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 
@@ -44,17 +44,43 @@ export class FileService {
       contratoId,
     });
 
-    const filePath = join(folder, fileUUIDName);
+    let filePath = join(folder, fileUUIDName);
+    if (!existsSync(filePath)) {
+      filePath = await this.findFileInFS(fileUUIDName, contratoId);
+    }
+
+    // Ensure callback is called at most once
+    let cbCalled = false;
+    const safeCallback = (err: Error | null, stream?: Readable) => {
+      if (cbCalled) return;
+      cbCalled = true;
+      callback(err, stream);
+    };
+
+    if (!filePath || !existsSync(filePath)) {
+      const error = `Arquivo não encontrado no sistema de arquivos: ${fileUUIDName}`;
+      this.logger?.error?.(error, { filePath });
+      safeCallback(new Error(error));
+      return;
+    }
+
     const stream = createReadStream(filePath);
 
-    stream.on('error', (error) => {
-      console.error(`Stream error: ${error.message}`);
-      callback(new Error(error.message));
+    let opened = false;
+    stream.once('error', (error) => {
+      // Only callback with error if the stream hasn't opened yet
+      if (!opened) {
+        safeCallback(new Error(error.message));
+      } else {
+        this.logger?.error?.(`Stream error after open: ${error.message}`);
+        // Let controller handle the already-started response; do not callback again
+      }
     });
 
-    stream.on('open', () => {
+    stream.once('open', () => {
+      opened = true;
       console.log('🚀 ~ file: file.service.ts:22 - #### stream ok.');
-      callback(null, stream);
+      safeCallback(null, stream);
     });
   }
 
@@ -67,8 +93,15 @@ export class FileService {
 
       for (const file of bucket) {
         if (!file) continue;
+        if (!file.buffer) {
+          this.logger.error(
+            'FileService.save - Missing file buffer, skipping',
+            { fileName: file?.originalname, relatorioId: relatorio.id },
+          );
+          continue;
+        }
+        const fileMetadata = this.createFileMetadata(file, relatorio.id);
         try {
-          const fileMetadata = this.createFileMetadata(file, relatorio.id);
           const result = await this.saveMetadata(fileMetadata);
 
           if (!result) {
@@ -79,28 +112,26 @@ export class FileService {
             continue;
           }
 
-          if (!file.buffer) {
-            this.logger.error(
-              'FileService.save - Missing file buffer, skipping',
-              fileMetadata,
-            );
-            continue;
-          }
-
           const targetPath = join(uploadFolder, result.id);
           const isDuplicate = result.__duplicate === true;
 
-          if (isDuplicate && existsSync(targetPath)) {
+          if (isDuplicate) {
             this.logger.error(
-              'FileService.save - file already in FS/DB, skipping write',
+              'FileService.save - file already in DB, skipping write to DB',
               { id: result.id, relatorioId: relatorio.id },
             );
-            continue;
           }
+
           try {
-            await fs.writeFile(targetPath, file.buffer as Uint8Array | string, {
-              flag: 'wx',
-            });
+            if (!existsSync(targetPath)) {
+              await fs.writeFile(
+                targetPath,
+                file.buffer as Uint8Array | string,
+                {
+                  flag: 'wx',
+                },
+              );
+            }
           } catch (err: any) {
             if (err?.code === 'EEXIST') {
               this.logger.error(
@@ -155,7 +186,6 @@ export class FileService {
 
   async update(files: FilesInputDto, relatorio: UpdateRelatorioDto) {
     if (!files || Object.keys(files).length === 0) return;
-
     const inputFiles = Object.values(files)
       .flat()
       .filter(Boolean)
@@ -472,6 +502,23 @@ export class FileService {
       fileIds.filter((f) => !foundIds.has(f)),
     );
     return fileIds.filter((fid) => !foundIds.has(fid));
+  }
+
+  private async findFileInFS(fileId: string, contratoId = 2): Promise<string> {
+    const baseFolder = process.env.FILES_FOLDER;
+
+    if (!baseFolder || !fileId) {
+      return '';
+    }
+
+    const pattern = join(baseFolder, `contrato_${contratoId}`, '**', fileId);
+
+    const foundPath = await fg.glob(pattern, {
+      onlyFiles: true,
+      absolute: true,
+    });
+
+    return foundPath.length > 0 && foundPath[0] ? foundPath[0] : '';
   }
 
   private getUniqueFileIds(fileIds: string[]): string[] {
