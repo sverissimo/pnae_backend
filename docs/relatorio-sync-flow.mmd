@@ -1,0 +1,160 @@
+%% =====================
+%% Init & Theming (straight lines + custom palette)
+%% =====================
+%%{init: {
+  "flowchart": { "curve": "linear", "htmlLabels": true },
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Inter, Arial, sans-serif",
+    "primaryColor": "#1d3557",
+    "primaryBorderColor": "#1d3557",
+    "primaryTextColor": "#ffffff",
+    "lineColor": "#2a2f45",
+    "secondaryColor": "#457b9d",
+    "tertiaryColor": "#f1faee",
+    "noteBkgColor": "#fffbea",
+    "noteTextColor": "#5f370e"
+  }
+}}%%
+flowchart LR
+
+%% =====================
+%% Refined Class Styles
+%% =====================
+classDef svc fill:#1d3557,stroke:#0f1e33,color:#ffffff,stroke-width:2px;
+classDef domain fill:#264653,stroke:#142d38,color:#ffffff,stroke-width:2px;
+classDef fs fill:#8d5a2b,stroke:#5d3614,color:#ffffff,stroke-width:2px;
+classDef bucket fill:#457b9d,stroke:#2d5872,color:#ffffff,stroke-width:2px;
+classDef data fill:#2a9d8f,stroke:#1c6e63,color:#ffffff,stroke-width:2px;
+classDef decision fill:#e76f51,stroke:#aa3f23,color:#ffffff,stroke-width:2px;
+classDef note fill:#fffbea,stroke:#e2d3a7,color:#5f370e;
+classDef legend fill:#f1faee,stroke:#cbd5e1,color:#1d3557,stroke-dasharray:4 3;
+
+%% =====================
+%% Subgraphs / Contexts
+%% Order left→right to minimize crossings
+%% =====================
+subgraph CLIENTE[Cliente]
+  C["relatoriosSyncInfo<br/>(id, updatedAt, assinaturaURI?, pictureURI?)"]:::data
+end
+
+subgraph APL["SyncService (Aplicação)"]
+  direction TB
+  S1["getRelatorioSyncData"]:::svc
+  S2["RelatorioService.findMany<br/>(DB/Prisma)"]:::svc
+  S4["checkForMissingFiles"]:::svc
+  S5["injectMissingURIsToUpdateInfo"]:::svc
+end
+
+subgraph DOM["RelatorioDomainService (Domínio)"]
+  direction TB
+  S3["getSyncInfo<br/>(diff lógico)"]:::domain
+  D_HELP1["injectURIsIfNeeded<br/>(patch mínimo)"]:::domain
+  D_HELP2["stripUnchangedUris<br/>(remove iguais)"]:::domain
+  D_HELP3["reconcileUrisOnEqual<br/>(gap fill)"]:::domain
+end
+
+subgraph FS[Filesystem]
+  F1["FileService.findMissingFiles"]:::fs
+end
+
+subgraph DEC["Decisões Lógicas"]
+  direction TB
+  D1{Cliente<br/>mais novo?}:::decision
+  D2{Servidor<br/>mais novo?}:::decision
+  D3{Datas<br/>iguais?}:::decision
+  DFS{Arquivo faltando<br/>no FS?}:::decision
+end
+
+subgraph BUCKETS["Buckets de Classificação"]
+  direction TB
+  B_UP["outdatedOnServer<br/>(upload -> server)"]:::bucket
+  B_DOWN["outdatedOnClient<br/>(download -> client)"]:::bucket
+  B_MISS_S["missingIdsOnServer"]:::bucket
+  B_MISS_C["missingOnClient"]:::bucket
+  B_OK["upToDateIds"]:::bucket
+end
+
+subgraph RESPGRP["Agregação / Resposta"]
+  RESP["updateInfoOutput<br/>(Resposta Final)"]:::svc
+end
+
+%% =====================
+%% Legend
+%% =====================
+subgraph LEGEND[Legenda]
+  direction LR
+  L1[Serviço]:::svc
+  L2[Domínio]:::domain
+  L3[FS]:::fs
+  L4[Bucket]:::bucket
+  L5[Dados / DTO]:::data
+  L6[Decisão]:::decision
+end
+class LEGEND legend
+
+%% =====================
+%% Principal Flow (Linear)
+%% =====================
+C --> S1 --> S2 --> S3
+
+%% Domínio produz buckets lógicos
+S3 --> B_MISS_S
+S3 --> B_MISS_C
+S3 --> B_UP
+S3 --> B_DOWN
+S3 --> B_OK
+
+%% Decisões detalhadas (dentro do domínio)
+S3 --> D1
+D1 -- Sim --> B_UP
+D1 -- Não --> D2
+D2 -- Sim --> B_DOWN
+D2 -- Não --> D3
+D3 -- "Gap fill" --> B_UP
+D3 -- "Gap fill" --> B_DOWN
+D3 -- "URIs iguais (coerentes)" --> B_OK
+
+%% FS Overlay (Aplicação)
+S3 --> S4 --> F1 --> S4 --> S5
+S5 -. per-field merge .- B_UP
+
+%% Verificação de arquivo faltante + regras
+S4 --> DFS
+DFS -- Sim --> S5
+DFS -- Não --> RESP
+
+%% Buckets agregados na resposta
+B_MISS_S --> RESP
+B_MISS_C --> RESP
+B_UP --> RESP
+B_DOWN --> RESP
+B_OK --> RESP
+
+%% =====================
+%% Regras (Notas)
+%% =====================
+R1["Regra: Servidor mais novo + URI diferente -> não pedir upload"]:::note
+R2["Regra: Servidor mais novo + URI igual + arquivo faltando -> pedir upload"]:::note
+R3["Regra: Cliente mais novo ou datas iguais + arquivo faltando -> pedir upload"]:::note
+S5 --> R1
+S5 --> R2
+S5 --> R3
+
+%% =====================
+%% Styling Subgraph Backgrounds
+%% =====================
+style CLIENTE fill:#eef6ff,stroke:#1d5fa2,stroke-width:1px;
+style APL fill:#eef2f7,stroke:#1d3557,stroke-width:1px;
+style DOM fill:#edf7f6,stroke:#1c6e63,stroke-width:1px;
+style FS fill:#f6efe9,stroke:#8d5a2b,stroke-width:1px;
+style BUCKETS fill:#f2f8fb,stroke:#2d5872,stroke-width:1px;
+style DEC fill:#fff1ec,stroke:#e76f51,stroke-width:1px;
+style RESPGRP fill:#f4f7fa,stroke:#1d3557,stroke-width:1px;
+
+%% Optional: tighten spacing between some parallel links (no curves already)
+%% (Mermaid linear curve reduces clutter so linkStyle left minimal)
+
+%% =====================
+%% End
+%% =====================

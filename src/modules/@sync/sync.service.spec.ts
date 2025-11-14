@@ -230,5 +230,134 @@ describe('SyncService', () => {
       expect(fileService.findMissingFiles).not.toHaveBeenCalled();
       expect(result).toBe(syncInfo);
     });
+
+    it('does not request upload when server is newer and URI differs (assinaturaURI)', async () => {
+      const input: CheckForUpdatesInputDto = {
+        produtorIds: [],
+        relatoriosSyncInfo: [
+          {
+            id: 'rel-x',
+            assinaturaURI: 'sig-x',
+            pictureURI: 'pic-x',
+            updatedAt: '2024-01-01T00:00:00Z',
+          },
+        ] as RelatorioSyncInfo[],
+      };
+
+      relatorioService.findMany.mockResolvedValue([{ id: 'rel-x' }]);
+      fileService.findMissingFiles.mockResolvedValue(['sig-x']);
+
+      const syncInfo = mockSyncInfo({
+        // server is newer and has a different assinaturaURI value
+        outdatedOnClient: [{ id: 'rel-x', assinaturaURI: 'sig-new' } as any],
+      });
+      (RelatorioDomainService.getSyncInfo as jest.Mock).mockReturnValue(
+        syncInfo,
+      );
+
+      const result = await service.getRelatorioSyncData(input);
+      // Since server newer and assinatura differs, we do NOT ask client to upload assinatura
+      expect(result.outdatedOnServer).toEqual([]);
+    });
+
+    it('requests upload when server is newer but URI is equal and file missing (assinaturaURI)', async () => {
+      const input: CheckForUpdatesInputDto = {
+        produtorIds: [],
+        relatoriosSyncInfo: [
+          {
+            id: 'rel-y',
+            assinaturaURI: 'sig-y',
+            pictureURI: 'pic-y',
+            updatedAt: '2024-01-01T00:00:00Z',
+          },
+        ] as RelatorioSyncInfo[],
+      };
+
+      relatorioService.findMany.mockResolvedValue([{ id: 'rel-y' }]);
+      fileService.findMissingFiles.mockResolvedValue(['sig-y']);
+
+      const syncInfo = mockSyncInfo({
+        // server newer but has the same assinatura value
+        outdatedOnClient: [{ id: 'rel-y', assinaturaURI: 'sig-y' } as any],
+      });
+      (RelatorioDomainService.getSyncInfo as jest.Mock).mockReturnValue(
+        syncInfo,
+      );
+
+      const result = await service.getRelatorioSyncData(input);
+      expect(result.outdatedOnServer).toEqual([
+        { id: 'rel-y', assinaturaURI: 'sig-y' },
+      ]);
+    });
+
+    it('per-field behavior: skip differing assinatura but request equal picture when both missing', async () => {
+      const input: CheckForUpdatesInputDto = {
+        produtorIds: [],
+        relatoriosSyncInfo: [
+          {
+            id: 'rel-z',
+            assinaturaURI: 'sig-z',
+            pictureURI: 'pic-z',
+            updatedAt: '2024-01-01T00:00:00Z',
+          },
+        ] as RelatorioSyncInfo[],
+      };
+
+      relatorioService.findMany.mockResolvedValue([{ id: 'rel-z' }]);
+      fileService.findMissingFiles.mockResolvedValue(['sig-z', 'pic-z']);
+
+      const syncInfo = mockSyncInfo({
+        // server newer, assinatura differs but picture equals
+        outdatedOnClient: [
+          { id: 'rel-z', assinaturaURI: 'sig-new', pictureURI: 'pic-z' } as any,
+        ],
+      });
+      (RelatorioDomainService.getSyncInfo as jest.Mock).mockReturnValue(
+        syncInfo,
+      );
+
+      const result = await service.getRelatorioSyncData(input);
+      // Should only request picture upload, not assinatura
+      expect(result.outdatedOnServer).toEqual([
+        { id: 'rel-z', pictureURI: 'pic-z' },
+      ]);
+    });
+
+    it('merges into existing outdatedOnServer but honors server-newer/different rule', async () => {
+      const input: CheckForUpdatesInputDto = {
+        produtorIds: [],
+        relatoriosSyncInfo: [
+          {
+            id: 'rel-w',
+            assinaturaURI: 'sig-w',
+            pictureURI: 'pic-w',
+            updatedAt: '2024-01-01T00:00:00Z',
+          },
+        ] as RelatorioSyncInfo[],
+      };
+
+      relatorioService.findMany.mockResolvedValue([{ id: 'rel-w' }]);
+      // both missing
+      fileService.findMissingFiles.mockResolvedValue(['sig-w', 'pic-w']);
+
+      const existingOutdated = { id: 'rel-w', assinaturaURI: 'sig-w' };
+      const syncInfo = mockSyncInfo({
+        outdatedOnServer: [existingOutdated],
+        // server newer and has a different assinatura but same picture
+        outdatedOnClient: [
+          { id: 'rel-w', assinaturaURI: 'sig-new', pictureURI: 'pic-w' } as any,
+        ],
+      });
+      (RelatorioDomainService.getSyncInfo as jest.Mock).mockReturnValue(
+        syncInfo,
+      );
+
+      const result = await service.getRelatorioSyncData(input);
+      // assinatura should not be added/overwritten (server newer + different);
+      // picture should be added because it matches and is missing
+      expect(result.outdatedOnServer).toEqual([
+        { id: 'rel-w', pictureURI: 'pic-w' },
+      ]);
+    });
   });
 });

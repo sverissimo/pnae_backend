@@ -353,6 +353,69 @@ describe('RelatorioDomainService — getSyncInfo & helpers', () => {
       expect(res.outdatedOnClient.sort(byId)).toEqual(expected.sort(byId));
       expect(res.outdatedOnServer).toEqual([]);
     });
+
+    it('does not propagate null/empty URIs from server to client (prevents unintended deletion)', () => {
+      const serverTime = '2025-02-02T10:00:00.000Z';
+      const normalized = addHoursISO(serverTime, 3);
+      const clientTime = '2025-02-01T10:00:00.000Z';
+
+      const client = [
+        mkClient({
+          id: 'R6',
+          updatedAt: clientTime,
+          assinaturaURI: 'sigC',
+          pictureURI: 'picC',
+        }),
+      ] as any;
+
+      const server = [
+        mkServer({
+          id: 'R6',
+          updatedAt: serverTime,
+          assinaturaURI: null,
+          pictureURI: '',
+        }),
+      ] as any;
+
+      const res = RelatorioDomainService.getSyncInfo(client, server);
+
+      // URIs vazias/nulas não devem ser enviadas para o cliente mesmo que o servidor seja mais novo.
+      expect(res.outdatedOnClient).toEqual([
+        { id: 'R6', updatedAt: normalized },
+      ]);
+      expect(res.outdatedOnServer).toEqual([]);
+    });
+
+    it('does not propagate null/empty URIs from client to server (prevents unintended deletion)', () => {
+      const clientTime = '2025-02-02T10:00:00.000Z';
+      const serverTime = '2025-02-01T10:00:00.000Z';
+
+      const client = [
+        mkClient({
+          id: 'R6',
+          updatedAt: clientTime,
+          assinaturaURI: null,
+          pictureURI: '',
+          assunto: 'Some text change',
+        }),
+      ] as any;
+
+      const server = [
+        mkServer({
+          id: 'R6',
+          updatedAt: serverTime,
+          assinaturaURI: 'sigC',
+          pictureURI: 'picC',
+          assunto: 'Some old text',
+        }),
+      ] as any;
+
+      const res = RelatorioDomainService.getSyncInfo(client, server);
+
+      // URIs vazias/nulas não devem ser requisitadas para o cliente mesmo que ele seja mais novo.
+      expect(res.outdatedOnClient).toEqual([]);
+      expect(res.outdatedOnServer).toEqual([{ id: 'R6' }]);
+    });
   });
 
   describe('Client newer → sparse patch to server with per-URI selectivity', () => {
@@ -614,6 +677,38 @@ describe('RelatorioDomainService — getSyncInfo & helpers', () => {
       );
       expect(serverUriPatch).toEqual({ id: 'Z3' });
       expect(clientUriPatch).toEqual({ id: 'Z3' });
+    });
+
+    it('treats both invalid timestamps with identical URIs as up-to-date (no patches)', () => {
+      const client = [mkClient({ id: 'INV1', updatedAt: undefined })] as any;
+      const server = [mkServer({ id: 'INV1', updatedAt: undefined })] as any;
+      const res = RelatorioDomainService.getSyncInfo(client, server);
+      expect(res.upToDateIds).toEqual(['INV1']);
+      expect(res.outdatedOnServer).toEqual([]);
+      expect(res.outdatedOnClient).toEqual([]);
+    });
+
+    it('treats both invalid timestamps with differing URIs as up-to-date (diff ignored)', () => {
+      const client = [
+        mkClient({
+          id: 'INV2',
+          updatedAt: undefined,
+          assinaturaURI: 'a',
+          pictureURI: 'b',
+        }),
+      ] as any;
+      const server = [
+        mkServer({
+          id: 'INV2',
+          updatedAt: undefined,
+          assinaturaURI: 'c',
+          pictureURI: 'd',
+        }),
+      ] as any;
+      const res = RelatorioDomainService.getSyncInfo(client, server);
+      expect(res.upToDateIds).toEqual(['INV2']);
+      expect(res.outdatedOnServer).toEqual([]);
+      expect(res.outdatedOnClient).toEqual([]);
     });
   });
 });

@@ -10,6 +10,17 @@ export class RelatorioDomainService {
     relatoriosFromClient: RelatorioSyncInfo[],
     existingRelatorios: RelatorioModel[],
   ) {
+    // Purpose: produce a diff between client-provided lightweight RelatorioSyncInfo objects
+    // and full server RelatorioModel records WITHOUT any filesystem concerns.
+    // Responsibilities:
+    //  - Classify per id into: outdatedOnServer (client newer → server needs what client has),
+    //    outdatedOnClient (server newer → client should pull), missingIdsOnServer (client has id server lacks),
+    //    missingOnClient (server has id client lacks), upToDateIds (no action needed).
+    //  - Generate minimal patches: when client newer only changed URIs are requested; when server newer, identical URIs are stripped.
+    //  - Equal timestamp path only performs *gap fill* (copies missing URIs) and intentionally ignores differing non-missing URIs.
+    // Notes:
+    //  - updatedAt is treated as a whole-record freshness indicator; per-field versioning does not exist.
+    //  - Filesystem existence (missing physical files) is handled later in SyncService.
     const syncInfo: SyncInfoResponse<RelatorioModel> = {
       upToDateIds: [],
       outdatedOnServer: [],
@@ -58,6 +69,7 @@ export class RelatorioDomainService {
       }
 
       if (serverNewer) {
+        // Strip identical URIs so absence signals "do not change this field" for client; differing URIs are kept to overwrite client copy.
         this.stripUnchangedUris(serverRelatorio, clientRelatorio);
         syncInfo.outdatedOnClient.push(serverRelatorio);
         continue;
@@ -108,10 +120,19 @@ export class RelatorioDomainService {
     newer: { assinaturaURI?: string; pictureURI?: string },
     older: { assinaturaURI?: string; pictureURI?: string },
   ): void {
-    if (newer.assinaturaURI && newer.assinaturaURI !== older.assinaturaURI) {
+    // Inject only fields whose URI value changed; this keeps bandwidth minimal and prevents client re-upload of unchanged assets.
+    if (
+      newer.assinaturaURI &&
+      newer.assinaturaURI !== older.assinaturaURI &&
+      newer.assinaturaURI.trim() !== ''
+    ) {
       (target as any).assinaturaURI = newer.assinaturaURI;
     }
-    if (newer.pictureURI && newer.pictureURI !== older.pictureURI) {
+    if (
+      newer.pictureURI &&
+      newer.pictureURI !== older.pictureURI &&
+      newer.pictureURI.trim() !== ''
+    ) {
       (target as any).pictureURI = newer.pictureURI;
     }
   }
@@ -124,10 +145,23 @@ export class RelatorioDomainService {
     clientUpdate: Partial<RelatorioModel>,
     clientRelatorio: { assinaturaURI?: string; pictureURI?: string },
   ): void {
-    if (clientUpdate.assinaturaURI === clientRelatorio.assinaturaURI) {
+    // Deletion semantics: removing a URI field from the outgoing server-newer object means "client should not overwrite it".
+    // If values differ they are preserved so client replaces its stale copy.
+    // Safety: não propagar valores vazios/nulos do servidor para evitar "apagar" o valor do cliente inadvertidamente.
+    if (
+      clientUpdate.assinaturaURI === clientRelatorio.assinaturaURI ||
+      clientUpdate.assinaturaURI == null ||
+      (typeof clientUpdate.assinaturaURI === 'string' &&
+        clientUpdate.assinaturaURI.trim() === '')
+    ) {
       delete (clientUpdate as any).assinaturaURI;
     }
-    if (clientUpdate.pictureURI === clientRelatorio.pictureURI) {
+    if (
+      clientUpdate.pictureURI === clientRelatorio.pictureURI ||
+      clientUpdate.pictureURI == null ||
+      (typeof clientUpdate.pictureURI === 'string' &&
+        clientUpdate.pictureURI.trim() === '')
+    ) {
       delete (clientUpdate as any).pictureURI;
     }
   }

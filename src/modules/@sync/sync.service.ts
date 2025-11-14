@@ -11,6 +11,7 @@ import { CheckForUpdatesOutputDto } from './dto/check-for-updates-output.dto';
 import { compareClientAndServerDates } from './utils/compareClientAndServerDates';
 import { ProdutorDTO } from '../produtor/dto';
 import { FileService } from 'src/common/files/file.service';
+import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 
 @Injectable()
 export class SyncService {
@@ -67,26 +68,22 @@ export class SyncService {
       produtorIds,
     });
 
+    // Domain diff: logical freshness & URI patch classification (no filesystem awareness here).
     const updateInfoOutput = RelatorioDomainService.getSyncInfo(
       relatoriosFromClient,
       existingRelatorios,
     );
-    // console.log(
-    //   '🚀 - SyncService - getRelatorioSyncData - existingRelatorios:',
-    //   existingRelatorios.map((r) => ({
-    //     id: r.id,
-    //     pictureURI: r.pictureURI,
-    //     assinaturaURI: r.assinaturaURI,
-    //   })),
-    // );
 
+    // Filesystem augmentation: enrich each relatorio with which referenced files are physically missing.
     const relatoriosWithFileStatus =
       await this.checkForMissingFiles(relatoriosFromClient);
 
+    // Overlay missing physical files: request uploads only when safe per freshness rules.
     this.injectMissingURIsToUpdateInfo({
       relatoriosFromClient,
       relatoriosWithFileStatus,
       outdatedOnServer: updateInfoOutput.outdatedOnServer,
+      outdatedOnClient: updateInfoOutput.outdatedOnClient,
     });
 
     console.log(
@@ -130,35 +127,76 @@ export class SyncService {
       _missingFiles: { assinaturaURI?: string; pictureURI?: string };
     })[];
     outdatedOnServer: Partial<RelatorioSyncInfo>[];
+    // When server is newer, full server objects will be here; compare URIs field-by-field
+    outdatedOnClient: RelatorioModel[];
   }) {
-    const { relatoriosFromClient, relatoriosWithFileStatus, outdatedOnServer } =
-      props;
+    const {
+      relatoriosFromClient,
+      relatoriosWithFileStatus,
+      outdatedOnServer,
+      outdatedOnClient,
+    } = props;
 
+    // Map each id -> which URIs are physically absent so decisions are O(1) per relatorio.
     const missingById = new Map(
       relatoriosWithFileStatus.map((r) => [r.id, r._missingFiles]),
     );
 
+    // Quick lookup tables for patch merging & server-newer discrimination.
     const outdatedById = new Map(outdatedOnServer.map((u) => [u.id, u]));
+    const serverNewerById = new Map(
+      (outdatedOnClient || []).map((u) => [u.id, u]),
+    );
 
     for (const r of relatoriosFromClient) {
       const missing = missingById.get(r.id);
       if (!missing || (!missing.assinaturaURI && !missing.pictureURI)) continue;
 
-      // If this id is already marked for server update, just overlay missing URIs
+      // Per-field decision:
+      //  - Server newer & differing URI → skip (avoid stale overwrite).
+      //  - Server newer & equal URI & file missing → request client upload.
+      //  - Equal timestamps or client newer & file missing → request upload.
+      const serverNewer = serverNewerById.get(r.id);
+      const shouldPushAssinatura =
+        !!missing.assinaturaURI &&
+        (!serverNewer || serverNewer.assinaturaURI === r.assinaturaURI);
+      const shouldPushPicture =
+        !!missing.pictureURI &&
+        (!serverNewer || serverNewer.pictureURI === r.pictureURI);
+
+      // Merge with existing server patch (if any), pruning disallowed fields then adding allowed missing ones.
       const target = outdatedById.get(r.id);
       if (target) {
-        if (missing.assinaturaURI) target.assinaturaURI = missing.assinaturaURI;
-        if (missing.pictureURI) target.pictureURI = missing.pictureURI;
+        // If server is newer and has a different value, strip it to avoid sending stale client URI
+        if (
+          serverNewer &&
+          serverNewer.assinaturaURI !== r.assinaturaURI &&
+          'assinaturaURI' in target
+        ) {
+          delete (target as any).assinaturaURI;
+        }
+        if (
+          serverNewer &&
+          serverNewer.pictureURI !== r.pictureURI &&
+          'pictureURI' in target
+        ) {
+          delete (target as any).pictureURI;
+        }
+
+        if (shouldPushAssinatura)
+          (target as any).assinaturaURI = missing.assinaturaURI;
+        if (shouldPushPicture) (target as any).pictureURI = missing.pictureURI;
         continue;
       }
 
-      // Otherwise add a new update payload with only the missing fields
+      if (!shouldPushAssinatura && !shouldPushPicture) continue;
+
       outdatedOnServer.push({
         id: r.id,
-        ...(missing.assinaturaURI
+        ...(shouldPushAssinatura
           ? { assinaturaURI: missing.assinaturaURI }
           : {}),
-        ...(missing.pictureURI ? { pictureURI: missing.pictureURI } : {}),
+        ...(shouldPushPicture ? { pictureURI: missing.pictureURI } : {}),
       });
     }
   }
