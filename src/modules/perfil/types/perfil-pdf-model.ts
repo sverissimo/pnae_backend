@@ -1,4 +1,4 @@
-import { LabelValue } from 'src/common/files/types';
+import { LabelValue } from 'src/modules/files/types';
 
 export type PerfilPDFModel = {
   perfilData: LabelValue[];

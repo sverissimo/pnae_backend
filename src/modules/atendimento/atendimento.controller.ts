@@ -10,7 +10,7 @@ import {
 import { AtendimentoService } from './atendimento.service';
 import { CreateAtendimentoInputDto } from './dto/create-atendimento.dto';
 import { UpdateAtendimentoInputDto } from './dto/update-atendimento.dto';
-import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 
 @Controller('atendimento')
 export class AtendimentoController {

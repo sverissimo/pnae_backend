@@ -11,7 +11,7 @@ import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { UpdateRelatorioDto } from 'src/modules/relatorios/dto/update-relatorio.dto';
 import { isDuplicateError } from 'src/prisma/errors/is-duplicate-error';
 import { type PictureDescription } from './types/picture-description.type';
-import { WinstonLoggerService } from '../logging/winston-logger.service';
+import { WinstonLoggerService } from '../../logging/winston-logger.service';
 
 @Injectable()
 export class FileService {

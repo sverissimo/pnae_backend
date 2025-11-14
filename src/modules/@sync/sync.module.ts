@@ -3,8 +3,8 @@ import { SyncService } from './sync.service';
 import { SyncController } from './sync.controller';
 import { RelatorioModule } from '../relatorios/relatorios.module';
 import { ProdutorModule } from '../produtor/produtor.module';
-import { FileModule } from 'src/common/files/file.module';
-import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { FileModule } from 'src/modules/files/file.module';
+import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 
 @Module({
   controllers: [SyncController],

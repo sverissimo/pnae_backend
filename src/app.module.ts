@@ -9,7 +9,7 @@ import { config } from './config';
 import { UsuarioController } from './modules/usuario/usuario.controller';
 import { UsuarioGraphQLAPI } from './@graphQL-server/usuario-api.service';
 import { AtendimentoModule } from './modules/atendimento/atendimento.module';
-import { WinstonLoggerService } from './common/logging/winston-logger.service';
+import { WinstonLoggerService } from './logging/winston-logger.service';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthMiddleware } from './auth/auth.middleware';
 import { AuthController } from './auth/auth.controller';

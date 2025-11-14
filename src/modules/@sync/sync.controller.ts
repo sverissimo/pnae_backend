@@ -2,7 +2,7 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { SyncService } from './sync.service';
 import { CheckForUpdatesInputDto } from './dto/check-for-updates-input.dto';
 import { ProdutorSyncInput } from './dto/produtor-sync-input.dto';
-import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 
 @Controller('sync')
 export class SyncController {

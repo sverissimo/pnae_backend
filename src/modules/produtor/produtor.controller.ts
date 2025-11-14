@@ -13,7 +13,7 @@ import {
 import { ProdutorService } from './produtor.service';
 import { CreateProdutorDto } from './dto/create-produtor.dto';
 import { UpdateProdutorDto } from './dto/update-produtor.dto';
-import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 
 @Controller('produtor')
 export class ProdutorController {

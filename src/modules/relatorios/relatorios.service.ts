@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { FileService } from 'src/common/files/file.service';
+import { FileService } from 'src/modules/files/file.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 import { Relatorio } from 'src/@domain/relatorio/relatorio';
 import { RelatorioDto } from './dto/relatorio.dto';
@@ -15,9 +15,9 @@ import { AtendimentoService } from '../atendimento/atendimento.service';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { AtendimentoUpdate } from 'src/@domain/relatorio/types/atendimento-updates';
 import { RelatorioDomainService } from 'src/@domain/relatorio/relatorio-domain-service';
-import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import { UpdateTemasAndVisitaAtendimentoDTO } from '../atendimento/dto/update-temas-and-visita-atendimento.dto';
-import { FilesInputDto } from 'src/common/files/files-input.dto';
+import { FilesInputDto } from 'src/modules/files/files-input.dto';
 import { Usuario } from '../../@domain/usuario/usuario.entity';
 import { ProdutorService } from '../produtor/produtor.service';
 import { RelatorioDataMapper } from './data-mapper/relatorio.data-mapper';
@@ -84,9 +84,8 @@ export class RelatorioService {
       return 'Nenhum relatório para criar';
     }
 
-    const data = relatorios
-      .map((r) => new Relatorio(r).toDto())
-      .filter((r) => !!r.assunto);
+    const data = relatorios.map((r) => new Relatorio(r).toDto());
+    // .filter((r) => !!r.assunto);
 
     await this.prismaService.relatorio.createMany({
       data,

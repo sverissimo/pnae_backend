@@ -11,7 +11,7 @@ import {
 import { PerfilService } from './perfil.service';
 import { UpdatePerfilDto } from '../../@domain/perfil/dto/update-perfil.dto';
 import { CreatePerfilInputDto } from 'src/@domain/perfil/dto/create-perfil.dto';
-import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 
 @Controller('perfil')
 export class PerfilController {

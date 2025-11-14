@@ -4,7 +4,7 @@ import { PerfilController } from './perfil.controller';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PerfilGraphQLAPI } from 'src/@graphQL-server/perfil-api.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
-import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 
 @Module({
   controllers: [PerfilController],

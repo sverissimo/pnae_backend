@@ -22,7 +22,7 @@ import { ZipCreator } from 'src/@zip-gen/ZipCreator';
 import { RelatorioService } from './relatorios.service';
 import { AtendimentoService } from '../atendimento/atendimento.service';
 import { ProdutorService } from '../produtor/produtor.service';
-import { WinstonLoggerService } from 'src/common/logging/winston-logger.service';
+import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import {
   formatCPF,
   unformatCPF,

@@ -2,9 +2,9 @@ import * as bodyParser from 'body-parser';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BigIntInterceptor } from './interceptors/big-int.interceptor';
-import { WinstonLoggerService } from './common/logging/winston-logger.service';
+import { WinstonLoggerService } from './logging/winston-logger.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { PlainTextExceptionFilter } from './common/filters/plain-text-exception.filter';
+import { PlainTextExceptionFilter } from './filters/plain-text-exception.filter';
 import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {

@@ -10,7 +10,7 @@ import { ProdutorService } from '../produtor/produtor.service';
 import { CheckForUpdatesOutputDto } from './dto/check-for-updates-output.dto';
 import { compareClientAndServerDates } from './utils/compareClientAndServerDates';
 import { ProdutorDTO } from '../produtor/dto';
-import { FileService } from 'src/common/files/file.service';
+import { FileService } from 'src/modules/files/file.service';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 
 @Injectable()
@@ -85,6 +85,14 @@ export class SyncService {
       outdatedOnServer: updateInfoOutput.outdatedOnServer,
       outdatedOnClient: updateInfoOutput.outdatedOnClient,
     });
+
+    // Se o id está em missingIdsOnServer, ele deve ser criado (create) e não atualizado (update).
+    if (updateInfoOutput.missingIdsOnServer?.length) {
+      const missingSet = new Set(updateInfoOutput.missingIdsOnServer);
+      updateInfoOutput.outdatedOnServer = (
+        updateInfoOutput.outdatedOnServer || []
+      ).filter((patch) => patch?.id && !missingSet.has(patch.id));
+    }
 
     console.log(
       '🚀 - SyncService - getRelatorioSyncData - updateInfoOutput:',

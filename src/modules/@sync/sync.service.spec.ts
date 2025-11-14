@@ -9,7 +9,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SyncService } from './sync.service';
 import { RelatorioService } from '../relatorios/relatorios.service';
 import { ProdutorService } from '../produtor/produtor.service';
-import { FileService } from 'src/common/files/file.service';
+import { FileService } from 'src/modules/files/file.service';
 import { RelatorioDomainService } from 'src/@domain/relatorio/relatorio-domain-service';
 import { CheckForUpdatesInputDto } from './dto/check-for-updates-input.dto';
 import { RelatorioSyncInfo } from './dto/check-for-updates-input.dto';
