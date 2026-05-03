@@ -67,6 +67,8 @@ export class UsuarioService {
     // usuario.perfis = [PerfilUsuario.ADMINISTRADOR2];
     // usuario.perfis = [PerfilUsuario.MOD_ATIV_TECNICO];
     // usuario.id_und_empresa = 'G0040';
+    console.log('🚀 - UsuarioService - login - usuario:', usuario);
+
     return usuario;
   }
 

@@ -7,51 +7,21 @@ services:
       dockerfile: ./Dockerfile.hmg
     env_file:
       - homolog.env
-    entrypoint: "dockerize -wait tcp://postgres_pnae_hmg:5432 -timeout 20s /usr/local/bin/docker-entrypoint.sh"
-    command: "npm run start:dev"
+    command: "npm run start:prod"
+    init: true
     volumes:
-      - ./:/home/node/app
       - /home/pnae/pnae_app/data_hmg:/home/node/data_hmg
       - /home/pnae/pnae_app/logs/hmg:/home/node/logs
       - /home/pnae/pnae_app/zipFiles/hmg:/home/node/zipFiles
     deploy:
-       replicas: 1
-       resources:
+      replicas: 1
+      resources:
         limits:
           cpus: '3'
           memory: 4096M
     restart: always
     networks:
       - pnae_hmg_default
-    depends_on:
-      - postgres_pnae_hmg
-      - redis_hmg
-
-  postgres_pnae_hmg:
-    container_name: postgres_pnae_hmg
-    image: postgres:16
-    ports:
-      - '5434:5432'
-    env_file:
-      - homolog.env
-    volumes:
-      - postgres_data_hmg:/var/lib/postgresql/data
-    restart: always
-    networks:
-      - pnae_hmg_default
-
-  redis_hmg:
-    image: redis:alpine
-    container_name: redis_hmg
-    ports:
-      - "6379:6379"
-    networks:
-      - pnae_hmg_default
-    restart: always
-
-
-volumes:
-  postgres_data_hmg:
 
 networks:
   pnae_hmg_default:

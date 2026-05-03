@@ -262,7 +262,8 @@ export class RelatorioService {
         await this.atendimentoService.logicRemove(atendimentoId);
       }
       await this.removeFiles(relatorioDto);
-    } catch (error) {
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
       this.logger.error(
         `Erro ao remover relatório ${id}, atendimento ${relatorio.atendimentoId}:\n
          ${error.message}`,
@@ -359,7 +360,8 @@ export class RelatorioService {
         atendimentoId: String(atendimentoId),
         createdAt,
       });
-    } catch (error) {
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
       this.logger.error(
         `Falha ao corrigir data do atendimento ${atendimentoId}: ${error.message}`,
         error.stack,

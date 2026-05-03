@@ -89,10 +89,11 @@ export class RelatorioController {
       }
 
       return relatorios;
-    } catch (error) {
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
       this.logger.error(
         '🚀 ~ file: relatorios.controller.ts:85 ~ get ~ error:' + error.message,
-        error.trace,
+        error.stack,
       );
       throw new InternalServerErrorException(error.message);
     }
@@ -202,11 +203,12 @@ export class RelatorioController {
       pdfStream.pipe(res);
 
       console.log('🚀 ...done!! ');
-    } catch (error) {
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
       this.logger.error(
         '🚀 ~ file: relatorios.controller.ts:118 ~ genPDF ~ error:' +
           error.message,
-        error.trace,
+        error.stack,
       );
       if (error instanceof NotFoundException) {
         throw error;
