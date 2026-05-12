@@ -1,11 +1,12 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  provider     = "prisma-client"
+  output       = "../src/prisma/generated"
+  engineType   = "client"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Relatorio {

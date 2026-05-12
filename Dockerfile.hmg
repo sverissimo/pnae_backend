@@ -12,7 +12,9 @@ COPY prisma ./prisma
 RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     npm ci
 
-RUN npx prisma generate
+# Bypass prisma.config.ts: generate only needs the schema, not migration paths
+# or datasource URL. --schema resolves from WORKDIR.
+RUN npx prisma generate --schema prisma/schema.prisma
 
 ############################
 # Stage 2 — builder

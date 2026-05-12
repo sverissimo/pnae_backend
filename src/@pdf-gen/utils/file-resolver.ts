@@ -9,10 +9,7 @@ export class FileResolver {
     fileName: string,
   ): Promise<string> {
     const { cpfProdutor, id_und_empresa } = produtor;
-    const dataFolder =
-      process.env.NODE_ENV === 'development'
-        ? '/home/node/data'
-        : process.env.FILES_FOLDER!;
+    const dataFolder = process.env.FILES_FOLDER!;
 
     const contractFolder = join(dataFolder, `contrato_${contratoId}`);
     const cpfFolder = cpfProdutor.replace(/\D/g, '');

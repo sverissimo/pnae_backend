@@ -4,7 +4,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { FileService } from 'src/modules/files/file.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
