@@ -1,3 +1,5 @@
+import { GrauInteresse } from 'src/@domain/relatorio/relatorio-model';
+
 export class RelatorioDto {
   id: string;
   produtorId: bigint;
@@ -14,4 +16,7 @@ export class RelatorioDto {
   coordenadas?: string;
   createdAt: Date;
   updatedAt?: Date;
+  comercializaPnaeEstadual?: boolean;
+  produtoTratado?: string;
+  grauInteresse?: GrauInteresse;
 }

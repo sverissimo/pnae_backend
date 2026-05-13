@@ -71,6 +71,7 @@ export class Relatorio {
       atendimentoId,
       createdAt,
       updatedAt,
+      comercializaPnaeEstadual,
       ...relatorio
     } = this.relatorio;
     const relatorioDto = {
@@ -88,6 +89,8 @@ export class Relatorio {
         relatorio.readOnly === true || String(relatorio.readOnly) === 'true'
           ? true
           : false,
+      // Multipart payloads send booleans as strings; coerce like `readOnly`.
+      comercializaPnaeEstadual: coerceOptionalBool(comercializaPnaeEstadual),
     };
 
     return relatorioDto;
@@ -105,6 +108,7 @@ export class Relatorio {
       readOnly,
       contratoId,
       atendimentoId,
+      comercializaPnaeEstadual,
       ...relatorio
     } = {
       ...relatorioModel,
@@ -125,7 +129,15 @@ export class Relatorio {
           : readOnly === true || String(readOnly) === 'true'
             ? true
             : false,
+      comercializaPnaeEstadual: coerceOptionalBool(comercializaPnaeEstadual),
     };
     return relatorioDto;
   }
+}
+
+function coerceOptionalBool(value: unknown): boolean | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (value === true || value === 'true') return true;
+  if (value === false || value === 'false') return false;
+  return undefined;
 }

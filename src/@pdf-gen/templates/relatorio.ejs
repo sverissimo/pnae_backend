@@ -29,6 +29,26 @@
         <td class="td-label">Município</td>
         <td class="td-content"><%= municipio %></td>
       </tr>
+      <% if (typeof produtoTratado !== 'undefined' && produtoTratado) { %>
+      <tr>
+        <td class="td-label">Produto tratado no atendimento</td>
+        <td class="td-content"><%= produtoTratado %></td>
+      </tr>
+      <% } %> <% if (typeof comercializaPnaeEstadual !== 'undefined' &&
+      comercializaPnaeEstadual !== null) { %>
+      <tr>
+        <td class="td-label">Comercializa para o PNAE Estadual?</td>
+        <td class="td-content"><%= comercializaPnaeEstadual ? 'Sim' : 'Não' %></td>
+      </tr>
+      <% } %> <% const grauInteresseLabels = { BAIXO: 'Baixo', MEDIO: 'Médio',
+      ALTO: 'Alto' }; %> <% if (typeof comercializaPnaeEstadual !== 'undefined'
+      && comercializaPnaeEstadual === false && typeof grauInteresse !==
+      'undefined' && grauInteresse && grauInteresseLabels[grauInteresse]) { %>
+      <tr>
+        <td class="td-label">Grau de interesse no PNAE Estadual</td>
+        <td class="td-content"><%= grauInteresseLabels[grauInteresse] %></td>
+      </tr>
+      <% } %>
       <tr>
         <td class="td-label">
           Extensionista<%= outrosExtensionistas ? ' 1' : '' %>

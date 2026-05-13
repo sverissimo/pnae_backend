@@ -10,7 +10,7 @@ services:
     command: "npm run start:prod"
     init: true
     volumes:
-      - /home/pnae/pnae_app/data_hmg:/home/node/data_hmg
+      - /home/pnae/pnae_app/data_dev:/home/node/data_dev
       - /home/pnae/pnae_app/logs/hmg:/home/node/logs
       - /home/pnae/pnae_app/zipFiles/hmg:/home/node/zipFiles
     deploy:

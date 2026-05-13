@@ -10,22 +10,25 @@ datasource db {
 }
 
 model Relatorio {
-  id                 String        @id
-  produtorId         BigInt        @map("produtor_id")
-  tecnicoId          BigInt        @map("tecnico_id")
-  numeroRelatorio    Int           @map("numero_relatorio")
-  assunto            String
-  orientacao         String
-  pictureURI         String?
-  assinaturaURI      String?
-  createdAt          DateTime?     @default(now()) @map("created_at")
-  updatedAt          DateTime?
-  atendimentoId      BigInt?       @map("id_at_atendimento")
-  outroExtensionista String?       @map("outro_extensionista")
-  readOnly           Boolean       @default(false) @map("read_only")
-  coordenadas        String?
-  contratoId         Int           @map("id_contrato") @db.SmallInt
-  files              PictureFile[]
+  id                       String         @id
+  produtorId               BigInt         @map("produtor_id")
+  tecnicoId                BigInt         @map("tecnico_id")
+  numeroRelatorio          Int            @map("numero_relatorio")
+  assunto                  String
+  orientacao               String
+  pictureURI               String?
+  assinaturaURI            String?
+  createdAt                DateTime?      @default(now()) @map("created_at")
+  updatedAt                DateTime?
+  atendimentoId            BigInt?        @map("id_at_atendimento")
+  outroExtensionista       String?        @map("outro_extensionista")
+  readOnly                 Boolean        @default(false) @map("read_only")
+  coordenadas              String?
+  contratoId               Int            @map("id_contrato") @db.SmallInt
+  comercializaPnaeEstadual Boolean?       @map("comercializa_pnae_estadual")
+  produtoTratado           String?        @map("produto_tratado")
+  grauInteresse            GrauInteresse? @map("grau_interesse")
+  files                    PictureFile[]
 
   @@map("relatorio")
 }
@@ -46,4 +49,10 @@ model PictureFile {
 enum PictureDescription {
   FOTO_RELATORIO
   ASSINATURA_PRODUTOR
+}
+
+enum GrauInteresse {
+  BAIXO
+  MEDIO
+  ALTO
 }

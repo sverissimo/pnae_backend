@@ -4,6 +4,8 @@
 
 NestJS 11 backend (TypeScript, Prisma + PostgreSQL, Redis/BullMQ, Winston). Serves both the mobile app and the [web_interface](../web_interface/) frontend, and integrates with an external GraphQL server (`emater_graphql_server`) plus a legacy REST API. See [docs/relatorio-sync-doc.md](docs/relatorio-sync-doc.md) for the most intricate flow.
 
+**Dual-storage fields — `temas_atendimento` and `numeroVisita`:** These two fields live in both the local Postgres DB and the external server. `numeroRelatorio` is a normal Prisma column; `temas_atendimento` is NOT a Prisma column — it only exists in the external DB (encoded as numeric codes via `at_atendimento_indi_camp_acess`). On create, both fields are written via `POST /atendimento` (GraphQL server). On update, `PATCH /relatorios/:id` writes `numeroRelatorio` to Prisma and then calls `syncAtendimentoTemasAndNumero()` → `restAPI.updateTemasAndVisitaAtendimento()` to sync changes to the external REST API. Full details: [docs/temas-atendimento-and-numero-visita.md](docs/temas-atendimento-and-numero-visita.md).
+
 ## Architectural intent
 
 **Clean Arch and DDD are inspirations, not contracts.** This is a backend with non-trivial domain rules (sync, relatório lifecycle, file/FS reconciliation), so DDD pulls more weight here than on the frontend — but the same rule applies: a _sprinkle_, not a doctrine.
@@ -61,6 +63,21 @@ Default to none. Only add a comment when _why_ is non-obvious (hidden constraint
 - Two global interceptors via `APP_INTERCEPTOR`: `WinstonLoggerService` (structured logs) and `UserHydrationInterceptor` (resolves the `Usuario` domain entity from the token claims).
 - Auth bypass list lives in [auth/auth.middleware.ts](src/auth/auth.middleware.ts) (currently `/relatorios/pdf`, `/relatorios/zip`, `/cmc`, `/login`, plus CORS preflight). Treat that list as load-bearing — adding a new public endpoint means updating it explicitly.
 
+## Mobile compatibility — hard rule
+
+The mobile app ([../pnae_mobile/](../pnae_mobile/)) is **frozen and shipped** on thousands of devices with no near-term update planned. Existing backend HTTP behaviour the mobile depends on is a contract:
+
+- **Never modify an existing controller method** (route, request shape, response shape, status codes, error format) in a way that changes what mobile observes. To verify: **start with [../pnae_mobile/@infrastructure/api/](../pnae_mobile/@infrastructure/api/) — but never stop there**. Each aggregate has a `repository/` folder with the canonical HTTP call sites; that's the first place to look, not the only place. Some call sites and payload shapers live in mobile hooks, features, or domain code, so always grep the whole `pnae_mobile/` tree for the endpoint path, method names, and DTO field names before declaring a change safe.
+- **New endpoints/methods are fine** and should be listed in the section below so future agents know mobile is not a constraint for them.
+- Existing endpoints that were **never** used by mobile (internal, web-only, cron-triggered, system utilities) are not part of this contract and do not need to be documented here.
+- Web interface and mobile **may diverge** — adding fields to a web-only form is fine as long as the backend stays mobile-compatible. Do not retroactively document already-existing web-only features here.
+
+### Endpoints not used by mobile
+
+New endpoints added from now on that are classic HTTP controller endpoints consumed by the web interface (not crons, internal utils, or system jobs) should be listed here so it is clear mobile does not call them and they aren't bound by the compatibility rule:
+
+<!-- Add new entries below as `- METHOD /path — short purpose` -->
+
 ## Conventions worth respecting
 
 - **Two clients, one backend.** The mobile app authenticates with the static `CLIENT_TOKEN`; the web frontend uses real JWT (header `Authorization: Bearer` or `auth_token` cookie). Don't break either path.
@@ -73,7 +90,11 @@ Default to none. Only add a comment when _why_ is non-obvious (hidden constraint
 
 ## Development environment
 
-The dev and staging (hmg) backend runs inside a Docker container with `npm run start:dev` (Nest watch mode) — file changes hot-reload, no manual build required. Redis runs as a sibling service in the same compose network for BullMQ.
+The dev and staging (hmg) backend run inside Docker containers on the shared `pnae_hmg_default` network. Dev runs `npm run start:dev` (Nest watch mode) — file changes hot-reload, no manual build required. Hmg runs the production entrypoint built from `Dockerfile.hmg`. Redis runs as a sibling service in the same compose network for BullMQ.
+
+Dev and hmg intentionally share the hmg PostgreSQL database (`pnae_db_hmg`) and both mount the same uploaded-file storage folder (`/home/pnae/pnae_app/data_dev` on the host, `/home/node/data_dev` in the containers). `data_hmg` is no longer an active storage folder; a `data_hmg.bak/` folder may exist only as a temporary safety backup after the merge. Keep prod storage/database separate.
+
+For Prisma client regeneration after schema changes, prefer `npm run prisma:generate:hmg`. That script checks `DATABASE_URL` and refuses to run unless it points at the hmg database identity, then runs `prisma generate --schema prisma/schema.prisma`. It should never be replaced with a migrate/deploy/db-push command.
 
 - **Never run `npm run build`** (or any variant). This command is reserved for production releases only and is triggered manually by the user.
 - **Never run `npm run start`/`start:prod`** locally — the container already runs the dev process.

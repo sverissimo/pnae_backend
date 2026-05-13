@@ -126,7 +126,8 @@ export class Atendimento {
       .reduce((acc, curr) => {
         if (!temas_atendimento) return acc;
         const atendimentoCode = temas_atendimento_list.findIndex(
-          (item) => item === curr,
+          // Normalize both sides: backend source is NFD, clients (web) send NFC.
+        (item) => item.normalize() === curr.normalize(),
         );
         if (atendimentoCode !== -1) {
           return acc + String(atendimentoCode + 1) + ';';
@@ -190,7 +191,8 @@ export class Atendimento {
       .reduce((acc, curr) => {
         if (!this.temas_atendimento) return acc;
         const atendimentoCode = this.temas_atendimento_list.findIndex(
-          (item) => item === curr,
+          // Normalize both sides: backend source is NFD, clients (web) send NFC.
+        (item) => item.normalize() === curr.normalize(),
         );
         if (atendimentoCode !== -1) {
           return acc + String(atendimentoCode + 1) + ';';

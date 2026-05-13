@@ -1,3 +1,5 @@
+export type GrauInteresse = 'BAIXO' | 'MEDIO' | 'ALTO';
+
 export type RelatorioModel = {
   id: string;
   produtorId: string;
@@ -15,4 +17,7 @@ export type RelatorioModel = {
   readOnly: boolean;
   createdAt: string;
   updatedAt?: string;
+  comercializaPnaeEstadual?: boolean;
+  produtoTratado?: string;
+  grauInteresse?: GrauInteresse;
 };
