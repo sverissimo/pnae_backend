@@ -71,6 +71,22 @@ export class RelatorioController {
     }
   }
 
+  @Get('/dashboard')
+  async getDashboard(@Req() req: Request) {
+    try {
+      return await this.relatorioService.getDashboardData(req.user);
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      this.logger.error(
+        `RelatorioController.getDashboard - ${error.message}`,
+        error.stack,
+      );
+      throw new InternalServerErrorException(
+        error.message || 'Erro ao gerar dashboard',
+      );
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const relatorio = await this.relatorioService.findOne(id);

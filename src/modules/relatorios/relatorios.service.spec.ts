@@ -54,6 +54,7 @@ describe('RelatorioService', () => {
       fileService,
       restAPI,
       logger,
+      { getRegionaisEmater: jest.fn() } as any,
     );
 
     service.findMany = jest.fn();

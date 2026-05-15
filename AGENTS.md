@@ -19,6 +19,12 @@ Layers, expressed as top-level folders under [src/](src/):
 - [@pdf-gen/](src/@pdf-gen/), [@zip-gen/](src/@zip-gen/) — generation pipelines (EJS templates + wkhtmltopdf for PDF; archiver for ZIP). `@pdf-gen/` carries its own `templates/`, `styles/`, `workers/`, `types/`, `utils/`.
 - [auth/](src/auth/), [prisma/](src/prisma/), [redis/](src/redis/), [logging/](src/logging/), [interceptors/](src/interceptors/), [filters/](src/filters/), [config/](src/config/), [utils/](src/utils/), [views/](src/views/), [types/](src/types/) — cross-cutting.
 
+## Architecture Rules
+
+- Prefer DRY and KISS, but do not over-abstract into many tiny helpers or hooks unless reuse or readability clearly improves.
+- Group cohesive responsibilities together. Split files when responsibilities diverge, not just to make files smaller.
+- Avoid long prop-drilling chains when context, local composition, or better feature boundaries solve the problem more cleanly.
+
 **Hard rules:**
 
 - `@domain/*` imports nothing from `modules/`, `@graphQL-server/`, `@rest-api-server/`, `prisma/`, or Nest. Domain stays pure.
@@ -43,7 +49,7 @@ Keep related responsibilities **together**. Do NOT over-split into tiny files / 
 KISS is the default for new code. **Exception:** if a simple approach scores below 7/10 on reliability/safety, go fancier.
 
 - Simple ≥ 8.5/10 reliability → keep simple.
-- Simple at 7–8.5/10 and a slightly fancier version gives bigger reliability gain → take the fancier version.
+- Simple at 7–8.5/10 reliability and a fancier version gives bigger reliability or quality gain → take the fancier version.
 - Significantly more complex code for **small** gains → keep simple.
 
 The sync flow ([@domain/relatorio/relatorio-domain-service.ts](src/@domain/relatorio/relatorio-domain-service.ts)) is the prototypical case where reliability beats simplicity — see [docs/relatorio-sync-doc.md](docs/relatorio-sync-doc.md).
@@ -63,6 +69,23 @@ Default to none. Only add a comment when _why_ is non-obvious (hidden constraint
 - Two global interceptors via `APP_INTERCEPTOR`: `WinstonLoggerService` (structured logs) and `UserHydrationInterceptor` (resolves the `Usuario` domain entity from the token claims).
 - Auth bypass list lives in [auth/auth.middleware.ts](src/auth/auth.middleware.ts) (currently `/relatorios/pdf`, `/relatorios/zip`, `/cmc`, `/login`, plus CORS preflight). Treat that list as load-bearing — adding a new public endpoint means updating it explicitly.
 
+### Authentication flow (mobile vs web)
+
+Both clients land on the same middleware chain; the difference is how they carry the token:
+
+- **Mobile** sends `Authorization: Bearer <CLIENT_TOKEN>` on every request. `CLIENT_TOKEN` is the static shared secret from env. `AuthMiddleware` short-circuits and calls `next()` without attaching anything to `req.user`. Mobile-targeted endpoints therefore must not rely on `req.user` for identity — the mobile payload carries `tecnicoId`/`produtorId` explicitly.
+- **Web** sends an httpOnly cookie `auth_token` containing a signed JWT (issued at `POST /usuario/login`). `AuthMiddleware` reads either header or cookie, verifies the JWT cryptographically against `JWT_SECRET`, and writes the decoded claims to `req.user`. Then `UserContextMiddleware` runs and (re)decodes the same cookie into `req.user` — redundant for the verified path but kept as a safety net. Finally, the global `UserHydrationInterceptor` upgrades `req.user` from a plain claims object to a `Usuario` domain entity, so controllers/services can call `req.user.isAdmin()`, `req.user.isCoordenadorRegional()`, etc.
+- **Every request** goes through this chain (with the explicit bypass list above for unauthenticated routes). A controller method that has reached its handler has already been authenticated — there is no scenario where an unauthorized request makes it past the middleware. This is why services trust `req.user` and do not need their own guard checks.
+- **Authorization (who-can-see-what) lives in services**, not middleware. The canonical pattern is `RelatorioService.getAuthorizedRelatorios(req.user, expand)`. Authenticated non-produtor users hit the DB with `{ contratoId: 2 }`; role-specific narrowing is then applied as a post-hydration predicate (`canUserSeeRelatorio`) because the regional fields live on the produtor side (external GraphQL), not on the Prisma row:
+  - admin/developer → see everything.
+  - coordenadorRegional → their regional **plus** their own work (union): `r.id_reg_empresa === user.id_reg_empresa || String(r.tecnicoId) === String(user.id_usuario)`.
+  - staff (extensionista) → only their own relatórios: `String(r.tecnicoId) === String(user.id_usuario)`.
+  - anything else → `{ id: 'no-access' }` sentinel filter → empty result.
+
+  The dashboard endpoint (`getDashboardData`) deliberately diverges from this for the per-user portion: gauges + 30-day line chart are *region-only* even for staff (`r.id_reg_empresa === user.id_reg_empresa`), so an extensionista sees their regional's macro view rather than only their own work. Tops and by-regional charts always use the full set.
+
+  New web-only endpoints that need user scoping should reuse this method (or mirror its logic), reading the user from `req.user` rather than trusting client-supplied query/body fields.
+
 ## Mobile compatibility — hard rule
 
 The mobile app ([../pnae_mobile/](../pnae_mobile/)) is **frozen and shipped** on thousands of devices with no near-term update planned. Existing backend HTTP behaviour the mobile depends on is a contract:
@@ -77,6 +100,8 @@ The mobile app ([../pnae_mobile/](../pnae_mobile/)) is **frozen and shipped** on
 New endpoints added from now on that are classic HTTP controller endpoints consumed by the web interface (not crons, internal utils, or system jobs) should be listed here so it is clear mobile does not call them and they aren't bound by the compatibility rule:
 
 <!-- Add new entries below as `- METHOD /path — short purpose` -->
+
+- GET /relatorios/dashboard — aggregated stats for the web dashboard page (summary gauges, top SREs/tecnicos, by-regional, 30-day line chart). Role-aware via `req.user` only — no query params. Mirrors the scoping rules of `RelatorioService.getAuthorizedRelatorios` for the per-user portion (gauges + 30-day line chart) while always using the full hydrated set for the global tops and by-regional chart.
 
 ## Conventions worth respecting
 

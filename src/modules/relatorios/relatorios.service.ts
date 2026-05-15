@@ -23,6 +23,12 @@ import { ProdutorService } from '../produtor/produtor.service';
 import { RelatorioDataMapper } from './data-mapper/relatorio.data-mapper';
 import { ProdutorModel } from 'src/@domain/produtor/produtor-model';
 import { RelatorioPresentationModel } from './dto/relatorio.presentation-model';
+import {
+  buildDashboardData,
+  DashboardData,
+  DashboardRole,
+} from 'src/@domain/relatorio/relatorio-dashboard-stats';
+import { PerfilService } from '../perfil/perfil.service';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -35,6 +41,7 @@ export class RelatorioService {
     private readonly fileService: FileService,
     private readonly restAPI: RestAPI,
     private readonly logger: WinstonLoggerService,
+    private readonly perfilService: PerfilService,
   ) {}
 
   async create(relatorioInput: RelatorioModel, files?: FilesInputDto) {
@@ -134,17 +141,105 @@ export class RelatorioService {
     return relatoriosResolvedAtendimentos || relatoriosWithReadOnly;
   }
 
+  async getDashboardData(user?: Usuario): Promise<DashboardData> {
+    const role = this.resolveDashboardRole(user);
+
+    const [fullRelatorios, regionais] = await Promise.all([
+      this.findAll({ contratoId: 2 }, { expand: true }) as Promise<
+        RelatorioPresentationModel[]
+      >,
+      this.perfilService.getRegionaisEmater(),
+    ]);
+
+    // Gauges + 30-day line chart use the same per-user scope as /relatorios/all.
+    // Tops + by-regional charts always use the full set so non-admins still see
+    // the global picture.
+    const scoped = this.scopeRelatoriosForUser(fullRelatorios, user);
+    const regionalLabel = this.resolveRegionalLabel(scoped);
+
+    return buildDashboardData({
+      fullRelatorios: fullRelatorios ?? [],
+      scopedRelatorios: scoped,
+      regionais: regionais ?? [],
+      role,
+      regionalLabel,
+      topTecnicosLimit: 20,
+      topSREsLimit: 10,
+    });
+  }
+
+  private resolveDashboardRole(user?: Usuario): DashboardRole {
+    if (!user) return 'other';
+    if (user.isCoordenadorRegional()) return 'coordenadorRegional';
+    if (user.isAdmin() || user.isDeveloper()) return 'admin';
+    if (user.isStaff()) return 'staff';
+    return 'other';
+  }
+
+  /**
+   * Dashboard-only scoping. Differs from `getAuthorizedRelatorios` on purpose:
+   * gauges and the 30-day line chart should reflect the user's *regional*, not
+   * just their own relatorios — otherwise an extensionista sees only the
+   * relatorios they personally created, which defeats the dashboard's point.
+   * Both coordenadorRegional and staff get filtered by `r.id_reg_empresa ===
+   * user.id_reg_empresa`.
+   */
+  private scopeRelatoriosForUser(
+    relatorios: RelatorioPresentationModel[],
+    user?: Usuario,
+  ): RelatorioPresentationModel[] {
+    if (!user) return [];
+    if (user.isAdmin() || user.isDeveloper()) return relatorios;
+    if (!user.id_reg_empresa) return [];
+    return relatorios.filter((r) => r.id_reg_empresa === user.id_reg_empresa);
+  }
+
+  private resolveRegionalLabel(
+    scoped: RelatorioPresentationModel[],
+  ): string | null {
+    const match = scoped.find((r) => r.nm_und_empresa);
+    return match?.nm_und_empresa ?? null;
+  }
+
   async getAuthorizedRelatorios(user?: Usuario, expand = false) {
     const filter = await this.createFilter(user);
-    const regionalFilter = user?.isCoordenadorRegional()
-      ? user.id_und_empresa
-      : undefined;
-    return this.findAll(filter, { expand, regionalFilter });
+    console.log('🚀 - RelatorioService - :', { filter, user });
+
+    const result = await this.findAll(filter, { expand });
+
+    if (!expand || !user || user.isAdmin() || user.isDeveloper()) {
+      return result;
+    }
+    return (result as RelatorioPresentationModel[]).filter((r) =>
+      this.canUserSeeRelatorio(r, user),
+    );
+  }
+
+  /**
+   * Post-hydration authorization predicate for /relatorios/all.
+   * - admin / developer       → see everything
+   * - coordenadorRegional     → their regional PLUS their own work
+   *                             (`id_reg_empresa` OR `tecnicoId`)
+   * - staff (extensionista)   → only their own relatorios (`tecnicoId`)
+   */
+  private canUserSeeRelatorio(
+    r: RelatorioPresentationModel,
+    user: Usuario,
+  ): boolean {
+    if (user.isAdmin() || user.isDeveloper()) return true;
+    const isOwn = String(r.tecnicoId) === String(user.id_usuario);
+    if (user.isCoordenadorRegional()) {
+      const inRegional =
+        !!user.id_reg_empresa && r.id_reg_empresa === user.id_reg_empresa;
+      return inRegional || isOwn;
+    }
+    if (user.isStaff()) return isOwn;
+    return false;
   }
 
   async findAll(
     filter: Prisma.RelatorioWhereInput = {},
-    options: { expand?: boolean; regionalFilter?: string } = {},
+    options: { expand?: boolean } = {},
   ) {
     const relatorios = await this.prismaService.relatorio.findMany({
       where: filter,
@@ -158,14 +253,7 @@ export class RelatorioService {
     const parsedRelatorios = updatedRelatorios || relatorioModels;
 
     if (!options.expand) return parsedRelatorios;
-    if (options.expand) {
-      const hydratedRelatorios = await this.hydrateRelatorios(parsedRelatorios);
-      if (!options.regionalFilter) return hydratedRelatorios;
-
-      return hydratedRelatorios.filter(
-        (r) => r.id_reg_empresa === options.regionalFilter,
-      );
-    }
+    return this.hydrateRelatorios(parsedRelatorios);
   }
 
   private async hydrateRelatorios(
@@ -192,13 +280,17 @@ export class RelatorioService {
     });
   }
 
-  private async createFilter(user?: Usuario) {
-    const baseFilter = { contratoId: 2 };
+  private async createFilter(
+    user?: Usuario,
+  ): Promise<Prisma.RelatorioWhereInput> {
     if (!user) return { id: 'no-access' };
-    if (user.isAdmin() || user.isDeveloper() || user.isCoordenadorRegional())
-      return baseFilter;
-    if (user.isStaff()) {
-      return { ...baseFilter, tecnicoId: BigInt(user.id_usuario) };
+    if (
+      user.isAdmin() ||
+      user.isDeveloper() ||
+      user.isCoordenadorRegional() ||
+      user.isStaff()
+    ) {
+      return { contratoId: 2 };
     }
     return { id: 'no-access' };
   }

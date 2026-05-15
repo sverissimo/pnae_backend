@@ -1,6 +1,17 @@
 import { PerfilUsuario } from './perfil-usuario.enum';
 import { UsuarioModel } from './usuario-model';
 
+const SIMULATE_USER: Partial<Usuario> | null =
+  process.env.NODE_ENV !== 'production'
+    ? // false // --> disable simulation
+      {
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO], // Simulate staff user with both profiles
+        id_reg_empresa: 'G0001',
+        // id_reg_empresa: 'G0040',
+        id_usuario: process.env.ALLOWED_USER_IDS?.split(',')[2] || '1', // Simulate the first admin user
+      }
+    : null;
+
 export class Usuario {
   id_usuario?: string;
   login_usuario?: string;
@@ -40,12 +51,14 @@ export class Usuario {
     this.sexo_usuario = sexo_usuario;
     this.perfis = perfis;
     this.adminUserIds = this.getAdminUserIds();
+    if (SIMULATE_USER) Object.assign(this, SIMULATE_USER); // Simulate staff user for testing
   }
 
   private getAdminUserIds(): string[] {
     const ids = process.env.ALLOWED_USER_IDS || '';
-    return ids.split(',').map((id) => id.trim());
-    // .slice(-1); //test isStaff users
+    const adminIds = ids.split(',').map((id) => id.trim());
+    if (SIMULATE_USER) return adminIds.slice(-1); //test isStaff users
+    return adminIds;
   }
 
   isAdmin(): boolean {
