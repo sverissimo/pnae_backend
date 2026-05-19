@@ -1,5 +1,6 @@
-# Environment
+# Environment — real .env files ignored, .example templates tracked
 *.env
+!*.env.example
 
 #Certificates
 /certificates
