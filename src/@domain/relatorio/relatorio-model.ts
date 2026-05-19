@@ -17,7 +17,7 @@ export type RelatorioModel = {
   readOnly: boolean;
   createdAt: string;
   updatedAt?: string;
-  comercializaPnaeEstadual?: boolean;
+  comercializaPnae?: boolean;
   produtoTratado?: string;
   grauInteresse?: GrauInteresse;
 };

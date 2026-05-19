@@ -210,9 +210,10 @@ export class RelatorioService {
     if (!expand || !user || user.isAdmin() || user.isDeveloper()) {
       return result;
     }
-    return (result as RelatorioPresentationModel[]).filter((r) =>
+    const scopedResult = (result as RelatorioPresentationModel[]).filter((r) =>
       this.canUserSeeRelatorio(r, user),
     );
+    return scopedResult;
   }
 
   /**

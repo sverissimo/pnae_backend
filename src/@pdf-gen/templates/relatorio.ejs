@@ -34,15 +34,15 @@
         <td class="td-label">Produto tratado no atendimento</td>
         <td class="td-content"><%= produtoTratado %></td>
       </tr>
-      <% } %> <% if (typeof comercializaPnaeEstadual !== 'undefined' &&
-      comercializaPnaeEstadual !== null) { %>
+      <% } %> <% if (typeof comercializaPnae !== 'undefined' &&
+      comercializaPnae !== null) { %>
       <tr>
         <td class="td-label">Comercializa para o PNAE Estadual?</td>
-        <td class="td-content"><%= comercializaPnaeEstadual ? 'Sim' : 'Não' %></td>
+        <td class="td-content"><%= comercializaPnae ? 'Sim' : 'Não' %></td>
       </tr>
       <% } %> <% const grauInteresseLabels = { BAIXO: 'Baixo', MEDIO: 'Médio',
-      ALTO: 'Alto' }; %> <% if (typeof comercializaPnaeEstadual !== 'undefined'
-      && comercializaPnaeEstadual === false && typeof grauInteresse !==
+      ALTO: 'Alto' }; %> <% if (typeof comercializaPnae !== 'undefined'
+      && comercializaPnae === false && typeof grauInteresse !==
       'undefined' && grauInteresse && grauInteresseLabels[grauInteresse]) { %>
       <tr>
         <td class="td-label">Grau de interesse no PNAE Estadual</td>
@@ -89,7 +89,14 @@
 </section>
 <section class="textBox avoid-break">
   <h5 class="subtitle">Orientação Técnica</h5>
-  <div class="orientacaoBox"><%- orientacao %></div>
+  <div class="orientacaoBox">
+    <p>
+      <strong>
+        Durante a visita, foram reforçadas orientações sobre o funcionamento do PNAE e seus benefícios.
+      </strong>
+    </p>
+    <%- orientacao %>
+  </div>
 </section>
 
 <section class="textBox avoid-break">

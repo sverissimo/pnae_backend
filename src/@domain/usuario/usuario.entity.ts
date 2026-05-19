@@ -2,13 +2,14 @@ import { PerfilUsuario } from './perfil-usuario.enum';
 import { UsuarioModel } from './usuario-model';
 
 const SIMULATE_USER: Partial<Usuario> | null =
-  process.env.NODE_ENV !== 'production'
-    ? // false // --> disable simulation
-      {
-        perfis: [PerfilUsuario.MOD_ATIV_TECNICO], // Simulate staff user with both profiles
+  // process.env.NODE_ENV !== 'production'
+  false // --> disable simulation
+    ? {
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO, PerfilUsuario.ADMINISTRADOR2], // Simulate staff user with both profiles
         id_reg_empresa: 'G0001',
         // id_reg_empresa: 'G0040',
-        id_usuario: process.env.ALLOWED_USER_IDS?.split(',')[2] || '1', // Simulate the first admin user
+        id_usuario: process.env.ALLOWED_USER_IDS?.split(',')[1] || '1', // Simulate the first admin user
+        // id_usuario: '2413',
       }
     : null;
 

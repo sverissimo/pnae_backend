@@ -16,7 +16,7 @@ export class RelatorioDto {
   coordenadas?: string;
   createdAt: Date;
   updatedAt?: Date;
-  comercializaPnaeEstadual?: boolean;
+  comercializaPnae?: boolean;
   produtoTratado?: string;
   grauInteresse?: GrauInteresse;
 }
