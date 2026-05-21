@@ -4,6 +4,7 @@ import {
   buildSummary,
   buildTopSREs,
   buildTopTecnicos,
+  buildTopTecnicosAprovados,
   DashboardRelatorioInput,
   formatRegionalName,
 } from './relatorio-dashboard-stats';
@@ -18,6 +19,7 @@ const baseRelatorio: DashboardRelatorioInput = {
   data_sei: null,
   data_see: null,
   dt_export_ok: null,
+  sn_pendencia: null,
   regional_sre: null,
   usuario: null,
   nm_und_empresa: null,
@@ -64,6 +66,26 @@ describe('relatorio-dashboard-stats', () => {
         { sre: 'SRE-B', visitas: 1 },
       ]);
       expect(buildTopTecnicos(data, 1)).toEqual([{ tecnico: 'Alice', visitas: 2 }]);
+    });
+  });
+
+  describe('buildTopTecnicosAprovados', () => {
+    it('only counts relatorios with data_validacao and no sn_pendencia', () => {
+      const data: DashboardRelatorioInput[] = [
+        // approved
+        { ...baseRelatorio, usuario: 'Alice', data_validacao: '2026-01-01', sn_pendencia: 0 },
+        { ...baseRelatorio, usuario: 'Alice', data_validacao: '2026-01-02', sn_pendencia: null },
+        // not validated
+        { ...baseRelatorio, usuario: 'Alice', data_validacao: null },
+        // validated but pending
+        { ...baseRelatorio, usuario: 'Bob', data_validacao: '2026-01-03', sn_pendencia: 1 },
+        // approved Bob
+        { ...baseRelatorio, usuario: 'Bob', data_validacao: '2026-01-04', sn_pendencia: 0 },
+      ];
+      expect(buildTopTecnicosAprovados(data, 10)).toEqual([
+        { tecnico: 'Alice', visitas: 2 },
+        { tecnico: 'Bob', visitas: 1 },
+      ]);
     });
   });
 

@@ -9,6 +9,7 @@ import { ProdutorSyncInput } from './dto/produtor-sync-input.dto';
 import { ProdutorService } from '../produtor/produtor.service';
 import { CheckForUpdatesOutputDto } from './dto/check-for-updates-output.dto';
 import { compareClientAndServerDates } from './utils/compareClientAndServerDates';
+import { MOBILE_RELATORIO_FIELDS } from './utils/mobile-relatorio-fields';
 import { ProdutorDTO } from '../produtor/dto';
 import { FileService } from 'src/modules/files/file.service';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
@@ -94,11 +95,26 @@ export class SyncService {
       ).filter((patch) => patch?.id && !missingSet.has(patch.id));
     }
 
+    updateInfoOutput.outdatedOnClient = (
+      updateInfoOutput.outdatedOnClient || []
+    ).map((r) => this.stripWebOnlyFields(r));
+    updateInfoOutput.missingOnClient = (
+      updateInfoOutput.missingOnClient || []
+    ).map((r) => this.stripWebOnlyFields(r));
+
     console.log(
       '🚀 - SyncService - getRelatorioSyncData - updateInfoOutput:',
       updateInfoOutput,
     );
     return updateInfoOutput;
+  }
+
+  private stripWebOnlyFields(r: RelatorioModel): RelatorioModel {
+    const out = {} as RelatorioModel;
+    for (const k of MOBILE_RELATORIO_FIELDS) {
+      if (k in r) (out as any)[k] = (r as any)[k];
+    }
+    return out;
   }
 
   private async checkForMissingFiles(relatorios: RelatorioSyncInfo[]) {

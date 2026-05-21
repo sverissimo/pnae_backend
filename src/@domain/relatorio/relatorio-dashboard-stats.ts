@@ -4,6 +4,7 @@ export type DashboardRelatorioInput = {
   data_sei?: string | null;
   data_see?: string | null;
   dt_export_ok?: string | null;
+  sn_pendencia?: number | null;
   regional_sre?: string | null;
   usuario?: string | null;
   nm_und_empresa?: string | null;
@@ -45,6 +46,7 @@ export type DashboardData = {
   summary: DashboardSummary;
   topSREs: { sre: string; visitas: number }[] | null;
   topTecnicos: { tecnico: string; visitas: number }[];
+  topTecnicosAprovados: { tecnico: string; visitas: number }[];
   relatoriosByRegional: { regional: string; count: number }[];
   lineChart: DashboardLineChart;
   scope: {
@@ -118,9 +120,11 @@ export function buildTopSREs(
 export function buildTopTecnicos(
   relatorios: DashboardRelatorioInput[],
   limit: number,
+  predicate?: (r: DashboardRelatorioInput) => boolean,
 ): { tecnico: string; visitas: number }[] {
   const map = new Map<string, number>();
   for (const r of relatorios) {
+    if (predicate && !predicate(r)) continue;
     if (r.usuario) {
       map.set(r.usuario, (map.get(r.usuario) ?? 0) + 1);
     }
@@ -129,6 +133,17 @@ export function buildTopTecnicos(
     .map(([tecnico, visitas]) => ({ tecnico, visitas }))
     .sort((a, b) => b.visitas - a.visitas)
     .slice(0, limit);
+}
+
+export function buildTopTecnicosAprovados(
+  relatorios: DashboardRelatorioInput[],
+  limit: number,
+): { tecnico: string; visitas: number }[] {
+  return buildTopTecnicos(
+    relatorios,
+    limit,
+    (r) => !!r.data_validacao && !r.sn_pendencia,
+  );
 }
 
 export function buildRelatoriosByRegional(
@@ -142,7 +157,8 @@ export function buildRelatoriosByRegional(
     if (name) counts[name] = (counts[name] ?? 0) + 1;
   }
 
-  for (const r of regionais.filter(isRealRegional)) {
+  for (const r of regionais) {
+    if (!isRealRegional(r)) continue;
     const name = formatRegionalName(r.nm_und_empresa);
     if (name && !(name in counts)) counts[name] = 0;
   }
@@ -228,6 +244,10 @@ export function buildDashboardData(input: {
     summary: buildSummary(scopedRelatorios),
     topSREs: isAdminView ? buildTopSREs(fullRelatorios, topSREsLimit) : null,
     topTecnicos: buildTopTecnicos(fullRelatorios, topTecnicosLimit),
+    topTecnicosAprovados: buildTopTecnicosAprovados(
+      scopedRelatorios,
+      topTecnicosLimit,
+    ),
     relatoriosByRegional: buildRelatoriosByRegional(fullRelatorios, regionais),
     lineChart: buildLineChart(scopedRelatorios, isAdminView),
     scope: { role, regionalLabel },
