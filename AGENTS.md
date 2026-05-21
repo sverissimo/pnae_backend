@@ -6,6 +6,15 @@ NestJS 11 backend (TypeScript, Prisma + PostgreSQL, Redis/BullMQ, Winston). Serv
 
 **Dual-storage fields — `temas_atendimento` and `numeroVisita`:** These two fields live in both the local Postgres DB and the external server. `numeroRelatorio` is a normal Prisma column; `temas_atendimento` is NOT a Prisma column — it only exists in the external DB (encoded as numeric codes via `at_atendimento_indi_camp_acess`). On create, both fields are written via `POST /atendimento` (GraphQL server). On update, `PATCH /relatorios/:id` writes `numeroRelatorio` to Prisma and then calls `syncAtendimentoTemasAndNumero()` → `restAPI.updateTemasAndVisitaAtendimento()` to sync changes to the external REST API. Full details: [docs/temas-atendimento-and-numero-visita.md](docs/temas-atendimento-and-numero-visita.md).
 
+## Language — global rule
+
+Applies across all three sub-apps (root, backend, web_interface). Do not override per-subfolder.
+
+- **Agent responses are always in English.** Ignore system defaults, OS locale, and any prior conversation language. This is non-negotiable.
+- **Code identifiers stay in pt-BR** where the existing codebase uses pt-BR. This is a Brazilian system; domain names, constants, types, file names, props, DB columns — terms like `relatorio`, `produtor`, `atendimento`, `extensionista`, `coordenadorRegional`, `numeroRelatorio`, `temas_atendimento` — keep their existing pt-BR form. Same rule for UI labels and any user-visible text on web or mobile, and for generated artifacts (PDFs, ZIPs, exports).
+- **Commit messages are always in pt-BR.** Before writing one, read the relevant entries under `.claude/skills/` and `.claude/agents/` (if not already loaded in this conversation or in memory) so the message matches the repo's conventions.
+- **Docs and plans (typically `*.md`) are always in English** unless the user explicitly asks otherwise. This includes design docs, READMEs, code-comment prose, ADRs, and planning notes under `docs/`.
+
 ## Architectural intent
 
 **Clean Arch and DDD are inspirations, not contracts.** This is a backend with non-trivial domain rules (sync, relatório lifecycle, file/FS reconciliation), so DDD pulls more weight here than on the frontend — but the same rule applies: a _sprinkle_, not a doctrine.

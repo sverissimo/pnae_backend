@@ -203,8 +203,6 @@ export class RelatorioService {
 
   async getAuthorizedRelatorios(user?: Usuario, expand = false) {
     const filter = await this.createFilter(user);
-    console.log('🚀 - RelatorioService - :', { filter, user });
-
     const result = await this.findAll(filter, { expand });
 
     if (!expand || !user || user.isAdmin() || user.isDeveloper()) {
