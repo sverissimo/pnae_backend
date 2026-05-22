@@ -6,6 +6,7 @@ import { Propriedade } from './entities';
 import { Perfil } from 'src/@domain/perfil';
 import { ProdutorDTO } from './dto';
 import { ProdutorDataMapper } from './data-mapper/produtor.data-mapper';
+import { ProdutoresFromGraphQLDto } from './types/produtores.from-graphql-dto';
 
 @Injectable()
 export class ProdutorService {
@@ -41,7 +42,8 @@ export class ProdutorService {
   }
 
   async findManyById(ids: string[]) {
-    const produtores: any = await this.api.getManyProdutores(ids);
+    const produtores: ProdutoresFromGraphQLDto =
+      await this.api.getManyProdutores(ids);
 
     return produtores.produtores.map(
       ProdutorDataMapper.ProdutoresFromGraphQLtoOutputDTO,

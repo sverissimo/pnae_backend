@@ -19,9 +19,10 @@ import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import { UpdateTemasAndVisitaAtendimentoDTO } from '../atendimento/dto/update-temas-and-visita-atendimento.dto';
 import { FilesInputDto } from 'src/modules/files/files-input.dto';
 import { Usuario } from '../../@domain/usuario/usuario.entity';
-import { ProdutorService } from '../produtor/produtor.service';
 import { RelatorioDataMapper } from './data-mapper/relatorio.data-mapper';
 import { ProdutorModel } from 'src/@domain/produtor/produtor-model';
+import { CachedProdutorReader } from './cache/cached-produtor.reader';
+import { CachedAtendimentoReader } from './cache/cached-atendimento.reader';
 import { RelatorioPresentationModel } from './dto/relatorio.presentation-model';
 import {
   buildDashboardData,
@@ -37,11 +38,12 @@ export class RelatorioService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly atendimentoService: AtendimentoService,
-    private readonly produtorService: ProdutorService,
     private readonly fileService: FileService,
     private readonly restAPI: RestAPI,
     private readonly logger: WinstonLoggerService,
     private readonly perfilService: PerfilService,
+    private readonly cachedProdutorReader: CachedProdutorReader,
+    private readonly cachedAtendimentoReader: CachedAtendimentoReader,
   ) {}
 
   async create(relatorioInput: RelatorioModel, files?: FilesInputDto) {
@@ -243,6 +245,7 @@ export class RelatorioService {
     const relatorios = await this.prismaService.relatorio.findMany({
       where: filter,
       orderBy: { createdAt: 'desc' },
+      ...(options.expand ? { omit: { orientacao: true } } : {}),
     });
 
     if (!relatorios || relatorios.length === 0) return [];
@@ -266,10 +269,10 @@ export class RelatorioService {
     ];
 
     const [produtores, atendimentos] = await Promise.all([
-      this.produtorService.findManyById(produtorIds) as Promise<
+      this.cachedProdutorReader.findManyById(produtorIds) as unknown as Promise<
         ProdutorModel[]
       >,
-      this.atendimentoService.findMany(atendimentoIds),
+      this.cachedAtendimentoReader.findMany(atendimentoIds),
     ]);
 
     return RelatorioDataMapper.manyToPresentationModel({

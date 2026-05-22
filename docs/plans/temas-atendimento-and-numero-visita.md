@@ -12,14 +12,14 @@
 
 | Camada | Arquivo | Papel |
 |---|---|---|
-| Domain | [src/modules/atendimento/entities/atendimento.entity.ts](../src/modules/atendimento/entities/atendimento.entity.ts) | Converte temas e número para o formato do servidor externo |
-| Service | [src/modules/atendimento/atendimento.service.ts](../src/modules/atendimento/atendimento.service.ts) | `updateTemasAndVisita()` — normaliza e despacha para a REST API |
-| Service | [src/modules/relatorios/relatorios.service.ts](../src/modules/relatorios/relatorios.service.ts) | `syncAtendimentoTemasAndNumero()` — chama `updateTemasAndVisita` no update |
-| External | [src/@rest-api-server/rest-api.service.ts](../src/@rest-api-server/rest-api.service.ts) | `updateTemasAndVisitaAtendimento()` — PATCH no servidor legado |
-| External | [src/@graphQL-server/atendimento-api.service.ts](../src/@graphQL-server/atendimento-api.service.ts) | `createAtendimento()` — insere no GraphQL server na criação |
-| DTO | [src/modules/atendimento/dto/create-atendimento.dto.ts](../src/modules/atendimento/dto/create-atendimento.dto.ts) | `temas_atendimento?: string[]`, `numero_relatorio?: string` |
-| DTO | [src/modules/atendimento/dto/update-temas-and-visita-atendimento.dto.ts](../src/modules/atendimento/dto/update-temas-and-visita-atendimento.dto.ts) | `temasAtendimento?: string`, `numeroVisita?: string` |
-| DTO | [src/modules/relatorios/dto/update-relatorio.dto.ts](../src/modules/relatorios/dto/update-relatorio.dto.ts) | `temas_atendimento?: string` (accept no PATCH do relatorio) |
+| Domain | [src/modules/atendimento/entities/atendimento.entity.ts](../../src/modules/atendimento/entities/atendimento.entity.ts) | Converte temas e número para o formato do servidor externo |
+| Service | [src/modules/atendimento/atendimento.service.ts](../../src/modules/atendimento/atendimento.service.ts) | `updateTemasAndVisita()` — normaliza e despacha para a REST API |
+| Service | [src/modules/relatorios/relatorios.service.ts](../../src/modules/relatorios/relatorios.service.ts) | `syncAtendimentoTemasAndNumero()` — chama `updateTemasAndVisita` no update |
+| External | [src/@rest-api-server/rest-api.service.ts](../../src/@rest-api-server/rest-api.service.ts) | `updateTemasAndVisitaAtendimento()` — PATCH no servidor legado |
+| External | [src/@graphQL-server/atendimento-api.service.ts](../../src/@graphQL-server/atendimento-api.service.ts) | `createAtendimento()` — insere no GraphQL server na criação |
+| DTO | [src/modules/atendimento/dto/create-atendimento.dto.ts](../../src/modules/atendimento/dto/create-atendimento.dto.ts) | `temas_atendimento?: string[]`, `numero_relatorio?: string` |
+| DTO | [src/modules/atendimento/dto/update-temas-and-visita-atendimento.dto.ts](../../src/modules/atendimento/dto/update-temas-and-visita-atendimento.dto.ts) | `temasAtendimento?: string`, `numeroVisita?: string` |
+| DTO | [src/modules/relatorios/dto/update-relatorio.dto.ts](../../src/modules/relatorios/dto/update-relatorio.dto.ts) | `temas_atendimento?: string` (accept no PATCH do relatorio) |
 
 ---
 

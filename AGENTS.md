@@ -4,7 +4,7 @@
 
 NestJS 11 backend (TypeScript, Prisma + PostgreSQL, Redis/BullMQ, Winston). Serves both the mobile app and the [web_interface](../web_interface/) frontend, and integrates with an external GraphQL server (`emater_graphql_server`) plus a legacy REST API. See [docs/relatorio-sync-doc.md](docs/relatorio-sync-doc.md) for the most intricate flow.
 
-**Dual-storage fields — `temas_atendimento` and `numeroVisita`:** These two fields live in both the local Postgres DB and the external server. `numeroRelatorio` is a normal Prisma column; `temas_atendimento` is NOT a Prisma column — it only exists in the external DB (encoded as numeric codes via `at_atendimento_indi_camp_acess`). On create, both fields are written via `POST /atendimento` (GraphQL server). On update, `PATCH /relatorios/:id` writes `numeroRelatorio` to Prisma and then calls `syncAtendimentoTemasAndNumero()` → `restAPI.updateTemasAndVisitaAtendimento()` to sync changes to the external REST API. Full details: [docs/temas-atendimento-and-numero-visita.md](docs/temas-atendimento-and-numero-visita.md).
+**Dual-storage fields — `temas_atendimento` and `numeroVisita`:** These two fields live in both the local Postgres DB and the external server. `numeroRelatorio` is a normal Prisma column; `temas_atendimento` is NOT a Prisma column — it only exists in the external DB (encoded as numeric codes via `at_atendimento_indi_camp_acess`). On create, both fields are written via `POST /atendimento` (GraphQL server). On update, `PATCH /relatorios/:id` writes `numeroRelatorio` to Prisma and then calls `syncAtendimentoTemasAndNumero()` → `restAPI.updateTemasAndVisitaAtendimento()` to sync changes to the external REST API. Full details: [docs/plans/temas-atendimento-and-numero-visita.md](docs/plans/temas-atendimento-and-numero-visita.md).
 
 ## Language — global rule
 
@@ -121,6 +121,7 @@ New endpoints added from now on that are classic HTTP controller endpoints consu
 - **Imports:** there are no path aliases — `tsconfig.json` only sets `baseUrl: "./"`, so absolute imports look like `src/modules/...` / `src/@domain/...`. Prefer those over deep relative paths (`../../..`).
 - **Tests:** `*.spec.ts` colocated with the file under test, run with `npm test`. Domain services have the heaviest coverage and are the place to add tests when changing sync/merge logic.
 - **External services:** all GraphQL/REST calls go through `@graphQL-server/` or `@rest-api-server/` services. Don't `fetch` directly from a module service.
+- **Caching:** `/relatorios/all` and `/relatorios/dashboard` hydrate through two narrow Redis-backed readers in [src/modules/relatorios/cache/](src/modules/relatorios/cache/) — `CachedProdutorReader` (24h TTL) and `CachedAtendimentoReader` (30s TTL + tombstone for upstream-absent IDs). `AtendimentoService` mutations bust via `RedisInvalidator`. Cache lives inside `hydrateRelatorios` only; mobile routes never touch it. Full contract: [docs/plans/relatorios-caching-plan.md](docs/plans/relatorios-caching-plan.md).
 
 ## Development environment
 

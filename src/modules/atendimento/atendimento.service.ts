@@ -8,12 +8,15 @@ import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 import { AtendimentoDataMapper } from './data-mapper/atendimento.data-mapper';
 import { UpdateTemasAndVisitaAtendimentoDTO } from './dto/update-temas-and-visita-atendimento.dto';
 import { AtendimentoModel } from 'src/@domain/atendimento/atendimento-model';
+import { RedisInvalidator } from 'src/modules/relatorios/cache/redis-invalidator';
+import { CACHE_KEYS } from 'src/modules/relatorios/cache/cache.constants';
 
 @Injectable()
 export class AtendimentoService {
   constructor(
     private graphQLAPI: AtendimentoGraphQLAPI,
     private restAPI: RestAPI,
+    private readonly redisInvalidator: RedisInvalidator,
   ) {}
 
   async create(CreateAtendimentoInputDto: CreateAtendimentoInputDto) {
@@ -99,9 +102,10 @@ export class AtendimentoService {
       id_at_atendimento: id,
       ...UpdateAtendimentoInputDto,
     });
+    await this.redisInvalidator.invalidate(CACHE_KEYS.atendimento, [id]);
   }
 
-  updateTemasAndVisita({
+  async updateTemasAndVisita({
     atendimentoId,
     temasAtendimento,
     numeroVisita,
@@ -128,14 +132,17 @@ export class AtendimentoService {
         ? undefined
         : numeroVisita;
 
-    return this.restAPI.updateTemasAndVisitaAtendimento({
+    await this.restAPI.updateTemasAndVisitaAtendimento({
       atendimentoId,
       temasAtendimento: temas,
       numeroVisita: numero,
     });
+    await this.redisInvalidator.invalidate(CACHE_KEYS.atendimento, [
+      atendimentoId,
+    ]);
   }
 
-  setAtendimentosExportDate(atendimentos: Partial<AtendimentoModel>[]) {
+  async setAtendimentosExportDate(atendimentos: Partial<AtendimentoModel>[]) {
     const shouldSetExportDate = atendimentos.filter((atendimento) => {
       return !atendimento.dt_export_ok;
     });
@@ -145,7 +152,8 @@ export class AtendimentoService {
     const ids = shouldSetExportDate.map(
       (atendimento) => atendimento.id_at_atendimento,
     );
-    return this.graphQLAPI.setAtendimentosExportDate(ids);
+    await this.graphQLAPI.setAtendimentosExportDate(ids);
+    await this.redisInvalidator.invalidate(CACHE_KEYS.atendimento, ids);
   }
 
   async saveIdsToFile(atendimentosIds: string[]) {

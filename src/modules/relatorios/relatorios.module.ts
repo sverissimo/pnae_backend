@@ -12,6 +12,10 @@ import { ProdutorService } from '../produtor/produtor.service';
 import { RelatorioExportService } from './relatorios.export.service';
 import { ZipWorkerService } from './workers/zip.worker.service';
 import { PerfilModule } from '../perfil/perfil.module';
+import { CachedProdutorReader } from './cache/cached-produtor.reader';
+import { CachedAtendimentoReader } from './cache/cached-atendimento.reader';
+import { REDIS_CLIENT } from './cache/cache.constants';
+import { createRedisConnection } from 'src/redis/redis.provider';
 
 @Module({
   controllers: [RelatorioController],
@@ -22,6 +26,9 @@ import { PerfilModule } from '../perfil/perfil.module';
     RelatorioExportService,
     ProdutorService,
     ZipWorkerService,
+    CachedProdutorReader,
+    CachedAtendimentoReader,
+    { provide: REDIS_CLIENT, useFactory: createRedisConnection },
     { provide: UsuarioGraphQLAPI, useClass: UsuarioGraphQLAPI },
     { provide: RestAPI, useClass: RestAPI },
     { provide: WinstonLoggerService, useClass: WinstonLoggerService },

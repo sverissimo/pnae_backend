@@ -51,7 +51,8 @@ COPY package*.json ./
 
 RUN mkdir -p /home/node/.npm /home/node/logs /home/node/zipFiles && \
     chown -R node:node /home/node/
-ENV NPM_CONFIG_CACHE=/home/node/.npm
+ENV NODE_ENV=production \
+    NPM_CONFIG_CACHE=/home/node/.npm
 
 # RUN mkdir -p /home/node/{.npm,logs,zipFiles,data} \
 #     && chown -R node:node /home/node \

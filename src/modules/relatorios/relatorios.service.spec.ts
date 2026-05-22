@@ -21,7 +21,6 @@ describe('RelatorioService', () => {
   let restAPI: any;
   let logger: any;
   let mockRelatorio: any;
-  let produtorService: any;
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -45,16 +44,16 @@ describe('RelatorioService', () => {
     fileService = { save: jest.fn(), update: jest.fn() };
     restAPI = { getReadOnlyRelatorios: jest.fn() };
     logger = { error: jest.fn(), log: jest.fn(), warn: jest.fn() };
-    produtorService = { findById: jest.fn() };
 
     service = new RelatorioService(
       prisma,
       atendimentoService,
-      produtorService,
       fileService,
       restAPI,
       logger,
       { getRegionaisEmater: jest.fn() } as any,
+      { findManyById: jest.fn().mockResolvedValue([]) } as any,
+      { findMany: jest.fn().mockResolvedValue([]) } as any,
     );
 
     service.findMany = jest.fn();

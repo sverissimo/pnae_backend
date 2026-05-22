@@ -5,7 +5,7 @@ import {
   transports,
   Logger as WinstonLogger,
 } from 'winston';
-import * as DailyRotateFile from 'winston-daily-rotate-file';
+import DailyRotateFile = require('winston-daily-rotate-file');
 
 @Injectable()
 export class WinstonLoggerService extends ConsoleLogger {

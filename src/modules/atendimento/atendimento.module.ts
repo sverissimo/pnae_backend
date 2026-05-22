@@ -4,6 +4,9 @@ import { AtendimentoController } from './atendimento.controller';
 import { AtendimentoGraphQLAPI } from 'src/@graphQL-server/atendimento-api.service';
 import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
+import { REDIS_CLIENT } from 'src/modules/relatorios/cache/cache.constants';
+import { RedisInvalidator } from 'src/modules/relatorios/cache/redis-invalidator';
+import { createRedisConnection } from 'src/redis/redis.provider';
 
 @Module({
   controllers: [AtendimentoController],
@@ -12,6 +15,8 @@ import { RestAPI } from 'src/@rest-api-server/rest-api.service';
     AtendimentoGraphQLAPI,
     RestAPI,
     WinstonLoggerService,
+    RedisInvalidator,
+    { provide: REDIS_CLIENT, useFactory: createRedisConnection },
   ],
   exports: [AtendimentoService],
 })
