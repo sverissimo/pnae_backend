@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 import { RelatorioService } from './relatorios.service';
 import { Relatorio } from 'src/@domain/relatorio/relatorio';
+import { Usuario } from 'src/@domain/usuario/usuario.entity';
+import { PerfilUsuario } from 'src/@domain/usuario/perfil-usuario.enum';
 
 describe('RelatorioService', () => {
   let service: RelatorioService;
@@ -476,6 +478,122 @@ describe('RelatorioService', () => {
         temasAtendimento: '2,3',
         numeroVisita: '6',
       });
+    });
+  });
+
+  describe('RelatorioService.assertCanAccess', () => {
+    const ADMIN_ID = 'admin-1';
+    const STAFF_ID = 'staff-1';
+
+    beforeAll(() => {
+      process.env.ALLOWED_USER_IDS = `${ADMIN_ID},dev-9`;
+    });
+
+    beforeEach(() => {
+      prisma.relatorio.findUnique = jest.fn();
+    });
+
+    it('throws NotFoundException when the row is missing', async () => {
+      prisma.relatorio.findUnique.mockResolvedValue(null);
+      const staff = new Usuario({
+        id_usuario: STAFF_ID,
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
+      });
+      await expect(service.assertCanAccess('1', staff)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('admin gets the row back without hydrating produtor', async () => {
+      prisma.relatorio.findUnique.mockResolvedValue({
+        id: '1',
+        produtorId: '10',
+        tecnicoId: 'someone-else',
+      });
+      const admin = new Usuario({ id_usuario: ADMIN_ID, perfis: [] });
+
+      const result = await service.assertCanAccess('1', admin);
+
+      expect(result).toMatchObject({ id: '1' });
+      expect(
+        (service as any).cachedProdutorReader.findManyById,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('staff sees their own relatorio', async () => {
+      prisma.relatorio.findUnique.mockResolvedValue({
+        id: '1',
+        produtorId: '10',
+        tecnicoId: STAFF_ID,
+      });
+      (
+        (service as any).cachedProdutorReader.findManyById as jest.Mock
+      ).mockResolvedValue([{ id_pessoa_demeter: '10', id_reg_empresa: 'R-1' }]);
+
+      const staff = new Usuario({
+        id_usuario: STAFF_ID,
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
+      });
+      const result = await service.assertCanAccess('1', staff);
+      expect(result).toMatchObject({ id: '1' });
+    });
+
+    it('staff cannot see another tecnico\'s relatorio (404, not 403)', async () => {
+      prisma.relatorio.findUnique.mockResolvedValue({
+        id: '1',
+        produtorId: '10',
+        tecnicoId: 'someone-else',
+      });
+      (
+        (service as any).cachedProdutorReader.findManyById as jest.Mock
+      ).mockResolvedValue([{ id_pessoa_demeter: '10', id_reg_empresa: 'R-1' }]);
+
+      const staff = new Usuario({
+        id_usuario: STAFF_ID,
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
+      });
+      await expect(service.assertCanAccess('1', staff)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('coordenadorRegional sees relatorios in their regional', async () => {
+      prisma.relatorio.findUnique.mockResolvedValue({
+        id: '1',
+        produtorId: '10',
+        tecnicoId: 'someone-else',
+      });
+      (
+        (service as any).cachedProdutorReader.findManyById as jest.Mock
+      ).mockResolvedValue([{ id_pessoa_demeter: '10', id_reg_empresa: 'R-1' }]);
+
+      const coord = new Usuario({
+        id_usuario: 'coord-1',
+        id_reg_empresa: 'R-1',
+        perfis: [PerfilUsuario.ADMINISTRADOR2],
+      });
+      const result = await service.assertCanAccess('1', coord);
+      expect(result).toMatchObject({ id: '1' });
+    });
+
+    it('coordenadorRegional cannot see other regional + non-owned (404)', async () => {
+      prisma.relatorio.findUnique.mockResolvedValue({
+        id: '1',
+        produtorId: '10',
+        tecnicoId: 'someone-else',
+      });
+      (
+        (service as any).cachedProdutorReader.findManyById as jest.Mock
+      ).mockResolvedValue([{ id_pessoa_demeter: '10', id_reg_empresa: 'R-2' }]);
+
+      const coord = new Usuario({
+        id_usuario: 'coord-1',
+        id_reg_empresa: 'R-1',
+        perfis: [PerfilUsuario.ADMINISTRADOR2],
+      });
+      await expect(service.assertCanAccess('1', coord)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

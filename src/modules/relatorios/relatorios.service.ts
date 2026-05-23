@@ -30,6 +30,7 @@ import {
   DashboardRole,
 } from 'src/@domain/relatorio/relatorio-dashboard-stats';
 import { PerfilService } from '../perfil/perfil.service';
+import { canUserSeeRelatorio } from 'src/@domain/relatorio/relatorio-authorization';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -211,31 +212,43 @@ export class RelatorioService {
       return result;
     }
     const scopedResult = (result as RelatorioPresentationModel[]).filter((r) =>
-      this.canUserSeeRelatorio(r, user),
+      canUserSeeRelatorio(r, user),
     );
     return scopedResult;
   }
 
   /**
-   * Post-hydration authorization predicate for /relatorios/all.
-   * - admin / developer       → see everything
-   * - coordenadorRegional     → their regional PLUS their own work
-   *                             (`id_reg_empresa` OR `tecnicoId`)
-   * - staff (extensionista)   → only their own relatorios (`tecnicoId`)
+   * Detail / update / remove visibility check. Fetches the raw row, hydrates
+   * just the produtor (for `id_reg_empresa`), and applies the shared predicate.
+   * Returns the raw Prisma row when visible, throws NotFoundException
+   * otherwise — non-visible and missing rows are indistinguishable.
+   *
+   * Callers must not invoke this when `req.user` is undefined; mobile/static
+   * token requests bypass scope at the controller layer, not by passing a
+   * nullable user here.
    */
-  private canUserSeeRelatorio(
-    r: RelatorioPresentationModel,
-    user: Usuario,
-  ): boolean {
-    if (user.isAdmin() || user.isDeveloper()) return true;
-    const isOwn = String(r.tecnicoId) === String(user.id_usuario);
-    if (user.isCoordenadorRegional()) {
-      const inRegional =
-        !!user.id_reg_empresa && r.id_reg_empresa === user.id_reg_empresa;
-      return inRegional || isOwn;
-    }
-    if (user.isStaff()) return isOwn;
-    return false;
+  async assertCanAccess(id: string, user: Usuario) {
+    const row = await this.prismaService.relatorio.findUnique({
+      where: { id },
+    });
+    if (!row) throw new NotFoundException('Nenhum relatório encontrado');
+
+    if (user.isAdmin() || user.isDeveloper()) return row;
+
+    const produtorId = row.produtorId ? String(row.produtorId) : '';
+    const [produtor] = produtorId
+      ? await this.cachedProdutorReader.findManyById([produtorId])
+      : [];
+
+    const visible = canUserSeeRelatorio(
+      {
+        tecnicoId: row.tecnicoId,
+        id_reg_empresa: produtor?.id_reg_empresa,
+      },
+      user,
+    );
+    if (!visible) throw new NotFoundException('Nenhum relatório encontrado');
+    return row;
   }
 
   async findAll(

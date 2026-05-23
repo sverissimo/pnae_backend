@@ -88,8 +88,16 @@ export class RelatorioController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    const relatorio = await this.relatorioService.findOne(id);
+  async findOne(@Param('id') id: string, @Req() req: Request) {
+    // Mobile authenticates via the static CLIENT_TOKEN, which leaves
+    // `req.user` undefined (see auth.middleware.ts). Web requests carry a
+    // verified JWT and arrive with `req.user` populated. We scope only the
+    // web path so the shipped mobile contract stays byte-for-byte identical.
+    // Do not generalize this `if (req.user)` shape to other endpoints — it
+    // exists here purely to preserve a known dual-client behavior.
+    const relatorio = req.user
+      ? await this.relatorioService.assertCanAccess(id, req.user)
+      : await this.relatorioService.findOne(id);
     if (!relatorio) {
       throw new NotFoundException('Nenhum relatório encontrado');
     }
@@ -126,8 +134,16 @@ export class RelatorioController {
     @Param('id') id: string,
     @UploadedFiles() files: FilesInputDto,
     @Body() update: UpdateRelatorioDto,
+    @Req() req: Request,
   ) {
     try {
+      // Same mobile/web split as `findOne` above — only web (verified JWT)
+      // gets scoped; mobile (static CLIENT_TOKEN, undefined req.user) is left
+      // alone to preserve the shipped contract. Same hard rule applies: do
+      // not generalize this passthrough to other endpoints.
+      if (req.user) {
+        await this.relatorioService.assertCanAccess(id, req.user);
+      }
       await this.relatorioService.update({ ...update, id, files });
       return;
     } catch (error) {
@@ -140,9 +156,17 @@ export class RelatorioController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Req() req: Request) {
     try {
       if (!id) throw new BadRequestException('Id inválido');
+
+      // Same mobile/web split as findOne/update above — only web (verified
+      // JWT) gets scoped; mobile (static CLIENT_TOKEN, undefined req.user) is
+      // left alone to preserve the shipped contract. Do not generalize this
+      // passthrough to other endpoints.
+      if (req.user) {
+        await this.relatorioService.assertCanAccess(id, req.user);
+      }
 
       this.logger.error(`@@@ Called delete on relatorio ${id}`, '');
 
