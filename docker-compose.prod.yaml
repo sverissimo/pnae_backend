@@ -28,7 +28,7 @@ services:
           memory: 4096M
     restart: always
     networks:
-      - pnae_prod_default
+      - pnae_prod
     depends_on:
       - postgres_pnae_prod
       - redis_prod
@@ -44,7 +44,7 @@ services:
       - postgres_data_prod:/var/lib/postgresql/data
     restart: always
     networks:
-      - pnae_prod_default
+      - pnae_prod
 
   redis_prod:
     image: redis:alpine
@@ -52,7 +52,7 @@ services:
     ports:
       - "6399:6379"
     networks:
-      - pnae_prod_default
+      - pnae_prod
     restart: always
 
 volumes:
@@ -60,5 +60,5 @@ volumes:
 
 
 networks:
-  pnae_prod_default:
+  pnae_prod:
     external: true

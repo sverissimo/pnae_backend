@@ -12,7 +12,8 @@ services:
       - postgres_data_hmg:/var/lib/postgresql/data
     restart: always
     networks:
-      - pnae_hmg_default
+      - pnae_hmg
+      - pnae_dev
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -26,7 +27,8 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - pnae_hmg_default
+      - pnae_hmg
+      - pnae_dev
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -41,5 +43,7 @@ volumes:
     name: backend_postgres_data_hmg
 
 networks:
-  pnae_hmg_default:
+  pnae_hmg:
+    external: true
+  pnae_dev:
     external: true

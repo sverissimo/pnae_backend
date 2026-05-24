@@ -21,8 +21,8 @@ services:
           memory: 4096M
     restart: always
     networks:
-      - pnae_hmg_default
+      - pnae_hmg
 
 networks:
-  pnae_hmg_default:
+  pnae_hmg:
     external: true
