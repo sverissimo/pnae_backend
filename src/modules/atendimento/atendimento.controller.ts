@@ -40,18 +40,6 @@ export class AtendimentoController {
     return await this.atendimentoService.findMany(ids);
   }
 
-  @Get('getTemasAtendimento')
-  getTemasAtendimento() {
-    try {
-      return this.atendimentoService.getTemasAtendimento();
-    } catch (error) {
-      this.logger.error(
-        'AtendimentoController:69 ~ getTemasAtendimento :' + error.message,
-        error.trace,
-      );
-    }
-  }
-
   @Get('/getReplacedAtendimentos')
   async getReplacedAtendimentos() {
     try {

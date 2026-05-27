@@ -102,10 +102,10 @@ export class SyncService {
       updateInfoOutput.missingOnClient || []
     ).map((r) => this.stripWebOnlyFields(r));
 
-    console.log(
-      '🚀 - SyncService - getRelatorioSyncData - updateInfoOutput:',
-      updateInfoOutput,
-    );
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🚀 relatorioSyncData - updateInfoOutput:', updateInfoOutput);
+    }
+
     return updateInfoOutput;
   }
 

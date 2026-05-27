@@ -54,10 +54,6 @@ export class AtendimentoService {
     return atendimento;
   }
 
-  getTemasAtendimento() {
-    return this.restAPI.getTemasAtendimento();
-  }
-
   async updateIfNecessary(atendimentoId: string, numero_relatorio: string) {
     const atendimento = await this.findOne(atendimentoId);
     if (!atendimento?.sn_pendencia) {

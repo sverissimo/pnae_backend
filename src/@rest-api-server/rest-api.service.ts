@@ -134,10 +134,6 @@ export class RestAPI {
     return result || [];
   }
 
-  getTemasAtendimento() {
-    return this.get(`${this.url}/api/getTemasAtendimento`);
-  }
-
   getReplacedAtendimentos() {
     return this.get(`${this.url}/api/getReplacedAtendimentos`);
   }
