@@ -38,7 +38,7 @@ export const atendimentosQuery = gql`
       link_pdf
       data_criacao
       sn_pendencia
-      sn_validacao
+      sn_validado
       id_und_empresa
       fk_und_empresa
       at_atendimento_usuario {

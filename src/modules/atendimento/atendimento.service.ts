@@ -34,7 +34,7 @@ export class AtendimentoService {
     const atendimentos = await this.graphQLAPI.findMany(ids);
     const parsedAtendimentos = atendimentos.map((atendimento) => {
       const { at_atendimento_usuario } = atendimento;
-      const { usuario } = at_atendimento_usuario && at_atendimento_usuario[0];
+      const usuario = at_atendimento_usuario?.[0]?.usuario;
 
       return {
         ...atendimento,

@@ -16,7 +16,7 @@ export type RelatorioModel = {
   coordenadas?: string;
   readOnly: boolean;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt?: string | null;
   comercializaPnae?: boolean;
   produtoTratado?: string;
   grauInteresse?: GrauInteresse;

@@ -15,6 +15,7 @@ export class ProdutorDataMapper {
 
     const { pl_propriedade } = perfis[0]?.at_prf_see_propriedade[0] || {};
     const { regional_sre } = pl_propriedade || {};
+    const propriedade_coords = pl_propriedade?.geo_ponto_texto;
 
     const municipio =
       pl_propriedade?.municipio?.nm_municipio ?? 'mun_nao_encontrado';
@@ -31,6 +32,7 @@ export class ProdutorDataMapper {
       id_reg_empresa,
       nm_und_empresa,
       regional_sre,
+      propriedade_coords,
     };
   }
 }

@@ -7,4 +7,5 @@ export interface ProdutorFindManyOutputDTO {
   nm_und_empresa?: string;
   municipio: string;
   regional_sre?: string;
+  propriedade_coords?: string;
 }

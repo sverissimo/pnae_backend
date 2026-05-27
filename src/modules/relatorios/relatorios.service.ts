@@ -166,7 +166,7 @@ export class RelatorioService {
       regionais: regionais ?? [],
       role,
       regionalLabel,
-      topTecnicosLimit: 20,
+      topTecnicosLimit: 100,
       topSREsLimit: 10,
     });
   }

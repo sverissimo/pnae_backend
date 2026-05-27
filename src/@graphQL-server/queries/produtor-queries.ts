@@ -160,6 +160,7 @@ export const produtoresQuery = gql`
               nm_municipio
             }
             regional_sre
+            geo_ponto_texto
             ger_und_empresa {
               id_und_empresa
               fk_und_empresa

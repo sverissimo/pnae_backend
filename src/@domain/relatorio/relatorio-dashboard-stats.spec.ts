@@ -4,9 +4,9 @@ import {
   buildSummary,
   buildTopSREs,
   buildTopTecnicos,
-  buildTopTecnicosAprovados,
   DashboardRelatorioInput,
   formatRegionalName,
+  isAprovado,
 } from './relatorio-dashboard-stats';
 
 const today = new Date();
@@ -52,6 +52,49 @@ describe('relatorio-dashboard-stats', () => {
       expect(summary.relatoriosCreatedToday).toBe(1);
       expect(summary.semAprovacaoRegional).toBe(2);
     });
+
+    it('excludes data_validacao with sn_pendencia=1 from approvedRegional (matches isAprovado)', () => {
+      const summary = buildSummary([
+        { ...baseRelatorio, data_validacao: '2026-01-01', sn_pendencia: 0 },
+        { ...baseRelatorio, data_validacao: '2026-01-01', sn_pendencia: 1 },
+        { ...baseRelatorio, data_validacao: '2026-01-01', sn_pendencia: null },
+      ]);
+
+      expect(summary.totalRelatorios).toBe(3);
+      expect(summary.approvedRegional).toBe(2);
+      expect(summary.semAprovacaoRegional).toBe(1);
+    });
+
+    it('counts sn_validado=1 as approved even when sn_pendencia=1 (validado overrides pendência)', () => {
+      const summary = buildSummary([
+        { ...baseRelatorio, data_validacao: '2026-01-01', sn_pendencia: 1, sn_validado: 1 },
+        { ...baseRelatorio, data_validacao: '2026-01-01', sn_pendencia: 1, sn_validado: 0 },
+        { ...baseRelatorio, sn_validado: 1 },
+      ]);
+
+      expect(summary.totalRelatorios).toBe(3);
+      expect(summary.approvedRegional).toBe(2);
+      expect(summary.semAprovacaoRegional).toBe(1);
+    });
+  });
+
+  describe('isAprovado', () => {
+    it('covers the legacy edge case and the validado-overrides-pendência rule', () => {
+      // Legacy edge case: data_validacao set, sn_validado=0, no pendência → approved.
+      expect(
+        isAprovado({ data_validacao: '2026-01-01', sn_pendencia: 0, sn_validado: 0 }),
+      ).toBe(true);
+      // sn_validado=1 alone wins, even with sn_pendencia=1.
+      expect(
+        isAprovado({ data_validacao: null, sn_pendencia: 1, sn_validado: 1 }),
+      ).toBe(true);
+      // data_validacao set, sn_pendencia=1, sn_validado=0 → not approved.
+      expect(
+        isAprovado({ data_validacao: '2026-01-01', sn_pendencia: 1, sn_validado: 0 }),
+      ).toBe(false);
+      // Brand new: nothing set → not approved.
+      expect(isAprovado({})).toBe(false);
+    });
   });
 
   describe('buildTopSREs / buildTopTecnicos', () => {
@@ -65,27 +108,38 @@ describe('relatorio-dashboard-stats', () => {
         { sre: 'SRE-A', visitas: 2 },
         { sre: 'SRE-B', visitas: 1 },
       ]);
-      expect(buildTopTecnicos(data, 1)).toEqual([{ tecnico: 'Alice', visitas: 2 }]);
+      expect(buildTopTecnicos(data, 1)).toEqual([
+        { tecnico: 'Alice', total: 2, aprovados: 0 },
+      ]);
+    });
+
+    it('ranks tecnicos by aprovados desc, then total desc', () => {
+      const data: DashboardRelatorioInput[] = [
+        // Alice: 3 total, 1 aprovado
+        { ...baseRelatorio, usuario: 'Alice', data_validacao: '2026-01-01' },
+        { ...baseRelatorio, usuario: 'Alice' },
+        { ...baseRelatorio, usuario: 'Alice' },
+        // Bob: 2 total, 2 aprovados
+        { ...baseRelatorio, usuario: 'Bob', data_validacao: '2026-01-01' },
+        { ...baseRelatorio, usuario: 'Bob', data_validacao: '2026-01-01' },
+        // Carol: 2 total, 1 aprovado (tiebreaker on total against Alice loses)
+        { ...baseRelatorio, usuario: 'Carol', data_validacao: '2026-01-01' },
+        { ...baseRelatorio, usuario: 'Carol' },
+      ];
+      expect(buildTopTecnicos(data, 10)).toEqual([
+        { tecnico: 'Bob', total: 2, aprovados: 2 },
+        { tecnico: 'Alice', total: 3, aprovados: 1 },
+        { tecnico: 'Carol', total: 2, aprovados: 1 },
+      ]);
     });
   });
 
-  describe('buildTopTecnicosAprovados', () => {
-    it('only counts relatorios with data_validacao and no sn_pendencia', () => {
-      const data: DashboardRelatorioInput[] = [
-        // approved
-        { ...baseRelatorio, usuario: 'Alice', data_validacao: '2026-01-01', sn_pendencia: 0 },
-        { ...baseRelatorio, usuario: 'Alice', data_validacao: '2026-01-02', sn_pendencia: null },
-        // not validated
-        { ...baseRelatorio, usuario: 'Alice', data_validacao: null },
-        // validated but pending
-        { ...baseRelatorio, usuario: 'Bob', data_validacao: '2026-01-03', sn_pendencia: 1 },
-        // approved Bob
-        { ...baseRelatorio, usuario: 'Bob', data_validacao: '2026-01-04', sn_pendencia: 0 },
-      ];
-      expect(buildTopTecnicosAprovados(data, 10)).toEqual([
-        { tecnico: 'Alice', visitas: 2 },
-        { tecnico: 'Bob', visitas: 1 },
-      ]);
+  describe('isAprovado', () => {
+    it('requires data_validacao and falsy sn_pendencia', () => {
+      expect(isAprovado({ ...baseRelatorio, data_validacao: '2026-01-01', sn_pendencia: 0 })).toBe(true);
+      expect(isAprovado({ ...baseRelatorio, data_validacao: '2026-01-01', sn_pendencia: null })).toBe(true);
+      expect(isAprovado({ ...baseRelatorio, data_validacao: null })).toBe(false);
+      expect(isAprovado({ ...baseRelatorio, data_validacao: '2026-01-01', sn_pendencia: 1 })).toBe(false);
     });
   });
 
@@ -104,11 +158,41 @@ describe('relatorio-dashboard-stats', () => {
         ],
       );
 
-      const byName = Object.fromEntries(result.map((r) => [r.regional, r.count]));
-      expect(byName['Uberlândia']).toBe(2);
-      expect(byName['Montes Claros']).toBe(1);
-      expect(byName['Pouso Alegre']).toBe(0);
+      const byName = Object.fromEntries(
+        result.map((r) => [r.regional, { total: r.total, aprovados: r.aprovados }]),
+      );
+      expect(byName['Uberlândia']).toEqual({ total: 2, aprovados: 0 });
+      expect(byName['Montes Claros']).toEqual({ total: 1, aprovados: 0 });
+      expect(byName['Pouso Alegre']).toEqual({ total: 0, aprovados: 0 });
       expect(byName['Bambuí']).toBeUndefined();
+    });
+
+    it('counts aprovados per regional and ranks by aprovados desc, total desc', () => {
+      const result = buildRelatoriosByRegional(
+        [
+          {
+            ...baseRelatorio,
+            nm_und_empresa: 'Unidade Regional de Uberlândia',
+            data_validacao: '2026-01-01',
+          },
+          { ...baseRelatorio, nm_und_empresa: 'Unidade Regional de Uberlândia' },
+          {
+            ...baseRelatorio,
+            nm_und_empresa: 'Unidade Regional de Montes Claros',
+            data_validacao: '2026-01-01',
+          },
+          {
+            ...baseRelatorio,
+            nm_und_empresa: 'Unidade Regional de Montes Claros',
+            data_validacao: '2026-01-01',
+          },
+        ],
+        [],
+      );
+      expect(result).toEqual([
+        { regional: 'Montes Claros', total: 2, aprovados: 2 },
+        { regional: 'Uberlândia', total: 2, aprovados: 1 },
+      ]);
     });
   });
 
@@ -130,6 +214,8 @@ describe('relatorio-dashboard-stats', () => {
         usuario: 'Alice',
         regional_sre: 'SRE-A',
         nm_und_empresa: 'Unidade Regional de Uberlândia',
+        data_validacao: '2026-01-01',
+        sn_pendencia: 0,
       },
       {
         ...baseRelatorio,
@@ -153,8 +239,14 @@ describe('relatorio-dashboard-stats', () => {
 
       expect(out.summary.totalRelatorios).toBe(1);
       expect(out.topSREs).toBeNull();
-      expect(out.topTecnicos).toHaveLength(2);
-      expect(out.relatoriosByRegional).toHaveLength(2);
+      expect(out.topTecnicos).toEqual([
+        { tecnico: 'Alice', total: 1, aprovados: 1 },
+        { tecnico: 'Bob', total: 1, aprovados: 0 },
+      ]);
+      expect(out.relatoriosByRegional).toEqual([
+        { regional: 'Uberlândia', total: 1, aprovados: 1 },
+        { regional: 'Montes Claros', total: 1, aprovados: 0 },
+      ]);
       expect(out.lineChart.seriesField).toBe('data_sei');
       expect(out.scope.regionalLabel).toBe('Uberlândia');
     });

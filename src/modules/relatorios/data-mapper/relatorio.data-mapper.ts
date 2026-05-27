@@ -28,6 +28,7 @@ export class RelatorioDataMapper {
       this.checkAndUpdateReadOnly(r, atendimento);
       return {
         ...r,
+        updatedAt: r.updatedAt || null,
         ...(produtor || {}),
         ...(atendimento || {}),
       };

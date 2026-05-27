@@ -5,6 +5,7 @@ export type DashboardRelatorioInput = {
   data_see?: string | null;
   dt_export_ok?: string | null;
   sn_pendencia?: number | null;
+  sn_validado?: number | null;
   regional_sre?: string | null;
   usuario?: string | null;
   nm_und_empresa?: string | null;
@@ -45,15 +46,25 @@ export type DashboardLineChart = {
 export type DashboardData = {
   summary: DashboardSummary;
   topSREs: { sre: string; visitas: number }[] | null;
-  topTecnicos: { tecnico: string; visitas: number }[];
-  topTecnicosAprovados: { tecnico: string; visitas: number }[];
-  relatoriosByRegional: { regional: string; count: number }[];
+  topTecnicos: { tecnico: string; total: number; aprovados: number }[];
+  relatoriosByRegional: {
+    regional: string;
+    total: number;
+    aprovados: number;
+  }[];
   lineChart: DashboardLineChart;
   scope: {
     role: 'admin' | 'coordenadorRegional' | 'staff' | 'other';
     regionalLabel: string | null;
   };
 };
+
+// Approval rule (covers a legacy DB edge case):
+// - sn_validado=1 alone means approved (it overrides a sn_pendencia=1).
+// - sn_validado=0 + data_validacao present + no pendência is also approved
+//   (legacy rows where the validation timestamp was set without sn_validado being raised).
+export const isAprovado = (r: DashboardRelatorioInput): boolean =>
+  r.sn_validado === 1 || (!!r.data_validacao && !r.sn_pendencia);
 
 type RegionalInput = { nm_und_empresa: string; id_und_empresa?: string };
 
@@ -87,7 +98,7 @@ export function buildSummary(
 
   for (const r of relatorios) {
     summary.totalRelatorios += 1;
-    if (r.data_validacao) summary.approvedRegional += 1;
+    if (isAprovado(r)) summary.approvedRegional += 1;
     if (r.data_sei) summary.approvedDetec += 1;
     if (r.data_see) summary.approvedSEE += 1;
     if (r.dt_export_ok) summary.exportedSEI += 1;
@@ -120,53 +131,59 @@ export function buildTopSREs(
 export function buildTopTecnicos(
   relatorios: DashboardRelatorioInput[],
   limit: number,
-  predicate?: (r: DashboardRelatorioInput) => boolean,
-): { tecnico: string; visitas: number }[] {
-  const map = new Map<string, number>();
+): { tecnico: string; total: number; aprovados: number }[] {
+  const totals = new Map<string, number>();
+  const aprovados = new Map<string, number>();
   for (const r of relatorios) {
-    if (predicate && !predicate(r)) continue;
-    if (r.usuario) {
-      map.set(r.usuario, (map.get(r.usuario) ?? 0) + 1);
+    if (!r.usuario) continue;
+    totals.set(r.usuario, (totals.get(r.usuario) ?? 0) + 1);
+    if (isAprovado(r)) {
+      aprovados.set(r.usuario, (aprovados.get(r.usuario) ?? 0) + 1);
     }
   }
-  return [...map.entries()]
-    .map(([tecnico, visitas]) => ({ tecnico, visitas }))
-    .sort((a, b) => b.visitas - a.visitas)
+  return [...totals.entries()]
+    .map(([tecnico, total]) => ({
+      tecnico,
+      total,
+      aprovados: aprovados.get(tecnico) ?? 0,
+    }))
+    // Default order for non-toggle consumers; the web dashboard may resort by `total` via RankSortToggle.
+    .sort((a, b) => b.aprovados - a.aprovados || b.total - a.total)
     .slice(0, limit);
-}
-
-export function buildTopTecnicosAprovados(
-  relatorios: DashboardRelatorioInput[],
-  limit: number,
-): { tecnico: string; visitas: number }[] {
-  return buildTopTecnicos(
-    relatorios,
-    limit,
-    (r) => !!r.data_validacao && !r.sn_pendencia,
-  );
 }
 
 export function buildRelatoriosByRegional(
   relatorios: DashboardRelatorioInput[],
   regionais: RegionalInput[],
-): { regional: string; count: number }[] {
-  const counts: Record<string, number> = {};
+): { regional: string; total: number; aprovados: number }[] {
+  const totals: Record<string, number> = {};
+  const aprovados: Record<string, number> = {};
 
   for (const r of relatorios) {
     const name = formatRegionalName(r.nm_und_empresa);
-    if (name) counts[name] = (counts[name] ?? 0) + 1;
+    if (!name) continue;
+    totals[name] = (totals[name] ?? 0) + 1;
+    if (isAprovado(r)) {
+      aprovados[name] = (aprovados[name] ?? 0) + 1;
+    }
   }
 
   for (const r of regionais) {
     if (!isRealRegional(r)) continue;
     const name = formatRegionalName(r.nm_und_empresa);
-    if (name && !(name in counts)) counts[name] = 0;
+    if (name && !(name in totals)) totals[name] = 0;
   }
 
-  return Object.entries(counts)
-    .map(([regional, count]) => ({ regional, count }))
+  return Object.entries(totals)
+    .map(([regional, total]) => ({
+      regional,
+      total,
+      aprovados: aprovados[regional] ?? 0,
+    }))
+    // Alphabetical base, then aprovados-first — default order for non-toggle consumers;
+    // the web dashboard may resort by `total` via RankSortToggle.
     .sort((a, b) => a.regional.localeCompare(b.regional))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => b.aprovados - a.aprovados || b.total - a.total);
 }
 
 function countByDay(
@@ -200,7 +217,9 @@ export function buildLineChart(
   const seriesField: 'data_sei' | 'data_see' = isAdminView
     ? 'data_see'
     : 'data_sei';
-  const seriesName = isAdminView ? 'Aprovados pela SEE' : 'Aprovados pelo DETEC';
+  const seriesName = isAdminView
+    ? 'Aprovados pela SEE'
+    : 'Aprovados pelo DETEC';
 
   const categories: string[] = Array.from({ length: LINE_CHART_DAYS }, (_, i) =>
     new Date(
@@ -244,10 +263,6 @@ export function buildDashboardData(input: {
     summary: buildSummary(scopedRelatorios),
     topSREs: isAdminView ? buildTopSREs(fullRelatorios, topSREsLimit) : null,
     topTecnicos: buildTopTecnicos(fullRelatorios, topTecnicosLimit),
-    topTecnicosAprovados: buildTopTecnicosAprovados(
-      scopedRelatorios,
-      topTecnicosLimit,
-    ),
     relatoriosByRegional: buildRelatoriosByRegional(fullRelatorios, regionais),
     lineChart: buildLineChart(scopedRelatorios, isAdminView),
     scope: { role, regionalLabel },

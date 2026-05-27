@@ -19,6 +19,7 @@ interface PropriedadeEntry {
     municipio: { nm_municipio: string };
     ger_und_empresa: GerUndEmpresa;
     regional_sre?: string;
+    geo_ponto_texto?: string;
   };
 }
 

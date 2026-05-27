@@ -11,6 +11,7 @@ export interface RelatorioPresentationModel extends RelatorioModel {
   id_und_empresa?: string;
   id_reg_empresa?: string;
   fk_und_empresa: string;
+  propriedade_coords?: string;
 
   id_at_atendimento: string;
   ativo: boolean;
@@ -21,6 +22,6 @@ export interface RelatorioPresentationModel extends RelatorioModel {
   data_validacao: string | null;
   dt_export_ok: string | null;
   sn_pendencia: number | null;
-  sn_validacao: number | null;
+  sn_validado: number | null;
   usuario: string;
 }

@@ -6,7 +6,7 @@ export const CACHE_KEYS = {
 
 export const CACHE_TTLS = {
   produtor: 60 * 60 * 24,
-  atendimento: 30,
+  atendimento: 45,
   regionaisEmater: 60 * 60 * 24,
 } as const;
 
