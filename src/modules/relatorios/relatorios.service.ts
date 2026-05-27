@@ -23,6 +23,7 @@ import { RelatorioDataMapper } from './data-mapper/relatorio.data-mapper';
 import { ProdutorModel } from 'src/@domain/produtor/produtor-model';
 import { CachedProdutorReader } from './cache/cached-produtor.reader';
 import { CachedAtendimentoReader } from './cache/cached-atendimento.reader';
+import { CachedReplacedAtendimentosReader } from './cache/cached-replaced-atendimentos.reader';
 import { RelatorioPresentationModel } from './dto/relatorio.presentation-model';
 import {
   buildDashboardData,
@@ -45,6 +46,7 @@ export class RelatorioService {
     private readonly perfilService: PerfilService,
     private readonly cachedProdutorReader: CachedProdutorReader,
     private readonly cachedAtendimentoReader: CachedAtendimentoReader,
+    private readonly cachedReplacedAtendimentosReader: CachedReplacedAtendimentosReader,
   ) {}
 
   async create(relatorioInput: RelatorioModel, files?: FilesInputDto) {
@@ -264,7 +266,13 @@ export class RelatorioService {
     if (!relatorios || relatorios.length === 0) return [];
 
     const relatorioModels = relatorios.map(Relatorio.toModel);
-    const updatedRelatorios = await this.updateAtendimentoIds(relatorioModels);
+    // Web hot path (expand) reads the replacement mapping from the short-TTL
+    // cache; every other caller (incl. mobile via findMany, export ZIP) stays
+    // on the live REST path — see updateAtendimentoIds.
+    const updatedRelatorios = await this.updateAtendimentoIds(
+      relatorioModels,
+      options.expand,
+    );
     const parsedRelatorios = updatedRelatorios || relatorioModels;
 
     if (!options.expand) return parsedRelatorios;
@@ -444,9 +452,19 @@ export class RelatorioService {
     }
   }
 
-  private async updateAtendimentoIds(relatorios: RelatorioModel[]) {
-    const replacedAtendimentos =
-      (await this.atendimentoService.getReplacedAtendimentos()) as AtendimentoUpdate[];
+  /**
+   * `useCache` is set ONLY by the web hot path (`findAll` with `expand: true`).
+   * Mobile (`findMany`) and the export ZIP path leave it false and fetch the
+   * replacement mapping live, so they observe no value drift — see
+   * CachedReplacedAtendimentosReader for the mobile-contract rationale.
+   */
+  private async updateAtendimentoIds(
+    relatorios: RelatorioModel[],
+    useCache = false,
+  ) {
+    const replacedAtendimentos = useCache
+      ? await this.cachedReplacedAtendimentosReader.get()
+      : ((await this.atendimentoService.getReplacedAtendimentos()) as AtendimentoUpdate[]);
     if (!replacedAtendimentos?.length) {
       return;
     }

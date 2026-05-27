@@ -121,7 +121,7 @@ New endpoints added from now on that are classic HTTP controller endpoints consu
 - **Imports:** there are no path aliases — `tsconfig.json` only sets `baseUrl: "./"`, so absolute imports look like `src/modules/...` / `src/@domain/...`. Prefer those over deep relative paths (`../../..`).
 - **Tests:** `*.spec.ts` colocated with the file under test, run with `npm test`. Domain services have the heaviest coverage and are the place to add tests when changing sync/merge logic.
 - **External services:** all GraphQL/REST calls go through `@graphQL-server/` or `@rest-api-server/` services. Don't `fetch` directly from a module service.
-- **Caching:** `/relatorios/all` and `/relatorios/dashboard` hydrate through two narrow Redis-backed readers in [src/modules/relatorios/cache/](src/modules/relatorios/cache/) — `CachedProdutorReader` (24h TTL) and `CachedAtendimentoReader` (30s TTL + tombstone for upstream-absent IDs). `AtendimentoService` mutations bust via `RedisInvalidator`. Cache lives inside `hydrateRelatorios` only; mobile routes never touch it. Full contract: [docs/plans/relatorios-caching-plan.md](docs/plans/relatorios-caching-plan.md).
+- **Caching:** `/relatorios/all` and `/relatorios/dashboard` hydrate through narrow Redis-backed readers in [src/modules/relatorios/cache/](src/modules/relatorios/cache/) — `CachedProdutorReader` (24h TTL), `CachedAtendimentoReader` (90s TTL + tombstone for upstream-absent IDs), and `CachedReplacedAtendimentosReader` (3m TTL, web hot path only). `AtendimentoService` mutations bust via `RedisInvalidator`. Cache lives inside hot-path hydration only; mobile routes never touch it. Full contract: [docs/plans/relatorios-caching-plan.md](docs/plans/relatorios-caching-plan.md).
 
 ## Development environment
 

@@ -97,7 +97,7 @@ Same reader shape as Phase 1, scoped tightly to the hydration path:
 - Class [`CachedAtendimentoReader`](../../src/modules/relatorios/cache/cached-atendimento.reader.ts) exposing exactly one method: `findMany(ids: string[]): Promise<AtendimentoModel[]>`.
 - Internally injects `AtendimentoService` and the Redis client.
 - **Key:** `atendimento:v1:{id_at_atendimento}` → JSON payload (post-mapping shape returned by `AtendimentoService.findMany`). Same `v1` schema-version convention as Phase 1.
-- **TTL:** 45 seconds.
+- **TTL:** 90 seconds.
 - **Lookup / SETEX / single-flight:** same pattern as `CachedProdutorReader`.
 
 #### Invalidation — `RedisInvalidator`
@@ -124,13 +124,13 @@ Mutation hooks that bust in `AtendimentoService`:
 
 Methods that deliberately do **not** bust: `create` (returns a brand-new ID that cannot already be in cache) and `updateIfNecessary` (calls `logicRemove` on the old ID — covered transitively — and `createAtendimento` on a fresh ID).
 
-Even with a 45s TTL, the explicit busts matter because a user editing a relatório-linked atendimento on the web will refresh the dashboard within seconds and expect the new state.
+Even with a 90s TTL, the explicit busts matter because a user editing a relatório-linked atendimento on the web will refresh the dashboard within seconds and expect the new state.
 
 #### Tombstone for upstream-absent IDs
 
 Relatórios can reference `atendimentoIds` whose upstream rows are `ativo: false` (logic-removed). Those IDs return empty from `AtendimentoService.findMany`, so a positive-only cache stores nothing for them and re-queries every call, defeating the cache for that slice.
 
-The reader SETEXes a `__nil__` sentinel for any requested ID the upstream did not return. On read, sentinels are skipped silently and counted as `tombstoned=N` in the log line. Tombstone TTL matches the data TTL (45s) — lifecycle alignment over the conventional longer negative-cache window, because the intra-window saving wasn't worth the extra reasoning surface. `RedisInvalidator.invalidate` `DEL`s the key regardless of contents, so a real atendimento that later reappears is unblocked by the next mutation through the hooks above; in the meantime worst-case staleness is the 45s TTL.
+The reader SETEXes a `__nil__` sentinel for any requested ID the upstream did not return. On read, sentinels are skipped silently and counted as `tombstoned=N` in the log line. Tombstone TTL matches the data TTL (90s) — lifecycle alignment over the conventional longer negative-cache window, because the intra-window saving wasn't worth the extra reasoning surface. `RedisInvalidator.invalidate` `DEL`s the key regardless of contents, so a real atendimento that later reappears is unblocked by the next mutation through the hooks above; in the meantime worst-case staleness is the 90s TTL.
 
 Tombstones are not applied to produtor — see §2.2.
 
@@ -281,10 +281,10 @@ Phase 2's invalidation hooks run *after* the upstream mutation succeeds and neve
 | **Cold-start stampede.** First dashboard hits after deploy could trigger N concurrent upstream fetches for the same ID set. | In-process single-flight (Promise dedup keyed by sorted ID set) inside each reader. |
 | **Redis down.** | Every cache op wrapped in try/catch; on error → log via `WinstonLoggerService` + fall through to the underlying service. Reads degrade to today's latency, not to 5xx. |
 | **Stale produtor data.** | 24h TTL means an upstream edit shows up here within a day. Acceptable per churn profile; tunable. |
-| **Stale atendimento data.** | 45s TTL + explicit busts in `AtendimentoService` mutation methods. |
+| **Stale atendimento data.** | 90s TTL + explicit busts in `AtendimentoService` mutation methods. |
 | **Memory.** | 10k produtores × ~500 B ≈ 5 MB. 10k atendimentos × similar. Trivial for Redis. |
 | **MGET blocking.** | At ≤10k keys, server-side MGET is single-digit ms. If we ever exceed ~5k keys per call, chunk via `pipeline`. |
-| **Orphan atendimentoIds (logic-removed upstream).** | Tombstone with sentinel `__nil__`, 45s TTL. Counted as `tombstoned=N` in the log line. |
+| **Orphan atendimentoIds (logic-removed upstream).** | Tombstone with sentinel `__nil__`, 90s TTL. Counted as `tombstoned=N` in the log line. |
 
 ---
 
@@ -294,7 +294,7 @@ Phase 2's invalidation hooks run *after* the upstream mutation succeeds and neve
 |---|---|
 | Phase 0 — structured instrumentation envelope | **Skipped.** Replaced by one log line per reader call. |
 | Phase 1 — `CachedProdutorReader` (24h TTL, no tombstone) | **Shipped.** Wired into `hydrateRelatorios`. |
-| Phase 2 — `CachedAtendimentoReader` (45s TTL, tombstone for upstream-absent IDs) | **Shipped.** Wired into `hydrateRelatorios`. |
+| Phase 2 — `CachedAtendimentoReader` (90s TTL, tombstone for upstream-absent IDs) | **Shipped.** Wired into `hydrateRelatorios`. |
 | Phase 2 — `RedisInvalidator` bust hooks in `AtendimentoService` | **Shipped.** Three hooks: `update` (covers `logicRemove` + `fixDatesIfNeeded` transitively), `updateTemasAndVisita`, `setAtendimentosExportDate`. |
 | Payload trim — `omit: { orientacao: true }` when `expand: true` | **Shipped.** Affects only `/relatorios/all` and `/relatorios/dashboard`. |
 | `getRegionaisEmater` single-key cache (24h TTL) | **Shipped.** Inline in `PerfilService.getRegionaisEmater`. Benefits both the `/dashboard` hot path and the direct `GET /perfil/getRegionaisEmater` endpoint. |

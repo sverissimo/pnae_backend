@@ -14,6 +14,7 @@ import { ZipWorkerService } from './workers/zip.worker.service';
 import { PerfilModule } from '../perfil/perfil.module';
 import { CachedProdutorReader } from './cache/cached-produtor.reader';
 import { CachedAtendimentoReader } from './cache/cached-atendimento.reader';
+import { CachedReplacedAtendimentosReader } from './cache/cached-replaced-atendimentos.reader';
 import { REDIS_CLIENT } from './cache/cache.constants';
 import { createRedisConnection } from 'src/redis/redis.provider';
 
@@ -28,6 +29,7 @@ import { createRedisConnection } from 'src/redis/redis.provider';
     ZipWorkerService,
     CachedProdutorReader,
     CachedAtendimentoReader,
+    CachedReplacedAtendimentosReader,
     { provide: REDIS_CLIENT, useFactory: createRedisConnection },
     { provide: UsuarioGraphQLAPI, useClass: UsuarioGraphQLAPI },
     { provide: RestAPI, useClass: RestAPI },

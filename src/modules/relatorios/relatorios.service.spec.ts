@@ -42,6 +42,7 @@ describe('RelatorioService', () => {
       logicRemove: jest.fn(),
       fixDatesIfNeeded: jest.fn(),
       updateTemasAndVisita: jest.fn(),
+      getReplacedAtendimentos: jest.fn().mockResolvedValue([]),
     };
     fileService = { save: jest.fn(), update: jest.fn() };
     restAPI = { getReadOnlyRelatorios: jest.fn() };
@@ -56,10 +57,12 @@ describe('RelatorioService', () => {
       { getRegionaisEmater: jest.fn() } as any,
       { findManyById: jest.fn().mockResolvedValue([]) } as any,
       { findMany: jest.fn().mockResolvedValue([]) } as any,
+      { get: jest.fn().mockResolvedValue([]) } as any,
     );
 
     service.findMany = jest.fn();
     prisma.relatorio.delete = jest.fn();
+    prisma.relatorio.findMany = jest.fn();
 
     service.checkForDuplicateRelatorios = jest
       .fn()
@@ -478,6 +481,55 @@ describe('RelatorioService', () => {
         temasAtendimento: '2,3',
         numeroVisita: '6',
       });
+    });
+  });
+
+  describe('RelatorioService.findAll replacement mapping cache boundary', () => {
+    const prismaRelatorio = {
+      id: '1',
+      contratoId: 2,
+      numeroRelatorio: 3,
+      readOnly: false,
+      atendimentoId: BigInt(55),
+      produtorId: BigInt(10),
+      tecnicoId: BigInt(20),
+      createdAt: new Date('2025-10-01T00:00:00.000Z'),
+      updatedAt: new Date('2025-10-01T00:00:00.000Z'),
+    };
+
+    it('uses the cached replacement reader only for expanded web hot-path reads', async () => {
+      prisma.relatorio.findMany.mockResolvedValue([prismaRelatorio]);
+      (service as any).cachedReplacedAtendimentosReader.get.mockResolvedValue([
+        { atendimentoAnteriorId: '55', atendimentoId: '99' },
+      ]);
+
+      const result = await service.findAll({ contratoId: 2 }, { expand: true });
+
+      expect(
+        (service as any).cachedReplacedAtendimentosReader.get,
+      ).toHaveBeenCalledTimes(1);
+      expect(atendimentoService.getReplacedAtendimentos).not.toHaveBeenCalled();
+      expect(
+        (service as any).cachedAtendimentoReader.findMany,
+      ).toHaveBeenCalledWith(['99']);
+      expect(result[0]).toMatchObject({ atendimentoId: '99' });
+    });
+
+    it('keeps non-expanded callers on the live replacement mapping path', async () => {
+      prisma.relatorio.findMany.mockResolvedValue([prismaRelatorio]);
+      atendimentoService.getReplacedAtendimentos.mockResolvedValue([
+        { atendimentoAnteriorId: '55', atendimentoId: '99' },
+      ]);
+
+      const result = await service.findAll({ contratoId: 2 }, { expand: false });
+
+      expect(
+        (service as any).cachedReplacedAtendimentosReader.get,
+      ).not.toHaveBeenCalled();
+      expect(atendimentoService.getReplacedAtendimentos).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(result[0]).toMatchObject({ atendimentoId: '99' });
     });
   });
 
