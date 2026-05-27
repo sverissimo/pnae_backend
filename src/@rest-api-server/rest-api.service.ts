@@ -138,6 +138,38 @@ export class RestAPI {
     return this.get(`${this.url}/api/getReplacedAtendimentos`);
   }
 
+  async aprovarAtendimento(atendimentoId: string): Promise<void> {
+    await this.patchAtendimentoValidacao('aprovarAtendimento', atendimentoId);
+  }
+
+  async criarPendenciaAtendimento(atendimentoId: string): Promise<void> {
+    await this.patchAtendimentoValidacao(
+      'criarPendenciaAtendimento',
+      atendimentoId,
+    );
+  }
+
+  // One private caller — the two routes are exact inverses, same as the gateway
+  // collapsing them into a single setValidacaoStatus repo method. Unlike
+  // updateTemasAndVisitaAtendimento (a fire-and-forget side-sync), this is the
+  // coordenador's primary action, so failures must surface to the controller.
+  private async patchAtendimentoValidacao(
+    route: 'aprovarAtendimento' | 'criarPendenciaAtendimento',
+    atendimentoId: string,
+  ): Promise<void> {
+    const res = await fetch(`${this.url}/api/${route}/${atendimentoId}`, {
+      method: 'PATCH',
+      headers: this.headers,
+    });
+    if (!res.ok) {
+      const error = new Error(
+        `[RestAPI] ${route}/${atendimentoId} failed: ${res.status}`,
+      );
+      (error as Error & { status: number }).status = res.status;
+      throw error;
+    }
+  }
+
   async updateTemasAndVisitaAtendimento({
     atendimentoId,
     temasAtendimento,

@@ -111,6 +111,8 @@ New endpoints added from now on that are classic HTTP controller endpoints consu
 <!-- Add new entries below as `- METHOD /path — short purpose` -->
 
 - GET /relatorios/dashboard — aggregated stats for the web dashboard page (summary gauges, top SREs/tecnicos, by-regional, 30-day line chart). Role-aware via `req.user` only — no query params. Mirrors the scoping rules of `RelatorioService.getAuthorizedRelatorios` for the per-user portion (gauges + 30-day line chart) while always using the full hydrated set for the global tops and by-regional chart.
+- PATCH /relatorios/:relatorioId/atendimento/:atendimentoId/aprovar — coordenador-regional-only. Authorizes via `req.user.isCoordenadorRegional()`, then `RelatorioService.assertCanAccess(relatorioId, req.user)`, then asserts the relatório's `atendimentoId` matches the path id (IDOR guard) before forwarding to the gateway `PATCH /api/aprovarAtendimento/:id`. Empty body — id is in the path. Busts the atendimento cache.
+- PATCH /relatorios/:relatorioId/atendimento/:atendimentoId/pendencia — same authorization and shape as the aprovar route above; forwards to the gateway `PATCH /api/criarPendenciaAtendimento/:id`.
 
 ## Conventions worth respecting
 

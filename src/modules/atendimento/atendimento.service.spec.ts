@@ -6,6 +6,7 @@ jest.mock('src/@graphQL-server/atendimento-api.service', () => ({
   })),
 }));
 import { AtendimentoService } from './atendimento.service';
+import { CACHE_KEYS } from 'src/modules/relatorios/cache/cache.constants';
 
 describe('AtendimentoService.fixDatesIfNeeded', () => {
   const buildService = () => {
@@ -110,5 +111,57 @@ describe('AtendimentoService.fixDatesIfNeeded', () => {
     expect(service.findOne).toHaveBeenCalledWith('42');
     expect(service.findOne).toHaveBeenCalledTimes(1);
     expect(service.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('AtendimentoService validation', () => {
+  const buildService = () => {
+    const service = Object.create(
+      AtendimentoService.prototype,
+    ) as AtendimentoService;
+    const restAPI = {
+      aprovarAtendimento: jest.fn().mockResolvedValue(undefined),
+      criarPendenciaAtendimento: jest.fn().mockResolvedValue(undefined),
+    };
+    const redisInvalidator = { invalidate: jest.fn().mockResolvedValue(undefined) };
+    (service as any).restAPI = restAPI;
+    (service as any).redisInvalidator = redisInvalidator;
+    return { service, restAPI, redisInvalidator };
+  };
+
+  it('aprovarAtendimento forwards to restAPI and busts the atendimento cache', async () => {
+    const { service, restAPI, redisInvalidator } = buildService();
+
+    await service.aprovarAtendimento('99');
+
+    expect(restAPI.aprovarAtendimento).toHaveBeenCalledWith('99');
+    expect(restAPI.criarPendenciaAtendimento).not.toHaveBeenCalled();
+    expect(redisInvalidator.invalidate).toHaveBeenCalledWith(
+      CACHE_KEYS.atendimento,
+      ['99'],
+    );
+  });
+
+  it('criarPendenciaAtendimento forwards to restAPI and busts the atendimento cache', async () => {
+    const { service, restAPI, redisInvalidator } = buildService();
+
+    await service.criarPendenciaAtendimento('99');
+
+    expect(restAPI.criarPendenciaAtendimento).toHaveBeenCalledWith('99');
+    expect(restAPI.aprovarAtendimento).not.toHaveBeenCalled();
+    expect(redisInvalidator.invalidate).toHaveBeenCalledWith(
+      CACHE_KEYS.atendimento,
+      ['99'],
+    );
+  });
+
+  it('throws and does not call restAPI when atendimentoId is missing', async () => {
+    const { service, restAPI, redisInvalidator } = buildService();
+
+    await expect(service.aprovarAtendimento('')).rejects.toThrow(
+      'atendimentoId é obrigatório.',
+    );
+    expect(restAPI.aprovarAtendimento).not.toHaveBeenCalled();
+    expect(redisInvalidator.invalidate).not.toHaveBeenCalled();
   });
 });

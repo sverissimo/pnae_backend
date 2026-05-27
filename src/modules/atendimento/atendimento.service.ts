@@ -1,5 +1,5 @@
 import * as fs from 'fs/promises';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateAtendimentoInputDto } from './dto/create-atendimento.dto';
 import { UpdateAtendimentoStorageDto } from './dto/update-atendimento.dto';
 import { AtendimentoGraphQLAPI } from 'src/@graphQL-server/atendimento-api.service';
@@ -133,6 +133,31 @@ export class AtendimentoService {
       temasAtendimento: temas,
       numeroVisita: numero,
     });
+    await this.redisInvalidator.invalidate(CACHE_KEYS.atendimento, [
+      atendimentoId,
+    ]);
+  }
+
+  async aprovarAtendimento(atendimentoId: string): Promise<void> {
+    await this.validarAtendimento(atendimentoId, () =>
+      this.restAPI.aprovarAtendimento(atendimentoId),
+    );
+  }
+
+  async criarPendenciaAtendimento(atendimentoId: string): Promise<void> {
+    await this.validarAtendimento(atendimentoId, () =>
+      this.restAPI.criarPendenciaAtendimento(atendimentoId),
+    );
+  }
+
+  private async validarAtendimento(
+    atendimentoId: string,
+    action: () => Promise<void>,
+  ): Promise<void> {
+    if (!atendimentoId)
+      throw new BadRequestException('atendimentoId é obrigatório.');
+
+    await action();
     await this.redisInvalidator.invalidate(CACHE_KEYS.atendimento, [
       atendimentoId,
     ]);
