@@ -19,14 +19,7 @@ Applies across all three sub-apps (root, backend, web_interface). Do not overrid
 
 **Clean Arch and DDD are inspirations, not contracts.** This is a backend with non-trivial domain rules (sync, relatório lifecycle, file/FS reconciliation), so DDD pulls more weight here than on the frontend — but the same rule applies: a _sprinkle_, not a doctrine.
 
-Layers, expressed as top-level folders under [src/](src/):
-
-- [@domain/](src/@domain/) — entities, value objects, and domain services per aggregate (`relatorio/`, `atendimento/`, `produtor/`, `perfil/`, `usuario/`). **Pure TypeScript**: no Nest decorators, no Prisma, no I/O. `RelatorioDomainService` is the canonical example — orchestrates rules, returns plain results, fully unit-testable.
-- [modules/](src/modules/) — feature modules. Each owns a `*.module.ts`, `*.controller.ts`, `*.service.ts`, plus `dto/`, `entities/`, `data-mapper/`, `utils/`, `workers/` as needed. Modules: `relatorios/`, `atendimento/`, `produtor/`, `perfil/`, `usuario/`, `files/`, `@sync/`.
-- [@graphQL-server/](src/@graphQL-server/) — typed client for the external GraphQL server. `GraphQLAPI` base class + per-aggregate `*-api.service.ts`, with colocated `queries/` and `mutations/`.
-- [@rest-api-server/](src/@rest-api-server/) — legacy REST integration (`RestAPI` service + `utils/`).
-- [@pdf-gen/](src/@pdf-gen/), [@zip-gen/](src/@zip-gen/) — generation pipelines (EJS templates + wkhtmltopdf for PDF; archiver for ZIP). `@pdf-gen/` carries its own `templates/`, `styles/`, `workers/`, `types/`, `utils/`.
-- [auth/](src/auth/), [prisma/](src/prisma/), [redis/](src/redis/), [logging/](src/logging/), [interceptors/](src/interceptors/), [filters/](src/filters/), [config/](src/config/), [utils/](src/utils/), [views/](src/views/), [types/](src/types/) — cross-cutting.
+The layer/folder map (`@domain/`, `modules/`, `@graphQL-server/`, `@rest-api-server/`, `@pdf-gen/`, `@zip-gen/`, cross-cutting) and the environment topology live in [docs/app-overview.md](docs/app-overview.md). The load-bearing *rules* derived from that layout are below.
 
 ## Architecture Rules
 
@@ -55,13 +48,7 @@ Keep related responsibilities **together**. Do NOT over-split into tiny files / 
 
 ### KISS, with a reliability floor
 
-KISS is the default for new code. **Exception:** if a simple approach scores below 7/10 on reliability/safety, go fancier.
-
-- Simple ≥ 8.5/10 reliability → keep simple.
-- Simple at 7–8.5/10 reliability and a fancier version gives bigger reliability or quality gain → take the fancier version.
-- Significantly more complex code for **small** gains → keep simple.
-
-The sync flow ([@domain/relatorio/relatorio-domain-service.ts](src/@domain/relatorio/relatorio-domain-service.ts)) is the prototypical case where reliability beats simplicity — see [docs/relatorio-sync-doc.md](docs/relatorio-sync-doc.md).
+KISS is the default for new code; go fancier *only* when a simple approach isn't reliable/safe enough, never for cleverness. The sync flow ([@domain/relatorio/relatorio-domain-service.ts](src/@domain/relatorio/relatorio-domain-service.ts)) is the prototypical case where reliability beats simplicity. The reliability-budget rubric + reasoning lives in [docs/decisions.md](docs/decisions.md#kiss-with-a-reliability-floor).
 
 ### No hidden reusable types
 
@@ -127,11 +114,7 @@ New endpoints added from now on that are classic HTTP controller endpoints consu
 
 ## Development environment
 
-The dev and staging (hmg) backend run inside Docker containers, each on its own compose network (`pnae_dev` and `pnae_hmg` respectively; prod still uses `pnae_prod_default` for now). Dev runs `npm run start:dev` (Nest watch mode) — file changes hot-reload, no manual build required. Hmg runs the production entrypoint built from `Dockerfile.hmg`. Redis runs as a sibling service inside each stack's own network for BullMQ — dev and hmg do not share a Redis instance.
-
-Dev and hmg intentionally share the hmg PostgreSQL database (`pnae_db_hmg`) and both mount the same uploaded-file storage folder (`/home/pnae/pnae_app/data_dev` on the host, `/home/node/data_dev` in the containers). `data_hmg` is no longer an active storage folder; a `data_hmg.bak/` folder may exist only as a temporary safety backup after the merge. Keep prod storage/database separate.
-
-For Prisma client regeneration after schema changes, prefer `npm run prisma:generate:hmg`. That script checks `DATABASE_URL` and refuses to run unless it points at the hmg database identity, then runs `prisma generate --schema prisma/schema.prisma`. It should never be replaced with a migrate/deploy/db-push command.
+Docker/network/Redis/Prisma-regen topology lives in [docs/app-overview.md](docs/app-overview.md#environment-topology). The hard rules that protect those running services and uncommitted work are always-on and stay here:
 
 - **Never run `npm run build`** (or any variant). This command is reserved for production releases only and is triggered manually by the user.
 - **Never run `npm run start`/`start:prod`** locally — the container already runs the dev process.
@@ -143,11 +126,15 @@ For Prisma client regeneration after schema changes, prefer `npm run prisma:gene
 - **Never run Prisma migrations** (`prisma migrate dev`, `prisma migrate deploy`, `prisma db push`) without explicit user instruction. Schema changes are reviewed manually before being applied.
 - **Never hard-code values from `*.env` files into any tracked file** (scripts, configs, source, docs). If a value belongs in env, it stays in env. Before writing such a value anywhere outside an `*.env` file, verify the target file is matched by [.gitignore](.gitignore) — if it isn't, add it there first. The current `*.env` glob covers files like `development.env`, `homolog.env`, `production.env`; LDAP credentials, JWT secrets, DB strings, and client tokens must never leak into tracked files.
 - **The root [.env.example](.env.example) is the single canonical template for every environment** (`development.env`, `homolog.env`, `production.env`). It lists every variable used by any env, with commented-out placeholder values (no real URLs, paths, IDs, or secrets — same rule as above), and flags per-env differences inline (`[dev only]`, `[hmg+prod]`, `[dev+hmg]`). The `!*.env.example` exception in [.gitignore](.gitignore) keeps it tracked while the real env files stay ignored. Whenever a variable is added, removed, or renamed in any real env file, update this template in the same change so it never drifts from reality.
-- Logs land in the mounted `/home/node/logs` volume; don't `tail -f` from outside the container without checking the path.
 
 ## When in doubt
 
 - If a "fix" would touch legacy code outside the task scope — leave it. Ask first.
 - If structure feels ambiguous, mirror the closest existing module ([modules/relatorios/](src/modules/relatorios/) is the reference shape, with `@domain/relatorio/` as the matching domain layer).
 - For sync/merge questions, read [docs/relatorio-sync-doc.md](docs/relatorio-sync-doc.md) and the specs in [@domain/relatorio/](src/@domain/relatorio/) before changing logic — the rules are subtle and the tests encode the intent.
-- After any code change, check whether this AGENTS.md (a.k.a. `.claude/CLAUDE.md` — same file via symlink) and the docs in [docs/](docs/) should be updated to reflect those changes, and update them if needed.
+- **Unsure about a library's API** — especially versions newer than your training
+  cutoff (e.g. Prisma v7, which changed the client generator and output path):
+  check the **context7 MCP** for current docs before guessing. If context7 is
+  unreachable, **ask permission to fetch updated docs from the web** — don't rely
+  on possibly-stale recall.
+- After any code change, check whether this AGENTS.md (a.k.a. `.claude/CLAUDE.md` — same file via symlink) and the docs in [docs/](docs/) should be updated to reflect those changes, and update them if needed. Architecture/topology detail lives in [docs/app-overview.md](docs/app-overview.md); principle rationale in [docs/decisions.md](docs/decisions.md) — keep those in sync too.
