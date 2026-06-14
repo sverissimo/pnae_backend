@@ -29,6 +29,7 @@ services:
     restart: always
     networks:
       - pnae_prod
+      - demeter_gateway_prod
     depends_on:
       - postgres_pnae_prod
       - redis_prod
@@ -61,4 +62,6 @@ volumes:
 
 networks:
   pnae_prod:
+    external: true
+  demeter_gateway_prod:
     external: true

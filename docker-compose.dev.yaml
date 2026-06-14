@@ -22,10 +22,10 @@ services:
     restart: always
     networks:
       - pnae_dev
-      - emater_gql_dev
+      - demeter_gateway_dev
 
 networks:
   pnae_dev:
     external: true
-  emater_gql_dev:
+  demeter_gateway_dev:
     external: true

@@ -22,7 +22,10 @@ services:
     restart: always
     networks:
       - pnae_hmg
+      - demeter_gateway_hmg
 
 networks:
   pnae_hmg:
+    external: true
+  demeter_gateway_hmg:
     external: true
