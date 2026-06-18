@@ -24,7 +24,7 @@ Layers, expressed as top-level folders under [src/](../src/):
 
 ## Environment topology
 
-The dev and staging (hmg) backend run inside Docker containers, each on its own compose network (`pnae_dev` and `pnae_hmg` respectively; prod still uses `pnae_prod_default` for now). Dev runs `npm run start:dev` (Nest watch mode) — file changes hot-reload, no manual build required. Hmg runs the production entrypoint built from `Dockerfile.hmg`. Redis runs as a sibling service inside each stack's own network for BullMQ — dev and hmg do not share a Redis instance.
+The dev and staging (hmg) backend run inside Docker containers, each on its own compose network (`pnae_dev` and `pnae_hmg` respectively; prod still uses `pnae_prod_default` for now). Dev runs `npm run start:dev` (Nest watch mode) — file changes hot-reload, no manual build required. Hmg and prod build from the same shared `Dockerfile.prod` image recipe — the compose files own the environment-specific identity (env file, service/image names, networks, mounts, replicas); see [plans/prod-hmg-container-parity.md](plans/prod-hmg-container-parity.md). Redis runs as a sibling service inside each stack's own network for BullMQ — dev and hmg do not share a Redis instance.
 
 Dev and hmg intentionally share the hmg PostgreSQL database (`pnae_db_hmg`) and both mount the same uploaded-file storage folder (`/home/pnae/pnae_app/data_dev` on the host, `/home/node/data_dev` in the containers). `data_hmg` is no longer an active storage folder; a `data_hmg.bak/` folder may exist only as a temporary safety backup after the merge. Keep prod storage/database separate.
 

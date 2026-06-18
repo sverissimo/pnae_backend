@@ -208,4 +208,55 @@ describe('RelatorioController', () => {
       ).rejects.toBeInstanceOf(HttpException);
     });
   });
+
+  describe('GET /relatorios?produtorId= (mobile-only) strips web-only fields', () => {
+    // findByProdutorId is consumed only by the frozen mobile app, which writes
+    // the payload into a fixed-schema SQLite table. Web-only fields (e.g.
+    // comercializaPnae/produtoTratado/grauInteresse) must never reach it.
+    let service: any;
+    let logger: any;
+    let controller: RelatorioController;
+
+    beforeEach(() => {
+      service = { findMany: jest.fn() };
+      logger = { error: jest.fn() };
+      controller = new RelatorioController(service, {} as any, {} as any, logger);
+    });
+
+    it('drops web-only and backend-derived fields, keeps the mobile-known ones', async () => {
+      service.findMany.mockResolvedValue([
+        {
+          id: '1',
+          produtorId: '63536',
+          tecnicoId: '10',
+          numeroRelatorio: 5,
+          assunto: 'a',
+          orientacao: 'o',
+          readOnly: false,
+          createdAt: '2026-06-14T00:00:00.000Z',
+          atendimentoId: '99',
+          // Web-only columns (written by the web form):
+          comercializaPnae: true,
+          produtoTratado: 'Alface',
+          grauInteresse: 'ALTO',
+          // Backend-derived replacement-tracking field with no mobile column:
+          atendimentoAnteriorId: '55',
+        },
+      ]);
+
+      const [result] = await controller.findByProdutorId('63536');
+
+      expect(result).not.toHaveProperty('comercializaPnae');
+      expect(result).not.toHaveProperty('produtoTratado');
+      expect(result).not.toHaveProperty('grauInteresse');
+      expect(result).not.toHaveProperty('atendimentoAnteriorId');
+      expect(result).toMatchObject({
+        id: '1',
+        produtorId: '63536',
+        numeroRelatorio: 5,
+        assunto: 'a',
+        atendimentoId: '99',
+      });
+    });
+  });
 });

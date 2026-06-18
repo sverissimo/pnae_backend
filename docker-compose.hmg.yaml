@@ -4,10 +4,9 @@ services:
     container_name: pnae_backend_hmg
     build:
       context: .
-      dockerfile: ./Dockerfile.hmg
+      dockerfile: ./Dockerfile.prod
     env_file:
       - homolog.env
-    command: "npm run start:prod"
     init: true
     volumes:
       - /home/pnae/pnae_app/data_dev:/home/node/data_dev

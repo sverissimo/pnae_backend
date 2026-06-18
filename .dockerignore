@@ -16,6 +16,11 @@ node_modules/
 *.key
 *.pem
 *.p12
+# Keep env secrets out of the build context. Dockerfile.prod's builder stage
+# does `COPY . .`, so without this the *.env files would enter the build cache /
+# builder layer even though the runtime image never copies them. `*.env` does
+# not match `.env.example`, so the tracked template stays available.
+*.env
 
 # Editor/IDE files
 .vscode/

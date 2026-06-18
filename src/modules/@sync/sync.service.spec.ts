@@ -359,5 +359,56 @@ describe('SyncService', () => {
         { id: 'rel-w', pictureURI: 'pic-w' },
       ]);
     });
+
+    it('strips web-only and backend-derived fields from outdatedOnClient and missingOnClient (server → mobile)', async () => {
+      // Pins that getRelatorioSyncData projects BOTH server→client arrays
+      // through toMobileRelatorio. Removing those .map calls must fail here —
+      // mobile persists these into a fixed-schema SQLite table and a non-null
+      // unknown column silently breaks the insert. See mobile-relatorio-fields.
+      const syncInfo = mockSyncInfo({
+        outdatedOnClient: [
+          {
+            id: 'rel-1',
+            assunto: 'a',
+            atendimentoId: '99',
+            comercializaPnae: true,
+            produtoTratado: 'Alface',
+            grauInteresse: 'ALTO',
+            atendimentoAnteriorId: '55',
+          } as any,
+        ],
+        missingOnClient: [
+          {
+            id: 'rel-2',
+            assunto: 'b',
+            atendimentoId: '88',
+            grauInteresse: 'BAIXO',
+            atendimentoAnteriorId: '44',
+          } as any,
+        ],
+      });
+      (RelatorioDomainService.getSyncInfo as jest.Mock).mockReturnValue(
+        syncInfo,
+      );
+
+      const result = await service.getRelatorioSyncData(baseInput);
+
+      for (const r of [result.outdatedOnClient[0], result.missingOnClient[0]]) {
+        expect(r).not.toHaveProperty('comercializaPnae');
+        expect(r).not.toHaveProperty('produtoTratado');
+        expect(r).not.toHaveProperty('grauInteresse');
+        expect(r).not.toHaveProperty('atendimentoAnteriorId');
+      }
+      expect(result.outdatedOnClient[0]).toMatchObject({
+        id: 'rel-1',
+        assunto: 'a',
+        atendimentoId: '99',
+      });
+      expect(result.missingOnClient[0]).toMatchObject({
+        id: 'rel-2',
+        assunto: 'b',
+        atendimentoId: '88',
+      });
+    });
   });
 });

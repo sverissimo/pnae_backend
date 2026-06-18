@@ -28,6 +28,7 @@ import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { JobStatusDTO, ZipFileMetadata } from './dto/zip-job.dtos';
 import { RelatorioExportService } from './relatorios.export.service';
 import { AtendimentoService } from 'src/modules/atendimento/atendimento.service';
+import { toMobileRelatorio } from 'src/modules/@sync/utils/mobile-relatorio-fields';
 
 @Controller('relatorios')
 export class RelatorioController {
@@ -106,6 +107,10 @@ export class RelatorioController {
     return relatorio;
   }
 
+  // Mobile-only route (the web never queries by produtorId). Strip web-only
+  // fields so the frozen app never receives a property its fixed-schema SQLite
+  // table can't store — same contract the sync path enforces. See
+  // docs/mobile-endpoint-contract.md.
   @Get()
   async findByProdutorId(@Query('produtorId') produtorId: string) {
     try {
@@ -114,7 +119,7 @@ export class RelatorioController {
         throw new NotFoundException('Nenhum relatório encontrado');
       }
 
-      return relatorios;
+      return relatorios.map(toMobileRelatorio);
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
       this.logger.error(

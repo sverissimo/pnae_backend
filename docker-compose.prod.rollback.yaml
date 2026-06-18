@@ -4,9 +4,18 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile.prod
+      args:
+        - HOST_UID=${HOST_UID}
+        - HOST_GID=${HOST_GID}
     env_file:
       - production.env
-    init: true
+    entrypoint: >
+      dockerize
+      -wait tcp://postgres_pnae_prod:5432
+      -wait tcp://redis_prod:6379
+      -timeout 20s
+      /usr/local/bin/docker-entrypoint.sh
+    command: "npm run start:prod"
     volumes:
       - /home/pnae/pnae_app/data:/home/node/data
       - /home/pnae/pnae_app/logs/prod:/home/node/logs
@@ -22,10 +31,8 @@ services:
       - pnae_prod
       - demeter_gateway_prod
     depends_on:
-      postgres_pnae_prod:
-        condition: service_healthy
-      redis_prod:
-        condition: service_healthy
+      - postgres_pnae_prod
+      - redis_prod
 
   postgres_pnae_prod:
     container_name: postgres_pnae_prod
@@ -39,12 +46,6 @@ services:
     restart: always
     networks:
       - pnae_prod
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
 
   redis_prod:
     image: redis:alpine
@@ -54,12 +55,6 @@ services:
     networks:
       - pnae_prod
     restart: always
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
 
 volumes:
   postgres_data_prod:

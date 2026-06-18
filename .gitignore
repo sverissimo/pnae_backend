@@ -57,3 +57,4 @@ _mockData
 prisma/data
 .vscode/settings.json
 src/modules/relatorios/dataSample.json
+.claude/settings.json
