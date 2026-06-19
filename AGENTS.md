@@ -56,7 +56,7 @@ A type/interface stays inside a controller/service file **only** if it is used b
 
 ### Comments
 
-Default to none. Only add a comment when _why_ is non-obvious (hidden constraint, subtle invariant, workaround for a specific bug or older client). Never narrate _what_ the code does. The `PlainTextExceptionFilter` and the static `CLIENT_TOKEN` bypass in [auth/auth.middleware.ts](src/auth/auth.middleware.ts) are the kind of cases that justify a one-line comment.
+Default to none — clear code and naming should speak for themselves. Add one only when _why_ is non-obvious (hidden constraint, subtle invariant, deliberate workaround); never narrate _what_. Keep it brief — **ideally one line**; if more is needed, reference a doc **by name**, never a line number (they drift). Anything longer than 2–3 lines belongs in `docs/`, not a comment wall. New code is held strictly; trim oversized legacy comment blocks opportunistically when you already edit that file. Full guidance: [docs/decisions.md](docs/decisions.md#comments).
 
 ## Request lifecycle
 

@@ -7,12 +7,13 @@ interface ManyToPresentationModelProps {
   relatorios: RelatorioModel[];
   produtores: ProdutorModel[];
   atendimentos: AtendimentoModel[];
+  tecnicoNameById?: Map<string, string>;
 }
 export class RelatorioDataMapper {
   static manyToPresentationModel(
     input: ManyToPresentationModelProps,
   ): RelatorioPresentationModel[] {
-    const { relatorios, produtores, atendimentos } = input;
+    const { relatorios, produtores, atendimentos, tecnicoNameById } = input;
 
     const produtorMap = new Map(
       (produtores || []).map((p) => [p.id_pessoa_demeter, p]),
@@ -31,6 +32,7 @@ export class RelatorioDataMapper {
         updatedAt: r.updatedAt || null,
         ...(produtor || {}),
         ...(atendimento || {}),
+        nomeTecnico: tecnicoNameById?.get(String(r.tecnicoId)),
       };
     });
   }

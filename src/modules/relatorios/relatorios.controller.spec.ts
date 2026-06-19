@@ -173,7 +173,9 @@ describe('RelatorioController', () => {
 
     it('rejects a non-coordenador with 403 and never touches the service', async () => {
       const { ForbiddenException } = require('@nestjs/common');
-      const req: any = { user: { isCoordenadorRegional: () => false } };
+      const req: any = {
+        user: { isCoordenadorRegional: () => false, isAdmin: () => false },
+      };
 
       await expect(
         controller.aprovarAtendimento('1', '99', req),

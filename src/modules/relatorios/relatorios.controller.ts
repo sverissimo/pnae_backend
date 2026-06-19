@@ -92,12 +92,9 @@ export class RelatorioController {
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: Request) {
-    // Mobile authenticates via the static CLIENT_TOKEN, which leaves
-    // `req.user` undefined (see auth.middleware.ts). Web requests carry a
-    // verified JWT and arrive with `req.user` populated. We scope only the
-    // web path so the shipped mobile contract stays byte-for-byte identical.
-    // Do not generalize this `if (req.user)` shape to other endpoints — it
-    // exists here purely to preserve a known dual-client behavior.
+    // Web (verified JWT) gets scoped; mobile (static CLIENT_TOKEN, undefined
+    // req.user) stays unscoped to preserve the shipped contract — don't
+    // generalize this shape. See AGENTS.md "Authentication flow (mobile vs web)".
     const relatorio = req.user
       ? await this.relatorioService.assertCanAccess(id, req.user)
       : await this.relatorioService.findOne(id);
@@ -107,10 +104,8 @@ export class RelatorioController {
     return relatorio;
   }
 
-  // Mobile-only route (the web never queries by produtorId). Strip web-only
-  // fields so the frozen app never receives a property its fixed-schema SQLite
-  // table can't store — same contract the sync path enforces. See
-  // docs/mobile-endpoint-contract.md.
+  // Mobile-only route; strip web-only fields so the frozen app never receives a
+  // property its fixed-schema SQLite table can't store. See docs/mobile-endpoint-contract.md.
   @Get()
   async findByProdutorId(@Query('produtorId') produtorId: string) {
     try {
@@ -144,10 +139,7 @@ export class RelatorioController {
     @Req() req: Request,
   ) {
     try {
-      // Same mobile/web split as `findOne` above — only web (verified JWT)
-      // gets scoped; mobile (static CLIENT_TOKEN, undefined req.user) is left
-      // alone to preserve the shipped contract. Same hard rule applies: do
-      // not generalize this passthrough to other endpoints.
+      // Same mobile/web scoping split as `findOne` — only web gets scoped.
       if (req.user) {
         await this.relatorioService.assertCanAccess(id, req.user);
       }
@@ -201,7 +193,7 @@ export class RelatorioController {
     atendimentoId: string,
     req: Request,
   ) {
-    if (!req.user?.isCoordenadorRegional()) {
+    if (!req.user?.isCoordenadorRegional() && !req.user?.isAdmin()) {
       throw new ForbiddenException(
         'Apenas coordenadores regionais podem validar atendimentos.',
       );
@@ -223,10 +215,7 @@ export class RelatorioController {
     try {
       if (!id) throw new BadRequestException('Id inválido');
 
-      // Same mobile/web split as findOne/update above — only web (verified
-      // JWT) gets scoped; mobile (static CLIENT_TOKEN, undefined req.user) is
-      // left alone to preserve the shipped contract. Do not generalize this
-      // passthrough to other endpoints.
+      // Same mobile/web scoping split as findOne/update — only web gets scoped.
       if (req.user) {
         await this.relatorioService.assertCanAccess(id, req.user);
       }

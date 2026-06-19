@@ -1,6 +1,8 @@
 import { PerfilUsuario } from './perfil-usuario.enum';
 import { UsuarioModel } from './usuario-model';
 
+export type UsuarioRole = 'admin' | 'coordenadorRegional' | 'staff' | 'other';
+
 const SIMULATE_USER: Partial<Usuario> | null =
   // process.env.NODE_ENV !== 'production'
   false // --> disable simulation
@@ -87,6 +89,13 @@ export class Usuario {
 
   isProdutor(): boolean {
     return !this?.perfis || this?.perfis?.length === 0;
+  }
+
+  getRole(): UsuarioRole {
+    if (this.isCoordenadorRegional()) return 'coordenadorRegional';
+    if (this.isAdmin() || this.isDeveloper()) return 'admin';
+    if (this.isStaff()) return 'staff';
+    return 'other';
   }
 
   hasAccessTo(

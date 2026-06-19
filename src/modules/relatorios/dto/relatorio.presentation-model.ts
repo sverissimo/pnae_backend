@@ -23,5 +23,9 @@ export interface RelatorioPresentationModel extends RelatorioModel {
   dt_export_ok: string | null;
   sn_pendencia: number | null;
   sn_validado: number | null;
+  // External-system técnico name (original owner of the atendimento).
   usuario: string;
+  // Current técnico name resolved from our DB `tecnicoId`; diverges from
+  // `usuario` after a coordenador takes over. Web-only — mobile never reads it.
+  nomeTecnico?: string;
 }

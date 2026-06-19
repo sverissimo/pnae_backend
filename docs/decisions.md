@@ -15,3 +15,21 @@ KISS is the default for new code. **Exception:** if a simple approach scores bel
 - Significantly more complex code for **small** gains → keep simple.
 
 The sync flow ([@domain/relatorio/relatorio-domain-service.ts](../src/@domain/relatorio/relatorio-domain-service.ts)) is the prototypical case where reliability beats simplicity — see [docs/relatorio-sync-doc.md](relatorio-sync-doc.md).
+
+## Comments
+
+Default to none — clear code and naming should speak for themselves. A comment is
+an *exception*, used only when **hidden** logic needs a tip (a constraint,
+invariant, or deliberate workaround); never narrate *what* the code does.
+
+When you do comment, **keep it brief — ideally one line**: give the gist in a few
+words and, if more explanation exists, reference a doc **by name** (e.g. *see
+docs/decisions.md "Comments"*) — **never cite line numbers** (they drift, and we
+won't track them). 2–3 lines are acceptable only when clearly worth it (non-obvious
+code where one or two extra lines beat a doc round-trip); anything longer belongs in
+`docs/` with a link, not a wall of comment. A working file's job is to run the app,
+not to document itself — that's what `docs/` is for.
+
+**Oversized legacy comment blocks** (e.g. the older `schema.prisma` / module
+headers) aren't a fix-now task — trim them *opportunistically* when you already edit
+that file. Existing code gets slight slack here; **new code is held strictly.**

@@ -1,3 +1,5 @@
+import { UsuarioRole } from 'src/@domain/usuario/usuario.entity';
+
 export type DashboardRelatorioInput = {
   createdAt?: string | null;
   data_validacao?: string | null;
@@ -54,7 +56,7 @@ export type DashboardData = {
   }[];
   lineChart: DashboardLineChart;
   scope: {
-    role: 'admin' | 'coordenadorRegional' | 'staff' | 'other';
+    role: UsuarioRole;
     regionalLabel: string | null;
   };
 };

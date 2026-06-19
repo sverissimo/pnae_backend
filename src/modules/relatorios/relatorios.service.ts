@@ -24,11 +24,11 @@ import { ProdutorModel } from 'src/@domain/produtor/produtor-model';
 import { CachedProdutorReader } from './cache/cached-produtor.reader';
 import { CachedAtendimentoReader } from './cache/cached-atendimento.reader';
 import { CachedReplacedAtendimentosReader } from './cache/cached-replaced-atendimentos.reader';
+import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { RelatorioPresentationModel } from './dto/relatorio.presentation-model';
 import {
   buildDashboardData,
   DashboardData,
-  DashboardRole,
 } from 'src/@domain/relatorio/relatorio-dashboard-stats';
 import { PerfilService } from '../perfil/perfil.service';
 import { canUserSeeRelatorio } from 'src/@domain/relatorio/relatorio-authorization';
@@ -47,6 +47,7 @@ export class RelatorioService {
     private readonly cachedProdutorReader: CachedProdutorReader,
     private readonly cachedAtendimentoReader: CachedAtendimentoReader,
     private readonly cachedReplacedAtendimentosReader: CachedReplacedAtendimentosReader,
+    private readonly usuarioApi: UsuarioGraphQLAPI,
   ) {}
 
   async create(relatorioInput: RelatorioModel, files?: FilesInputDto) {
@@ -97,7 +98,6 @@ export class RelatorioService {
     }
 
     const data = relatorios.map((r) => new Relatorio(r).toDto());
-    // .filter((r) => !!r.assunto);
 
     await this.prismaService.relatorio.createMany({
       data,
@@ -147,7 +147,7 @@ export class RelatorioService {
   }
 
   async getDashboardData(user?: Usuario): Promise<DashboardData> {
-    const role = this.resolveDashboardRole(user);
+    const role = user?.getRole() ?? 'other';
 
     const [fullRelatorios, regionais] = await Promise.all([
       this.findAll({ contratoId: 2 }, { expand: true }) as Promise<
@@ -156,9 +156,7 @@ export class RelatorioService {
       this.perfilService.getRegionaisEmater(),
     ]);
 
-    // Gauges + 30-day line chart use the same per-user scope as /relatorios/all.
-    // Tops + by-regional charts always use the full set so non-admins still see
-    // the global picture.
+    // Scoped set drives gauges + line chart; tops + by-regional use the full set.
     const scoped = this.scopeRelatoriosForUser(fullRelatorios, user);
     const regionalLabel = this.resolveRegionalLabel(scoped);
 
@@ -173,22 +171,8 @@ export class RelatorioService {
     });
   }
 
-  private resolveDashboardRole(user?: Usuario): DashboardRole {
-    if (!user) return 'other';
-    if (user.isCoordenadorRegional()) return 'coordenadorRegional';
-    if (user.isAdmin() || user.isDeveloper()) return 'admin';
-    if (user.isStaff()) return 'staff';
-    return 'other';
-  }
-
-  /**
-   * Dashboard-only scoping. Differs from `getAuthorizedRelatorios` on purpose:
-   * gauges and the 30-day line chart should reflect the user's *regional*, not
-   * just their own relatorios — otherwise an extensionista sees only the
-   * relatorios they personally created, which defeats the dashboard's point.
-   * Both coordenadorRegional and staff get filtered by `r.id_reg_empresa ===
-   * user.id_reg_empresa`.
-   */
+  // Dashboard-only scoping: gauges/line chart reflect the user's *regional*,
+  // not just their own relatorios. See AGENTS.md "Authentication flow (mobile vs web)".
   private scopeRelatoriosForUser(
     relatorios: RelatorioPresentationModel[],
     user?: Usuario,
@@ -219,16 +203,9 @@ export class RelatorioService {
     return scopedResult;
   }
 
-  /**
-   * Detail / update / remove visibility check. Fetches the raw row, hydrates
-   * just the produtor (for `id_reg_empresa`), and applies the shared predicate.
-   * Returns the raw Prisma row when visible, throws NotFoundException
-   * otherwise — non-visible and missing rows are indistinguishable.
-   *
-   * Callers must not invoke this when `req.user` is undefined; mobile/static
-   * token requests bypass scope at the controller layer, not by passing a
-   * nullable user here.
-   */
+  // Detail/update/remove visibility check: returns the row when visible, else
+  // NotFoundException (non-visible and missing are indistinguishable). Never
+  // call with an undefined user — mobile bypasses scope at the controller layer.
   async assertCanAccess(id: string, user: Usuario) {
     const row = await this.prismaService.relatorio.findUnique({
       where: { id },
@@ -266,9 +243,8 @@ export class RelatorioService {
     if (!relatorios || relatorios.length === 0) return [];
 
     const relatorioModels = relatorios.map(Relatorio.toModel);
-    // Web hot path (expand) reads the replacement mapping from the short-TTL
-    // cache; every other caller (incl. mobile via findMany, export ZIP) stays
-    // on the live REST path — see updateAtendimentoIds.
+    // Web hot path (expand) reads the replacement mapping from cache; other
+    // callers use the live REST path (see updateAtendimentoIds).
     const updatedRelatorios = await this.updateAtendimentoIds(
       relatorioModels,
       options.expand,
@@ -288,19 +264,49 @@ export class RelatorioService {
     const atendimentoIds = [
       ...new Set(relatorios.map((r) => r.atendimentoId).filter(Boolean)),
     ];
+    const tecnicoIds = [
+      ...new Set(
+        relatorios.map((r) => r.tecnicoId).filter(Boolean).map(String),
+      ),
+    ];
 
-    const [produtores, atendimentos] = await Promise.all([
+    const [produtores, atendimentos, tecnicoNameById] = await Promise.all([
       this.cachedProdutorReader.findManyById(produtorIds) as unknown as Promise<
         ProdutorModel[]
       >,
       this.cachedAtendimentoReader.findMany(atendimentoIds),
+      this.resolveTecnicoNames(tecnicoIds),
     ]);
 
     return RelatorioDataMapper.manyToPresentationModel({
       relatorios,
       produtores,
       atendimentos: atendimentos,
+      tecnicoNameById,
     });
+  }
+
+  // our-DB tecnicoId -> técnico name; a directory failure degrades to an empty
+  // map so the list still renders (web falls back to the external `usuario` name).
+  private async resolveTecnicoNames(
+    ids: string[],
+  ): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map();
+    try {
+      const { usuarios } = (await this.usuarioApi.getUsuarios({
+        ids: ids.join(','),
+      })) as { usuarios: { id_usuario: string; nome_usuario: string }[] };
+      return new Map(
+        (usuarios || []).map((u) => [String(u.id_usuario), u.nome_usuario]),
+      );
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.error(
+        `RelatorioService.resolveTecnicoNames failed: ${err.message}`,
+        err.stack,
+      );
+      return new Map();
+    }
   }
 
   private async createFilter(
@@ -335,11 +341,11 @@ export class RelatorioService {
       ...updateData
     } = updateInput;
 
-    const data = Relatorio.updateFieldsToDTO(updateData); // atendimentoId: newAtendimentoId, // Wont change anymore cause no 134
+    const data = Relatorio.updateFieldsToDTO(updateData);
     await this.prismaService.relatorio.update({ where: { id }, data });
 
     await this.syncAtendimentoTemasAndNumero({
-      atendimentoId: relatorio.atendimentoId?.toString(), // UPDATED AtendimentoId
+      atendimentoId: relatorio.atendimentoId?.toString(),
       temasAtendimento: temas_atendimento || undefined,
       numeroVisita:
         !!updateInput.numeroRelatorio &&
@@ -452,12 +458,8 @@ export class RelatorioService {
     }
   }
 
-  /**
-   * `useCache` is set ONLY by the web hot path (`findAll` with `expand: true`).
-   * Mobile (`findMany`) and the export ZIP path leave it false and fetch the
-   * replacement mapping live, so they observe no value drift — see
-   * CachedReplacedAtendimentosReader for the mobile-contract rationale.
-   */
+  // `useCache` is set only by the web hot path (findAll expand: true); mobile and
+  // the export ZIP path fetch the mapping live (see CachedReplacedAtendimentosReader).
   private async updateAtendimentoIds(
     relatorios: RelatorioModel[],
     useCache = false,

@@ -58,6 +58,7 @@ describe('RelatorioService', () => {
       { findManyById: jest.fn().mockResolvedValue([]) } as any,
       { findMany: jest.fn().mockResolvedValue([]) } as any,
       { get: jest.fn().mockResolvedValue([]) } as any,
+      { getUsuarios: jest.fn().mockResolvedValue({ usuarios: [] }) } as any,
     );
 
     service.findMany = jest.fn();
