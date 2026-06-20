@@ -98,24 +98,28 @@ export class Usuario {
     return 'other';
   }
 
-  hasAccessTo(
-    entity: {
-      id_reg_empresa?: string | null;
-      usuarioId?: string | null;
-    } & Object,
-  ): boolean {
-    return (
-      this.isAdmin() ||
-      this.id_reg_empresa === entity?.id_reg_empresa ||
-      this.id_usuario === entity?.usuarioId
-    );
+  isOwnerOf(ownerId?: string | number | bigint | null): boolean {
+    if (ownerId === null || ownerId === undefined) return false;
+    return String(this.id_usuario) === String(ownerId);
   }
 
-  isOwnerOf(entity: Record<string, any>): boolean {
-    return (
-      this.id_usuario === entity?.usuarioId ||
-      this.id_usuario === entity?.tecnicoId ||
-      this.id_usuario === entity?.id_usuario
-    );
+  isInRegion(regionId?: string | null): boolean {
+    return !!this.id_reg_empresa && this.id_reg_empresa === regionId;
+  }
+
+  // Resource visibility only; capability (role) is gated separately by the route.
+  hasAccessTo({
+    ownerId,
+    regionId,
+  }: {
+    ownerId?: string | number | bigint | null;
+    regionId?: string | null;
+  } = {}): boolean {
+    if (this.isAdmin() || this.isDeveloper()) return true;
+    if (this.isCoordenadorRegional()) {
+      return this.isInRegion(regionId) || this.isOwnerOf(ownerId);
+    }
+    if (this.isStaff()) return this.isOwnerOf(ownerId);
+    return false;
   }
 }

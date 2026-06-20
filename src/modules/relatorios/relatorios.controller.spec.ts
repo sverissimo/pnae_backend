@@ -29,7 +29,7 @@ describe('RelatorioController', () => {
         remove: jest.fn(),
       };
       logger = { error: jest.fn() };
-      controller = new RelatorioController(service, {} as any, {} as any, logger);
+      controller = new RelatorioController(service, {} as any, logger);
     });
 
     it('GET /:id with no req.user calls findOne (raw), not assertCanAccess', async () => {
@@ -123,94 +123,6 @@ describe('RelatorioController', () => {
     });
   });
 
-  describe('atendimento validation routes', () => {
-    let service: any;
-    let atendimentoService: any;
-    let logger: any;
-    let controller: RelatorioController;
-
-    const coordenador = (): any => ({ isCoordenadorRegional: () => true });
-
-    beforeEach(() => {
-      service = { assertCanAccess: jest.fn() };
-      atendimentoService = {
-        aprovarAtendimento: jest.fn().mockResolvedValue(undefined),
-        criarPendenciaAtendimento: jest.fn().mockResolvedValue(undefined),
-      };
-      logger = { error: jest.fn() };
-      controller = new RelatorioController(
-        service,
-        {} as any,
-        atendimentoService,
-        logger,
-      );
-    });
-
-    it('aprovar: coordenador on a matching pairing delegates to aprovarAtendimento', async () => {
-      service.assertCanAccess.mockResolvedValue({ atendimentoId: 99n });
-      const req: any = { user: coordenador() };
-
-      await controller.aprovarAtendimento('1', '99', req);
-
-      expect(service.assertCanAccess).toHaveBeenCalledWith('1', req.user);
-      expect(atendimentoService.aprovarAtendimento).toHaveBeenCalledWith('99');
-      expect(
-        atendimentoService.criarPendenciaAtendimento,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('pendencia: coordenador on a matching pairing delegates to criarPendenciaAtendimento', async () => {
-      service.assertCanAccess.mockResolvedValue({ atendimentoId: 99n });
-      const req: any = { user: coordenador() };
-
-      await controller.criarPendenciaAtendimento('1', '99', req);
-
-      expect(
-        atendimentoService.criarPendenciaAtendimento,
-      ).toHaveBeenCalledWith('99');
-      expect(atendimentoService.aprovarAtendimento).not.toHaveBeenCalled();
-    });
-
-    it('rejects a non-coordenador with 403 and never touches the service', async () => {
-      const { ForbiddenException } = require('@nestjs/common');
-      const req: any = {
-        user: { isCoordenadorRegional: () => false, isAdmin: () => false },
-      };
-
-      await expect(
-        controller.aprovarAtendimento('1', '99', req),
-      ).rejects.toBeInstanceOf(ForbiddenException);
-      expect(service.assertCanAccess).not.toHaveBeenCalled();
-      expect(atendimentoService.aprovarAtendimento).not.toHaveBeenCalled();
-    });
-
-    it('rejects an atendimento/relatório mismatch with 403 and does not mutate', async () => {
-      const { ForbiddenException } = require('@nestjs/common');
-      service.assertCanAccess.mockResolvedValue({ atendimentoId: 7n });
-      const req: any = { user: coordenador() };
-
-      await expect(
-        controller.aprovarAtendimento('1', '99', req),
-      ).rejects.toBeInstanceOf(ForbiddenException);
-      expect(atendimentoService.aprovarAtendimento).not.toHaveBeenCalled();
-    });
-
-    it('translates an upstream throw via errorHandler (gateway status preserved)', async () => {
-      const { HttpException } = require('@nestjs/common');
-      service.assertCanAccess.mockResolvedValue({ atendimentoId: 99n });
-      const upstream = Object.assign(new Error('gateway 404'), { status: 404 });
-      atendimentoService.aprovarAtendimento.mockRejectedValue(upstream);
-      const req: any = { user: coordenador() };
-
-      await expect(
-        controller.aprovarAtendimento('1', '99', req),
-      ).rejects.toMatchObject({ status: 404 });
-      await expect(
-        controller.aprovarAtendimento('1', '99', req),
-      ).rejects.toBeInstanceOf(HttpException);
-    });
-  });
-
   describe('GET /relatorios?produtorId= (mobile-only) strips web-only fields', () => {
     // findByProdutorId is consumed only by the frozen mobile app, which writes
     // the payload into a fixed-schema SQLite table. Web-only fields (e.g.
@@ -222,7 +134,7 @@ describe('RelatorioController', () => {
     beforeEach(() => {
       service = { findMany: jest.fn() };
       logger = { error: jest.fn() };
-      controller = new RelatorioController(service, {} as any, {} as any, logger);
+      controller = new RelatorioController(service, {} as any, logger);
     });
 
     it('drops web-only and backend-derived fields, keeps the mobile-known ones', async () => {

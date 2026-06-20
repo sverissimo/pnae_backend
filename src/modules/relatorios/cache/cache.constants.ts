@@ -2,6 +2,7 @@ export const CACHE_KEYS = {
   produtor: 'produtor:v1',
   atendimento: 'atendimento:v1',
   regionaisEmater: 'perfil:regionaisEmater:v1',
+  municipiosEmater: 'perfil:municipiosEmater:v1',
   replacedAtendimentos: 'atendimento:replaced:v1',
 } as const;
 
@@ -9,6 +10,7 @@ export const CACHE_TTLS = {
   produtor: 60 * 60 * 24,
   atendimento: 90,
   regionaisEmater: 60 * 60 * 24,
+  municipiosEmater: 60 * 60 * 24,
   replacedAtendimentos: 60 * 3,
 } as const;
 

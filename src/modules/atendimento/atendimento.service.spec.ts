@@ -165,3 +165,73 @@ describe('AtendimentoService validation', () => {
     expect(redisInvalidator.invalidate).not.toHaveBeenCalled();
   });
 });
+
+describe('AtendimentoService.getAtendimentoAuthScope', () => {
+  const buildService = (overrides: { map?: Map<string, string> } = {}) => {
+    const service = Object.create(
+      AtendimentoService.prototype,
+    ) as AtendimentoService;
+    service.findOne = jest.fn();
+    (service as any).cachedMunicipiosReader = {
+      getUnidadeToRegionalMap: jest
+        .fn()
+        .mockResolvedValue(overrides.map ?? new Map<string, string>()),
+    };
+    return service;
+  };
+
+  it('returns an empty scope for a missing atendimentoId', async () => {
+    const service = buildService();
+    const scope = await service.getAtendimentoAuthScope('');
+    expect(scope).toEqual({ ownerId: null, regionId: null });
+    expect(service.findOne).not.toHaveBeenCalled();
+  });
+
+  it('reads owner from at_atendimento_usuario and uses a "G…" unit as the region directly', async () => {
+    const service = buildService();
+    (service.findOne as jest.Mock).mockResolvedValue({
+      at_atendimento_usuario: { id_usuario: 'tec-1' },
+      id_und_empresa: 'G0001',
+    });
+
+    const scope = await service.getAtendimentoAuthScope('99');
+
+    expect(scope).toEqual({ ownerId: 'tec-1', regionId: 'G0001' });
+    expect(
+      (service as any).cachedMunicipiosReader.getUnidadeToRegionalMap,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('maps a local "H…" unit to its regional parent via the cached map', async () => {
+    const service = buildService({ map: new Map([['H0123', 'G0040']]) });
+    (service.findOne as jest.Mock).mockResolvedValue({
+      at_atendimento_usuario: { id_usuario: 7 },
+      id_und_empresa: 'H0123',
+    });
+
+    const scope = await service.getAtendimentoAuthScope('99');
+
+    expect(scope).toEqual({ ownerId: '7', regionId: 'G0040' });
+  });
+
+  it('yields a null region for an "H…" unit missing from the map', async () => {
+    const service = buildService({ map: new Map() });
+    (service.findOne as jest.Mock).mockResolvedValue({
+      at_atendimento_usuario: { id_usuario: 'tec-1' },
+      id_und_empresa: 'H9999',
+    });
+
+    const scope = await service.getAtendimentoAuthScope('99');
+
+    expect(scope).toEqual({ ownerId: 'tec-1', regionId: null });
+  });
+
+  it('returns an empty scope when the atendimento lookup throws (nonexistent id)', async () => {
+    const service = buildService();
+    (service.findOne as jest.Mock).mockRejectedValue(new Error('not found'));
+
+    const scope = await service.getAtendimentoAuthScope('does-not-exist');
+
+    expect(scope).toEqual({ ownerId: null, regionId: null });
+  });
+});

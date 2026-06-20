@@ -27,7 +27,6 @@ import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
 import { JobStatusDTO, ZipFileMetadata } from './dto/zip-job.dtos';
 import { RelatorioExportService } from './relatorios.export.service';
-import { AtendimentoService } from 'src/modules/atendimento/atendimento.service';
 import { toMobileRelatorio } from 'src/modules/@sync/utils/mobile-relatorio-fields';
 
 @Controller('relatorios')
@@ -35,7 +34,6 @@ export class RelatorioController {
   constructor(
     private readonly relatorioService: RelatorioService,
     private readonly relatorioExportService: RelatorioExportService,
-    private readonly atendimentoService: AtendimentoService,
     private readonly logger: WinstonLoggerService,
   ) {}
 
@@ -151,62 +149,6 @@ export class RelatorioController {
         relatorio: { id } as RelatorioModel,
         caller: 'RelatorioController.update',
       });
-    }
-  }
-
-  @Patch(':relatorioId/atendimento/:atendimentoId/aprovar')
-  async aprovarAtendimento(
-    @Param('relatorioId') relatorioId: string,
-    @Param('atendimentoId') atendimentoId: string,
-    @Req() req: Request,
-  ) {
-    try {
-      await this.assertCanValidarAtendimento(relatorioId, atendimentoId, req);
-      await this.atendimentoService.aprovarAtendimento(atendimentoId);
-    } catch (error) {
-      this.errorHandler({
-        error,
-        caller: 'RelatorioController.aprovarAtendimento',
-      });
-    }
-  }
-
-  @Patch(':relatorioId/atendimento/:atendimentoId/pendencia')
-  async criarPendenciaAtendimento(
-    @Param('relatorioId') relatorioId: string,
-    @Param('atendimentoId') atendimentoId: string,
-    @Req() req: Request,
-  ) {
-    try {
-      await this.assertCanValidarAtendimento(relatorioId, atendimentoId, req);
-      await this.atendimentoService.criarPendenciaAtendimento(atendimentoId);
-    } catch (error) {
-      this.errorHandler({
-        error,
-        caller: 'RelatorioController.criarPendenciaAtendimento',
-      });
-    }
-  }
-
-  private async assertCanValidarAtendimento(
-    relatorioId: string,
-    atendimentoId: string,
-    req: Request,
-  ) {
-    if (!req.user?.isCoordenadorRegional() && !req.user?.isAdmin()) {
-      throw new ForbiddenException(
-        'Apenas coordenadores regionais podem validar atendimentos.',
-      );
-    }
-
-    const relatorio = await this.relatorioService.assertCanAccess(
-      relatorioId,
-      req.user,
-    );
-    if (String(relatorio?.atendimentoId) !== String(atendimentoId)) {
-      throw new ForbiddenException(
-        'Atendimento não pertence ao relatório informado.',
-      );
     }
   }
 

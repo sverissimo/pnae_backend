@@ -4,6 +4,7 @@ import { correctValoresPnaeOrder } from './utils/correctValoresPnaeOrder';
 import { UpdateTemasAndVisitaAtendimentoDTO } from 'src/modules/atendimento/dto/update-temas-and-visita-atendimento.dto';
 import { PerfilOptionDTO } from 'src/modules/perfil/types/perfil-option.dto';
 import { PerfilOptions } from 'src/modules/perfil/types/perfil.options';
+import { MunicipioEmater } from './types/municipio-emater';
 
 @Injectable()
 export class RestAPI {
@@ -121,6 +122,10 @@ export class RestAPI {
 
   getRegionaisEmater() {
     return this.get(`${this.url}/api/getRegionaisEmater`);
+  }
+
+  getMunicipiosEmater() {
+    return this.get<MunicipioEmater[]>(`${this.url}/api/getMunicipiosEmater`);
   }
 
   async getReadOnlyRelatorios(ids: string[]): Promise<string[]> {

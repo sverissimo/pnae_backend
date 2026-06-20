@@ -175,7 +175,7 @@ Both consumers benefit: the `/dashboard` hot path and the direct `GET /perfil/ge
 
 A controller-level cache for the full expanded list under a single shared key would leak cross-role data, because both read paths apply per-user transforms after hydration:
 
-- `getAuthorizedRelatorios` runs `canUserSeeRelatorio` per user — admin/coordenadorRegional/staff get different slices.
+- `getAuthorizedRelatorios` runs `user.hasAccessTo({ ownerId, regionId })` per user — admin/coordenadorRegional/staff get different slices.
 - `getDashboardData` derives a per-user `scopedRelatorios` and a per-user `regionalLabel` from the same hydrated set.
 
 If Phases 1+2 prove insufficient, the correct placement is a private service-level loader inside `RelatorioService`:
@@ -314,7 +314,7 @@ If the cache stays in production, the following coverage is the natural follow-u
 - **Cache hit/miss/tombstone split** — assert MGET runs once, upstream gets only the missing IDs, the SETEX pipeline covers both data and tombstones for atendimento, and the log line counters are correct.
 - **Redis failure falls through** — inject a stubbed Redis that throws; the reader must return the un-cached service result and log the failure. No 5xx leak.
 - **Bust on atendimento mutation** — after `update`, `updateTemasAndVisita`, or `setAtendimentosExportDate`, `RedisInvalidator.invalidate(...)` was called with the right IDs and a subsequent hydration observes the new upstream payload.
-- **Scoping preserved on both endpoints** — `canUserSeeRelatorio` and `scopeRelatoriosForUser` still derive role-appropriate slices before and after cache warm.
+- **Scoping preserved on both endpoints** — `Usuario.hasAccessTo` and `scopeRelatoriosForUser` still derive role-appropriate slices before and after cache warm.
 - **Mobile path unchanged** — request to `/relatorios/all` with mobile auth (no `req.user`) still returns `[]` with the same status code, headers, and body.
 
 ---

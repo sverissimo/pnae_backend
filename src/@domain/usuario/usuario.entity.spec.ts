@@ -91,46 +91,118 @@ describe('Usuario entity', () => {
     expect(user.isProdutor()).toBe(false);
   });
 
-  it('grants access to admins regardless of entity ownership', () => {
-    const { Usuario } = loadModules('admin-1,admin-2');
-    const admin = new Usuario({ id_usuario: 'admin-1' });
-    expect(
-      admin.hasAccessTo({ id_reg_empresa: 'r-123', usuarioId: 'u-9' }),
-    ).toBe(true);
-  });
-
-  it('grants access when user shares regional company id', () => {
-    const { Usuario } = loadModules('admin-1,admin-2');
-    const user = new Usuario({ id_usuario: '2', id_reg_empresa: 'region-7' });
-    expect(user.hasAccessTo({ id_reg_empresa: 'region-7' })).toBe(true);
-  });
-
-  it('grants access when user owns the entity', () => {
+  it('identifies ownership when ownerId matches (string)', () => {
     const { Usuario } = loadModules('admin-1,admin-2');
     const user = new Usuario({ id_usuario: 'owner' });
-    expect(user.hasAccessTo({ usuarioId: 'owner' })).toBe(true);
+    expect(user.isOwnerOf('owner')).toBe(true);
   });
 
-  it('denies access when none of the rules apply', () => {
+  it('returns false for ownership when ownerId differs', () => {
     const { Usuario } = loadModules('admin-1,admin-2');
-    const user = new Usuario({
-      id_usuario: 'someone',
-      id_reg_empresa: 'region-1',
+    const user = new Usuario({ id_usuario: 'owner' });
+    expect(user.isOwnerOf('other')).toBe(false);
+  });
+
+  it('coerces ownerId across string/number/bigint for ownership', () => {
+    const { Usuario } = loadModules('admin-1,admin-2');
+    const user = new Usuario({ id_usuario: '42' });
+    expect(user.isOwnerOf(42)).toBe(true);
+    expect(user.isOwnerOf(42n)).toBe(true);
+    expect(user.isOwnerOf('42')).toBe(true);
+  });
+
+  it('returns false ownership for null/undefined ownerId', () => {
+    const { Usuario } = loadModules('admin-1,admin-2');
+    const user = new Usuario({ id_usuario: 'owner' });
+    expect(user.isOwnerOf(null)).toBe(false);
+    expect(user.isOwnerOf(undefined)).toBe(false);
+  });
+
+  it('isInRegion requires a region and an exact match', () => {
+    const { Usuario } = loadModules('admin-1,admin-2');
+    const user = new Usuario({ id_usuario: '2', id_reg_empresa: 'G0001' });
+    expect(user.isInRegion('G0001')).toBe(true);
+    expect(user.isInRegion('G0040')).toBe(false);
+    const regionless = new Usuario({ id_usuario: '3' });
+    expect(regionless.isInRegion('G0001')).toBe(false);
+  });
+
+  describe('hasAccessTo (resource visibility, P2)', () => {
+    it('admin sees everything regardless of region/owner', () => {
+      const { Usuario } = loadModules('admin-1,dev-9');
+      const admin = new Usuario({ id_usuario: 'admin-1', perfis: [] });
+      expect(admin.hasAccessTo({ ownerId: 'someone-else', regionId: 'R-X' })).toBe(
+        true,
+      );
     });
-    expect(
-      user.hasAccessTo({ id_reg_empresa: 'region-2', usuarioId: 'other-user' }),
-    ).toBe(false);
-  });
 
-  it('identifies ownership when usuarioId matches', () => {
-    const { Usuario } = loadModules('admin-1,admin-2');
-    const user = new Usuario({ id_usuario: 'owner' });
-    expect(user.isOwnerOf({ usuarioId: 'owner' })).toBe(true);
-  });
+    it('developer (first admin id) sees everything', () => {
+      const { Usuario } = loadModules('dev-9,admin-1');
+      const dev = new Usuario({ id_usuario: 'dev-9', perfis: [] });
+      expect(dev.hasAccessTo({ ownerId: 'someone-else', regionId: 'R-X' })).toBe(
+        true,
+      );
+    });
 
-  it('returns false for ownership when usuarioId differs', () => {
-    const { Usuario } = loadModules('admin-1,admin-2');
-    const user = new Usuario({ id_usuario: 'owner' });
-    expect(user.isOwnerOf({ usuarioId: 'other' })).toBe(false);
+    it('coordenador regional sees own region', () => {
+      const { Usuario, PerfilUsuario } = loadModules('admin-1,dev-9');
+      const coord = new Usuario({
+        id_usuario: 'coord-1',
+        id_reg_empresa: 'R-1',
+        perfis: [PerfilUsuario.ADMINISTRADOR2],
+      });
+      expect(
+        coord.hasAccessTo({ ownerId: 'someone-else', regionId: 'R-1' }),
+      ).toBe(true);
+    });
+
+    it('coordenador regional sees own work even outside their region', () => {
+      const { Usuario, PerfilUsuario } = loadModules('admin-1,dev-9');
+      const coord = new Usuario({
+        id_usuario: 'coord-1',
+        id_reg_empresa: 'R-1',
+        perfis: [PerfilUsuario.ADMINISTRADOR2],
+      });
+      expect(
+        coord.hasAccessTo({ ownerId: 'coord-1', regionId: 'R-OTHER' }),
+      ).toBe(true);
+    });
+
+    it('coordenador regional cannot see other-region non-owned', () => {
+      const { Usuario, PerfilUsuario } = loadModules('admin-1,dev-9');
+      const coord = new Usuario({
+        id_usuario: 'coord-1',
+        id_reg_empresa: 'R-1',
+        perfis: [PerfilUsuario.ADMINISTRADOR2],
+      });
+      expect(
+        coord.hasAccessTo({ ownerId: 'someone-else', regionId: 'R-2' }),
+      ).toBe(false);
+    });
+
+    it('staff sees only their own work, never by region', () => {
+      const { Usuario, PerfilUsuario } = loadModules('admin-1,dev-9');
+      const staff = new Usuario({
+        id_usuario: 'staff-1',
+        id_reg_empresa: 'R-1',
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
+      });
+      expect(staff.hasAccessTo({ ownerId: 'staff-1', regionId: 'R-1' })).toBe(
+        true,
+      );
+      expect(
+        staff.hasAccessTo({ ownerId: 'someone-else', regionId: 'R-1' }),
+      ).toBe(false);
+    });
+
+    it('produtor / other role gets nothing, even when owning', () => {
+      const { Usuario } = loadModules('admin-1,dev-9');
+      const stranger = new Usuario({
+        id_usuario: 'x',
+        id_reg_empresa: 'R-1',
+        perfis: [],
+      });
+      expect(stranger.hasAccessTo({ ownerId: 'x', regionId: 'R-1' })).toBe(false);
+    });
   });
 });

@@ -1,5 +1,15 @@
 # Aprovar / Registrar Pendência — Feature Plan (backend + web)
 
+> **Superseded (historical).** This plan describes the original design, where the
+> two web routes were nested under `/relatorios/:relatorioId/atendimento/:atendimentoId/...`
+> on `RelatorioController` with a relatório-pairing IDOR check. They were later
+> **relocated to `AtendimentoController` and re-keyed on `atendimentoId` alone**
+> (`PATCH /atendimento/:atendimentoId/aprovar` · `/pendencia`), with authorization
+> split into capability + visibility on the `Usuario` entity. See
+> [centralize-permissions-on-usuario-step-back-plan.md](centralize-permissions-on-usuario-step-back-plan.md)
+> (implemented) and the backend AGENTS.md for the current contract. The route
+> shapes below are kept only as a record of the initial implementation.
+
 Coordenadores need to **approve** an atendimento or **flag it as pendência** straight from the relatórios table. This plan wires the PNAE backend and web interface to the two gateway endpoints defined in the GraphQL server plan (`atendimento-validacao-endpoints-plan.md`), which are **assumed already implemented**:
 
 - `PATCH /api/aprovarAtendimento/:atendimentoId`

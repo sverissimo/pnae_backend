@@ -31,7 +31,6 @@ import {
   DashboardData,
 } from 'src/@domain/relatorio/relatorio-dashboard-stats';
 import { PerfilService } from '../perfil/perfil.service';
-import { canUserSeeRelatorio } from 'src/@domain/relatorio/relatorio-authorization';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -198,7 +197,7 @@ export class RelatorioService {
       return result;
     }
     const scopedResult = (result as RelatorioPresentationModel[]).filter((r) =>
-      canUserSeeRelatorio(r, user),
+      user.hasAccessTo({ ownerId: r.tecnicoId, regionId: r.id_reg_empresa }),
     );
     return scopedResult;
   }
@@ -219,13 +218,10 @@ export class RelatorioService {
       ? await this.cachedProdutorReader.findManyById([produtorId])
       : [];
 
-    const visible = canUserSeeRelatorio(
-      {
-        tecnicoId: row.tecnicoId,
-        id_reg_empresa: produtor?.id_reg_empresa,
-      },
-      user,
-    );
+    const visible = user.hasAccessTo({
+      ownerId: row.tecnicoId,
+      regionId: produtor?.id_reg_empresa,
+    });
     if (!visible) throw new NotFoundException('Nenhum relatório encontrado');
     return row;
   }

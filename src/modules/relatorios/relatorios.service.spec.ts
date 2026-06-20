@@ -650,6 +650,79 @@ describe('RelatorioService', () => {
     });
   });
 
+  describe('RelatorioService.getAuthorizedRelatorios (list scoping)', () => {
+    const ADMIN_ID = 'admin-1';
+    const STAFF_ID = 'staff-1';
+    const COORD_ID = 'coord-1';
+
+    beforeAll(() => {
+      process.env.ALLOWED_USER_IDS = `${ADMIN_ID},dev-9`;
+    });
+
+    const list = [
+      { id: 'own', tecnicoId: STAFF_ID, id_reg_empresa: 'R-1' },
+      { id: 'sameRegion', tecnicoId: 'other', id_reg_empresa: 'R-1' },
+      { id: 'otherRegion', tecnicoId: 'other2', id_reg_empresa: 'R-2' },
+    ];
+
+    beforeEach(() => {
+      jest.spyOn(service, 'findAll').mockResolvedValue(list as any);
+    });
+
+    it('staff sees only their own relatorios (region is ignored)', async () => {
+      const staff = new Usuario({
+        id_usuario: STAFF_ID,
+        id_reg_empresa: 'R-1',
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
+      });
+      const result = await service.getAuthorizedRelatorios(staff, true);
+      expect((result as any[]).map((r) => r.id)).toEqual(['own']);
+    });
+
+    it('coordenador sees their region UNION their own work outside it', async () => {
+      (service.findAll as jest.Mock).mockResolvedValue([
+        { id: 'regionNotOwn', tecnicoId: 'other', id_reg_empresa: 'R-1' },
+        { id: 'ownOtherRegion', tecnicoId: COORD_ID, id_reg_empresa: 'R-2' },
+        { id: 'otherRegionNotOwn', tecnicoId: 'other2', id_reg_empresa: 'R-2' },
+      ] as any);
+
+      const coord = new Usuario({
+        id_usuario: COORD_ID,
+        id_reg_empresa: 'R-1',
+        perfis: [PerfilUsuario.ADMINISTRADOR2],
+      });
+      const result = await service.getAuthorizedRelatorios(coord, true);
+      expect((result as any[]).map((r) => r.id).sort()).toEqual([
+        'ownOtherRegion',
+        'regionNotOwn',
+      ]);
+    });
+
+    it('admin gets the full list without scoping', async () => {
+      const admin = new Usuario({ id_usuario: ADMIN_ID, perfis: [] });
+      const result = await service.getAuthorizedRelatorios(admin, true);
+      expect((result as any[]).map((r) => r.id)).toEqual([
+        'own',
+        'sameRegion',
+        'otherRegion',
+      ]);
+    });
+
+    it('does not scope when expand is false (raw list passes through)', async () => {
+      const staff = new Usuario({
+        id_usuario: STAFF_ID,
+        id_reg_empresa: 'R-1',
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
+      });
+      const result = await service.getAuthorizedRelatorios(staff, false);
+      expect((result as any[]).map((r) => r.id)).toEqual([
+        'own',
+        'sameRegion',
+        'otherRegion',
+      ]);
+    });
+  });
+
   describe('RelatórioService.remove', () => {
     beforeEach(() => {
       (service as any).removeFiles = jest.fn();
