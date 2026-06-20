@@ -1,28 +1,29 @@
 import { Inject, Injectable } from '@nestjs/common';
 import IORedis from 'ioredis';
-import { AtendimentoModel } from 'src/@domain/atendimento/atendimento-model';
-import { AtendimentoService } from 'src/modules/atendimento/atendimento.service';
+import { ProdutorService } from 'src/modules/produtor/produtor.service';
+import { ProdutorFindManyOutputDTO } from 'src/modules/produtor/types/produtores.output-dto';
 import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import {
   CACHE_KEYS,
   CACHE_LOG_ENABLED,
   CACHE_TTLS,
   REDIS_CLIENT,
-} from './cache.constants';
-
-const TOMBSTONE = '__nil__';
+} from '../../../cache/cache.constants';
 
 @Injectable()
-export class CachedAtendimentoReader {
-  private readonly inFlight = new Map<string, Promise<AtendimentoModel[]>>();
+export class CachedProdutorReader {
+  private readonly inFlight = new Map<
+    string,
+    Promise<ProdutorFindManyOutputDTO[]>
+  >();
 
   constructor(
     @Inject(REDIS_CLIENT) private readonly redis: IORedis,
-    private readonly atendimentoService: AtendimentoService,
+    private readonly produtorService: ProdutorService,
     private readonly logger: WinstonLoggerService,
   ) {}
 
-  async findMany(ids: string[]): Promise<AtendimentoModel[]> {
+  async findManyById(ids: string[]): Promise<ProdutorFindManyOutputDTO[]> {
     const uniqueIds = [...new Set(ids.filter(Boolean))];
     if (uniqueIds.length === 0) return [];
 
@@ -39,8 +40,8 @@ export class CachedAtendimentoReader {
 
   private async runWithCache(
     uniqueIds: string[],
-  ): Promise<AtendimentoModel[]> {
-    const keys = uniqueIds.map((id) => `${CACHE_KEYS.atendimento}:${id}`);
+  ): Promise<ProdutorFindManyOutputDTO[]> {
+    const keys = uniqueIds.map((id) => `${CACHE_KEYS.produtor}:${id}`);
 
     const mgetStart = Date.now();
     let cached: (string | null)[] = [];
@@ -48,13 +49,12 @@ export class CachedAtendimentoReader {
       cached = await this.redis.mget(...keys);
     } catch (err) {
       this.logRedisFailure('mget', err);
-      return this.atendimentoService.findMany(uniqueIds);
+      return this.produtorService.findManyById(uniqueIds);
     }
     const mgetMs = Date.now() - mgetStart;
 
-    const byId = new Map<string, AtendimentoModel>();
+    const byId = new Map<string, ProdutorFindManyOutputDTO>();
     const missingIds: string[] = [];
-    let tombstoned = 0;
 
     for (let i = 0; i < uniqueIds.length; i++) {
       const raw = cached[i];
@@ -62,12 +62,8 @@ export class CachedAtendimentoReader {
         missingIds.push(uniqueIds[i]);
         continue;
       }
-      if (raw === TOMBSTONE) {
-        tombstoned++;
-        continue;
-      }
       try {
-        byId.set(uniqueIds[i], JSON.parse(raw) as AtendimentoModel);
+        byId.set(uniqueIds[i], JSON.parse(raw) as ProdutorFindManyOutputDTO);
       } catch (err) {
         this.logRedisFailure('json-parse', err);
         missingIds.push(uniqueIds[i]);
@@ -77,36 +73,22 @@ export class CachedAtendimentoReader {
     let upstreamMs = 0;
     if (missingIds.length > 0) {
       const upstreamStart = Date.now();
-      const fetched = await this.atendimentoService.findMany(missingIds);
+      const fetched = await this.produtorService.findManyById(missingIds);
       upstreamMs = Date.now() - upstreamStart;
 
-      const returnedIds = new Set<string>();
-      for (const a of fetched) {
-        if (a?.id_at_atendimento) {
-          const id = String(a.id_at_atendimento);
-          byId.set(id, a);
-          returnedIds.add(id);
-        }
+      for (const p of fetched) {
+        if (p?.id_pessoa_demeter) byId.set(String(p.id_pessoa_demeter), p);
       }
 
       try {
         const pipeline = this.redis.pipeline();
-        for (const a of fetched) {
-          if (!a?.id_at_atendimento) continue;
+        for (const p of fetched) {
+          if (!p?.id_pessoa_demeter) continue;
           pipeline.setex(
-            `${CACHE_KEYS.atendimento}:${a.id_at_atendimento}`,
-            CACHE_TTLS.atendimento,
-            JSON.stringify(a),
+            `${CACHE_KEYS.produtor}:${p.id_pessoa_demeter}`,
+            CACHE_TTLS.produtor,
+            JSON.stringify(p),
           );
-        }
-        for (const id of missingIds) {
-          if (!returnedIds.has(id)) {
-            pipeline.setex(
-              `${CACHE_KEYS.atendimento}:${id}`,
-              CACHE_TTLS.atendimento,
-              TOMBSTONE,
-            );
-          }
         }
         await pipeline.exec();
       } catch (err) {
@@ -114,10 +96,9 @@ export class CachedAtendimentoReader {
       }
     }
 
-    const hits = uniqueIds.length - missingIds.length - tombstoned;
     if (CACHE_LOG_ENABLED) {
       this.logger.log(
-        `atendimento.cache hits=${hits} misses=${missingIds.length} tombstoned=${tombstoned} mgetMs=${mgetMs} upstreamMs=${upstreamMs} totalIds=${uniqueIds.length}`,
+        `produtor.cache hits=${uniqueIds.length - missingIds.length} misses=${missingIds.length} mgetMs=${mgetMs} upstreamMs=${upstreamMs} totalIds=${uniqueIds.length}`,
       );
     }
 
@@ -126,9 +107,9 @@ export class CachedAtendimentoReader {
 
   private logRedisFailure(op: string, err: unknown) {
     const error = err instanceof Error ? err : new Error(String(err));
-    this.logger.error(
-      `CachedAtendimentoReader.${op} failed: ${error.message}`,
-      { stack: error.stack, error },
-    );
+    this.logger.error(`CachedProdutorReader.${op} failed: ${error.message}`, {
+      stack: error.stack,
+      error,
+    });
   }
 }

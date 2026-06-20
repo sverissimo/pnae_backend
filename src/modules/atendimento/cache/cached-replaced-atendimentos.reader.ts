@@ -8,7 +8,7 @@ import {
   CACHE_LOG_ENABLED,
   CACHE_TTLS,
   REDIS_CLIENT,
-} from './cache.constants';
+} from 'src/cache/cache.constants';
 
 /**
  * Single-key cache for the atendimento *replacement mapping*
@@ -51,7 +51,8 @@ export class CachedReplacedAtendimentosReader {
     try {
       const cached = await this.redis.get(key);
       if (cached) {
-        if (CACHE_LOG_ENABLED) this.logger.log('replacedAtendimentos.cache hit');
+        if (CACHE_LOG_ENABLED)
+          this.logger.log('replacedAtendimentos.cache hit');
         return JSON.parse(cached) as AtendimentoUpdate[];
       }
     } catch (err) {

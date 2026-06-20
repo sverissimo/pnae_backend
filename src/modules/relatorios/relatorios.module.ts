@@ -12,11 +12,12 @@ import { ProdutorService } from '../produtor/produtor.service';
 import { RelatorioExportService } from './relatorios.export.service';
 import { ZipWorkerService } from './workers/zip.worker.service';
 import { PerfilModule } from '../perfil/perfil.module';
-import { CachedProdutorReader } from './cache/cached-produtor.reader';
-import { CachedAtendimentoReader } from './cache/cached-atendimento.reader';
-import { CachedReplacedAtendimentosReader } from './cache/cached-replaced-atendimentos.reader';
-import { REDIS_CLIENT } from './cache/cache.constants';
+import { CachedProdutorReader } from '../produtor/cache/cached-produtor.reader';
+import { CachedAtendimentoReader } from '../atendimento/cache/cached-atendimento.reader';
+
+import { REDIS_CLIENT } from '../../cache/cache.constants';
 import { createRedisConnection } from 'src/redis/redis.provider';
+import { CachedReplacedAtendimentosReader } from '../atendimento/cache/cached-replaced-atendimentos.reader';
 
 @Module({
   controllers: [RelatorioController],

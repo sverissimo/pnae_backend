@@ -21,9 +21,9 @@ import { FilesInputDto } from 'src/modules/files/files-input.dto';
 import { Usuario } from '../../@domain/usuario/usuario.entity';
 import { RelatorioDataMapper } from './data-mapper/relatorio.data-mapper';
 import { ProdutorModel } from 'src/@domain/produtor/produtor-model';
-import { CachedProdutorReader } from './cache/cached-produtor.reader';
-import { CachedAtendimentoReader } from './cache/cached-atendimento.reader';
-import { CachedReplacedAtendimentosReader } from './cache/cached-replaced-atendimentos.reader';
+import { CachedProdutorReader } from '../produtor/cache/cached-produtor.reader';
+import { CachedAtendimentoReader } from '../atendimento/cache/cached-atendimento.reader';
+
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { RelatorioPresentationModel } from './dto/relatorio.presentation-model';
 import {
@@ -31,6 +31,7 @@ import {
   DashboardData,
 } from 'src/@domain/relatorio/relatorio-dashboard-stats';
 import { PerfilService } from '../perfil/perfil.service';
+import { CachedReplacedAtendimentosReader } from '../atendimento/cache/cached-replaced-atendimentos.reader';
 
 type queryObject = { ids?: string[]; produtorIds?: string[] };
 
@@ -262,7 +263,10 @@ export class RelatorioService {
     ];
     const tecnicoIds = [
       ...new Set(
-        relatorios.map((r) => r.tecnicoId).filter(Boolean).map(String),
+        relatorios
+          .map((r) => r.tecnicoId)
+          .filter(Boolean)
+          .map(String),
       ),
     ];
 

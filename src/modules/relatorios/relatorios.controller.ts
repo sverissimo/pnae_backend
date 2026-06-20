@@ -234,9 +234,9 @@ export class RelatorioController {
         dados_producao_agro_industria,
         dados_producao_in_natura,
       });
-      pdfStream.pipe(res);
 
-      console.log('🚀 ...done!! ');
+      pdfStream.pipe(res);
+      // ...done!
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
       this.logger.error(

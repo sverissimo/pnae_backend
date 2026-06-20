@@ -8,9 +8,9 @@ import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 import { AtendimentoDataMapper } from './data-mapper/atendimento.data-mapper';
 import { UpdateTemasAndVisitaAtendimentoDTO } from './dto/update-temas-and-visita-atendimento.dto';
 import { AtendimentoModel } from 'src/@domain/atendimento/atendimento-model';
-import { RedisInvalidator } from 'src/modules/relatorios/cache/redis-invalidator';
-import { CACHE_KEYS } from 'src/modules/relatorios/cache/cache.constants';
-import { CachedMunicipiosReader } from 'src/modules/relatorios/cache/cached-municipios.reader';
+import { RedisInvalidator } from 'src/cache/redis-invalidator';
+import { CACHE_KEYS } from 'src/cache/cache.constants';
+import { CachedMunicipiosReader } from 'src/cache/cached-municipios.reader';
 import { AtendimentoAuthScope } from 'src/@domain/atendimento/atendimento-auth-scope';
 
 @Injectable()

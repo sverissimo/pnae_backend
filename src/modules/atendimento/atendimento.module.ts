@@ -4,9 +4,9 @@ import { AtendimentoController } from './atendimento.controller';
 import { AtendimentoGraphQLAPI } from 'src/@graphQL-server/atendimento-api.service';
 import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
-import { REDIS_CLIENT } from 'src/modules/relatorios/cache/cache.constants';
-import { RedisInvalidator } from 'src/modules/relatorios/cache/redis-invalidator';
-import { CachedMunicipiosReader } from 'src/modules/relatorios/cache/cached-municipios.reader';
+import { REDIS_CLIENT } from 'src/cache/cache.constants';
+import { RedisInvalidator } from 'src/cache/redis-invalidator';
+import { CachedMunicipiosReader } from 'src/cache/cached-municipios.reader';
 import { createRedisConnection } from 'src/redis/redis.provider';
 
 @Module({

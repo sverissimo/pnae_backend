@@ -12,7 +12,7 @@ import {
   CACHE_LOG_ENABLED,
   CACHE_TTLS,
   REDIS_CLIENT,
-} from 'src/modules/relatorios/cache/cache.constants';
+} from 'src/cache/cache.constants';
 
 type RegionalEmater = {
   nm_und_empresa: string;

@@ -6,7 +6,7 @@ jest.mock('src/@graphQL-server/atendimento-api.service', () => ({
   })),
 }));
 import { AtendimentoService } from './atendimento.service';
-import { CACHE_KEYS } from 'src/modules/relatorios/cache/cache.constants';
+import { CACHE_KEYS } from 'src/cache/cache.constants';
 
 describe('AtendimentoService.fixDatesIfNeeded', () => {
   const buildService = () => {
@@ -123,7 +123,9 @@ describe('AtendimentoService validation', () => {
       aprovarAtendimento: jest.fn().mockResolvedValue(undefined),
       criarPendenciaAtendimento: jest.fn().mockResolvedValue(undefined),
     };
-    const redisInvalidator = { invalidate: jest.fn().mockResolvedValue(undefined) };
+    const redisInvalidator = {
+      invalidate: jest.fn().mockResolvedValue(undefined),
+    };
     (service as any).restAPI = restAPI;
     (service as any).redisInvalidator = redisInvalidator;
     return { service, restAPI, redisInvalidator };

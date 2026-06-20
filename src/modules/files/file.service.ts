@@ -79,7 +79,6 @@ export class FileService {
 
     stream.once('open', () => {
       opened = true;
-      console.log('🚀 ~ file: file.service.ts:22 - #### stream ok.');
       safeCallback(null, stream);
     });
   }
@@ -448,10 +447,6 @@ export class FileService {
     ]);
 
     const allMissing = new Set<string>([...missingInFS, ...missingInDB]);
-    console.log(
-      '@@@ allMissing :',
-      uniqueIds.filter((id) => allMissing.has(id)),
-    );
 
     return uniqueIds.filter((id) => allMissing.has(id));
   }
@@ -459,10 +454,7 @@ export class FileService {
   private async findMissingFilesInDB(fileIds: string[]): Promise<string[]> {
     const filesInDB = await this.findManyById(fileIds);
     const foundIds = new Set(filesInDB.map((f) => f.id));
-    console.log(
-      '@@@ missingDB:',
-      fileIds.filter((f) => !foundIds.has(f)),
-    );
+
     return fileIds.filter((fid) => !foundIds.has(fid));
   }
 
