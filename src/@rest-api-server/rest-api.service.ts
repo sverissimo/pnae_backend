@@ -154,12 +154,22 @@ export class RestAPI {
     );
   }
 
-  // One private caller — the two routes are exact inverses, same as the gateway
-  // collapsing them into a single setValidacaoStatus repo method. Unlike
-  // updateTemasAndVisitaAtendimento (a fire-and-forget side-sync), this is the
-  // coordenador's primary action, so failures must surface to the controller.
+  async aprovarSei(atendimentoId: string): Promise<void> {
+    await this.patchAtendimentoValidacao('aprovarSei', atendimentoId);
+  }
+
+  async removerAprovacaoSei(atendimentoId: string): Promise<void> {
+    await this.patchAtendimentoValidacao('removerAprovacaoSei', atendimentoId);
+  }
+
+  // Shared by all four atendimento PATCH-status callers. Unlike the fire-and-forget
+  // updateTemasAndVisitaAtendimento, these are primary actions, so failures throw.
   private async patchAtendimentoValidacao(
-    route: 'aprovarAtendimento' | 'criarPendenciaAtendimento',
+    route:
+      | 'aprovarAtendimento'
+      | 'criarPendenciaAtendimento'
+      | 'aprovarSei'
+      | 'removerAprovacaoSei',
     atendimentoId: string,
   ): Promise<void> {
     const res = await fetch(`${this.url}/api/${route}/${atendimentoId}`, {
@@ -167,10 +177,14 @@ export class RestAPI {
       headers: this.headers,
     });
     if (!res.ok) {
-      const error = new Error(
-        `[RestAPI] ${route}/${atendimentoId} failed: ${res.status}`,
-      );
-      (error as Error & { status: number }).status = res.status;
+      // Surface the gateway's { error } body (no "[RestAPI]" prefix) so the 400 reason
+      // reaches the UI via PlainTextExceptionFilter as a clean message, not just a status.
+      const body = (await res.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      const reason = body?.error ?? `${route}/${atendimentoId} failed`;
+      const error = new Error(reason) as Error & { status: number };
+      error.status = res.status;
       throw error;
     }
   }

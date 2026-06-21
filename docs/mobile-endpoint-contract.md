@@ -51,8 +51,11 @@ carries `tecnicoId`/`produtorId` explicitly.
 - `GET /atendimento/getTemasAtendimento` — **removed**; mobile never called it.
 - `GET /atendimento/getReplacedAtendimentos` — web hot-path only.
 - `GET /relatorios/dashboard`, `PATCH /atendimento/:atendimentoId/aprovar`,
-  `PATCH /atendimento/:atendimentoId/pendencia` — web-only additions (the two
-  validation routes are keyed on `atendimentoId` alone; see backend AGENTS.md).
+  `PATCH /atendimento/:atendimentoId/pendencia`,
+  `PATCH /atendimento/:atendimentoId/aprovar-sei`,
+  `PATCH /atendimento/:atendimentoId/remover-aprovacao-sei` — web-only additions
+  (all keyed on `atendimentoId` alone; the two SEI routes are admin-only; see
+  backend AGENTS.md).
 - `POST /atendimento/findMany`, `/relatorios/zip/*` — not used by mobile.
 
 ## SQLite gotcha (relatório) — the load-bearing constraint

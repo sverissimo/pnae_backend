@@ -100,6 +100,34 @@ export class AtendimentoController {
     }
   }
 
+  // Admin-only SEI approval. The coordenador-validation precondition is enforced
+  // upstream in the gateway and surfaces here as a 400 with its message preserved.
+  @Patch(':atendimentoId/aprovar-sei')
+  async aprovarSei(
+    @Param('atendimentoId') atendimentoId: string,
+    @Req() req: Request,
+  ) {
+    try {
+      await this.assertCanAprovarSei(atendimentoId, req);
+      await this.atendimentoService.aprovarSei(atendimentoId);
+    } catch (error) {
+      this.errorHandler(error, 'AtendimentoController.aprovarSei');
+    }
+  }
+
+  @Patch(':atendimentoId/remover-aprovacao-sei')
+  async removerAprovacaoSei(
+    @Param('atendimentoId') atendimentoId: string,
+    @Req() req: Request,
+  ) {
+    try {
+      await this.assertCanAprovarSei(atendimentoId, req);
+      await this.atendimentoService.removerAprovacaoSei(atendimentoId);
+    } catch (error) {
+      this.errorHandler(error, 'AtendimentoController.removerAprovacaoSei');
+    }
+  }
+
   // Capability (role) then visibility (Usuario.hasAccessTo on the normalized
   // scope). Capability fail → 403 (wrong role); visibility fail → 404 (don't
   // confirm existence of an out-of-scope atendimento).
@@ -111,6 +139,24 @@ export class AtendimentoController {
     if (!user || (!user.isCoordenadorRegional() && !user.isAdmin())) {
       throw new ForbiddenException(
         'Apenas coordenadores regionais podem validar atendimentos.',
+      );
+    }
+
+    const scope =
+      await this.atendimentoService.getAtendimentoAuthScope(atendimentoId);
+    if (!user.hasAccessTo(scope)) {
+      throw new NotFoundException('Atendimento não encontrado.');
+    }
+  }
+
+  // SEI approval is admin-only — same capability → visibility shape as
+  // assertCanValidarAtendimento, stricter gate. Visibility is a no-op for admins
+  // today; kept for model symmetry and a future scoped DETEC perfil.
+  private async assertCanAprovarSei(atendimentoId: string, req: Request) {
+    const user = req.user;
+    if (!user?.isAdmin()) {
+      throw new ForbiddenException(
+        'Apenas administradores podem aprovar relatórios no SEI.',
       );
     }
 

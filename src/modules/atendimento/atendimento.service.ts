@@ -153,6 +153,18 @@ export class AtendimentoService {
     );
   }
 
+  async aprovarSei(atendimentoId: string): Promise<void> {
+    await this.validarAtendimento(atendimentoId, () =>
+      this.restAPI.aprovarSei(atendimentoId),
+    );
+  }
+
+  async removerAprovacaoSei(atendimentoId: string): Promise<void> {
+    await this.validarAtendimento(atendimentoId, () =>
+      this.restAPI.removerAprovacaoSei(atendimentoId),
+    );
+  }
+
   private async validarAtendimento(
     atendimentoId: string,
     action: () => Promise<void>,

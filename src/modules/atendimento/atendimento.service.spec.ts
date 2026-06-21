@@ -122,6 +122,8 @@ describe('AtendimentoService validation', () => {
     const restAPI = {
       aprovarAtendimento: jest.fn().mockResolvedValue(undefined),
       criarPendenciaAtendimento: jest.fn().mockResolvedValue(undefined),
+      aprovarSei: jest.fn().mockResolvedValue(undefined),
+      removerAprovacaoSei: jest.fn().mockResolvedValue(undefined),
     };
     const redisInvalidator = {
       invalidate: jest.fn().mockResolvedValue(undefined),
@@ -164,6 +166,42 @@ describe('AtendimentoService validation', () => {
       'atendimentoId é obrigatório.',
     );
     expect(restAPI.aprovarAtendimento).not.toHaveBeenCalled();
+    expect(redisInvalidator.invalidate).not.toHaveBeenCalled();
+  });
+
+  it('aprovarSei forwards to restAPI and busts the atendimento cache', async () => {
+    const { service, restAPI, redisInvalidator } = buildService();
+
+    await service.aprovarSei('99');
+
+    expect(restAPI.aprovarSei).toHaveBeenCalledWith('99');
+    expect(restAPI.removerAprovacaoSei).not.toHaveBeenCalled();
+    expect(redisInvalidator.invalidate).toHaveBeenCalledWith(
+      CACHE_KEYS.atendimento,
+      ['99'],
+    );
+  });
+
+  it('removerAprovacaoSei forwards to restAPI and busts the atendimento cache', async () => {
+    const { service, restAPI, redisInvalidator } = buildService();
+
+    await service.removerAprovacaoSei('99');
+
+    expect(restAPI.removerAprovacaoSei).toHaveBeenCalledWith('99');
+    expect(restAPI.aprovarSei).not.toHaveBeenCalled();
+    expect(redisInvalidator.invalidate).toHaveBeenCalledWith(
+      CACHE_KEYS.atendimento,
+      ['99'],
+    );
+  });
+
+  it('aprovarSei throws and skips restAPI when atendimentoId is missing', async () => {
+    const { service, restAPI, redisInvalidator } = buildService();
+
+    await expect(service.aprovarSei('')).rejects.toThrow(
+      'atendimentoId é obrigatório.',
+    );
+    expect(restAPI.aprovarSei).not.toHaveBeenCalled();
     expect(redisInvalidator.invalidate).not.toHaveBeenCalled();
   });
 });
