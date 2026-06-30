@@ -17,16 +17,24 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
 RUN npx prisma generate --schema prisma/schema.prisma
 
 ############################
-# Stage 2 — builder
+# Stage 2 — prod deps
+############################
+FROM deps AS prod-deps
+WORKDIR /home/node/app
+
+RUN npm prune --omit=dev
+
+############################
+# Stage 3 — builder
 ############################
 FROM deps AS builder
 WORKDIR /home/node/app
 
 COPY . .
-RUN npm run build && npm prune --omit=dev
+RUN npm run build
 
 ############################
-# Stage 3 — runtime
+# Stage 4 — runtime
 ############################
 FROM node:24-slim AS runtime
 
@@ -58,11 +66,11 @@ RUN usermod -u 1001 node \
     && groupadd -g 1003 apps \
     && usermod -aG 1003 node
 
-COPY --from=builder --chown=node:node /home/node/app/node_modules ./node_modules
-COPY --from=builder --chown=node:node /home/node/app/dist ./dist
-COPY --from=builder --chown=node:node /home/node/app/prisma ./prisma
-COPY --from=builder --chown=node:node /home/node/app/assets ./assets
-COPY --from=builder --chown=node:node /home/node/app/package*.json ./
+COPY --link --from=prod-deps --chown=1001:1001 /home/node/app/node_modules ./node_modules
+COPY --link --from=builder --chown=1001:1001 /home/node/app/dist ./dist
+COPY --link --from=builder --chown=1001:1001 /home/node/app/prisma ./prisma
+COPY --link --from=builder --chown=1001:1001 /home/node/app/assets ./assets
+COPY --link --from=builder --chown=1001:1001 /home/node/app/package*.json ./
 
 # Runtime dirs — must be writable by the node user AND the
 # supplementary groups, since host bind-mounts may carry mixed ownership.
