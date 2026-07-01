@@ -2,7 +2,7 @@ export const CACHE_KEYS = {
   produtor: 'produtor:v1',
   atendimento: 'atendimento:v1',
   regionaisEmater: 'perfil:regionaisEmater:v1',
-  municipiosEmater: 'perfil:municipiosEmater:v1',
+  municipiosEmater: 'perfil:municipiosEmater:v2',
   replacedAtendimentos: 'atendimento:replaced:v1',
 } as const;
 

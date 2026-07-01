@@ -1,10 +1,10 @@
 import { join } from 'path';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import * as wkhtmltopdf from 'wkhtmltopdf';
 import * as ejs from 'ejs';
 import { formatDate } from 'src/utils/dateUtils';
 import { Base64ImageService } from './utils/ base64-image.service';
-import { CreatePdfInput } from './types/create-pdf-input';
+import { CreatePdfInput, ManualPdfInput } from './types/create-pdf-input';
 
 export class PdfGenerator {
   private static readonly templatesDir = join(__dirname, 'templates');
@@ -46,6 +46,39 @@ export class PdfGenerator {
     } catch (error) {
       console.log('🚀 - PdfGenerator - error:', error);
       throw new Error(`Failed to generate PDF: ${error.message}`);
+    }
+  }
+
+  public static async generateManualPdf(
+    pdfInputData: ManualPdfInput,
+  ): Promise<NodeJS.ReadableStream> {
+    try {
+      const { headerHtml, mainHtml, footerHtml } =
+        await this.createManualHtmlTemplates(pdfInputData);
+
+      const { headerFilePath, footerFilePath } =
+        await this.writeHeaderAndFooter(headerHtml, footerHtml);
+
+      return wkhtmltopdf(mainHtml, {
+        pageSize: 'A4',
+        orientation: 'Portrait',
+        enableLocalFileAccess: true,
+        marginTop: '2.5cm',
+        marginBottom: '1.5cm',
+        marginRight: '1cm',
+        marginLeft: '1cm',
+        headerHtml: headerFilePath,
+        footerHtml: footerFilePath,
+        headerSpacing: 2.7,
+        footerSpacing: 0.8,
+      });
+    } catch (error) {
+      const normalizedError =
+        error instanceof Error ? error : new Error(String(error));
+      console.log('🚀 - PdfGenerator.generateManualPdf - error:', error);
+      throw new Error(
+        `Failed to generate manual PDF: ${normalizedError.message}`,
+      );
     }
   }
 
@@ -91,6 +124,46 @@ export class PdfGenerator {
     return { headerHtml, mainHtml, footerHtml };
   }
 
+  private static async createManualHtmlTemplates(
+    pdfInputData: ManualPdfInput,
+  ): Promise<{ headerHtml: string; mainHtml: string; footerHtml: string }> {
+    const {
+      atendimento,
+      produtor,
+      perfilPDFModel,
+      nome_propriedade,
+      dados_producao_agro_industria,
+      dados_producao_in_natura,
+      imagens,
+    } = pdfInputData;
+    const data = atendimento.data ? formatDate(atendimento.data) : '';
+    const logoBase64Image = await this.readLogo();
+
+    const [headerHtml, mainHtml, footerHtml] = await Promise.all([
+      ejs.renderFile(`${this.templatesDir}/header.ejs`, {
+        logoBase64Image: `data:image/jpeg;base64,${logoBase64Image} `,
+      }),
+      ejs.renderFile(`${this.templatesDir}/relatorio-manual.ejs`, {
+        atendimento: { ...atendimento, data },
+        produtor,
+        perfil: perfilPDFModel,
+        nome_propriedade,
+        gruposProdutosNatura:
+          dados_producao_in_natura?.at_prf_see_grupos_produtos ?? [],
+        gruposProdutosIndustriais:
+          dados_producao_agro_industria?.at_prf_see_grupos_produtos ?? [],
+        imagens,
+      }),
+      ejs.renderFile(`${this.templatesDir}/footer.ejs`, {
+        numeroRelatorio: atendimento.atendimentoId,
+        data,
+        produtor,
+      }),
+    ]);
+
+    return { headerHtml, mainHtml, footerHtml };
+  }
+
   private static async writeHeaderAndFooter(
     headerHtml: string,
     footerHtml: string,
@@ -104,5 +177,13 @@ export class PdfGenerator {
     ]);
 
     return { headerFilePath, footerFilePath };
+  }
+
+  private static async readLogo(): Promise<string> {
+    try {
+      return await readFile(this.ematerLogoPath, 'base64');
+    } catch {
+      return '';
+    }
   }
 }

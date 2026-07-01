@@ -1,3 +1,10 @@
+import { UnidadeLocalidade } from 'src/cache/cached-municipios.reader';
+import {
+  AtendimentoComRelatorioManualDTO,
+  AtendimentoComRelatorioManualItemDTO,
+  AtendimentoComRelatorioManualPageDTO,
+  AtendimentoComRelatorioManualPageGqlDTO,
+} from '../dto/atendimento-com-relatorio-manual.dto';
 import { CreateAtendimentoStorageDto } from '../dto/create-atendimento.dto';
 import { Atendimento } from '../entities/atendimento.entity';
 
@@ -27,6 +34,42 @@ export class AtendimentoDataMapper {
       at_cli_atend_prop,
       at_atendimento_indicador,
       at_atendimento_indi_camp_acess,
+    };
+  }
+
+  static toComRelatorioManual(
+    item: AtendimentoComRelatorioManualItemDTO,
+    localidade?: UnidadeLocalidade,
+  ): AtendimentoComRelatorioManualDTO {
+    const cliente = item.clientes[0] ?? null;
+    const usuario = item.usuarios[0] ?? null;
+    const { clientes, usuarios, ...scalars } = item;
+
+    return {
+      ...scalars,
+      produtor: cliente?.produtor ?? null,
+      propriedade: cliente?.propriedade ?? null,
+      usuario,
+      nomeMunicipio: localidade?.nomeMunicipio ?? null,
+      id_reg_empresa: localidade?.id_reg_empresa ?? null,
+      nomeRegional: localidade?.nomeRegional ?? null,
+    };
+  }
+
+  static toComRelatorioManualPage(
+    page: AtendimentoComRelatorioManualPageGqlDTO,
+    localidadeMap: Map<string, UnidadeLocalidade>,
+  ): AtendimentoComRelatorioManualPageDTO {
+    return {
+      items: page.items.map((item) =>
+        this.toComRelatorioManual(
+          item,
+          localidadeMap.get(item.id_und_empresa),
+        ),
+      ),
+      pageSize: page.pageSize,
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
     };
   }
 }

@@ -4,15 +4,23 @@ import { createAtendimentoMutation } from './mutations/atendimento-mutations';
 import { Atendimento } from 'src/modules/atendimento/entities/atendimento.entity';
 import {
   atendimentoQuery,
+  atendimentosComRelatorioManualQuery,
   atendimentosQuery,
   setAtendimentosExportDateMutation,
   updateAtendimentoMutation,
 } from './queries/atendimento-queries';
 import { CreateAtendimentoStorageDto } from 'src/modules/atendimento/dto/create-atendimento.dto';
 import { AtendimentoModel } from 'src/@domain/atendimento/atendimento-model';
+import {
+  AtendimentoComRelatorioManualPageGqlDTO,
+  AtendimentoComRelatorioManualQueryDTO,
+} from 'src/modules/atendimento/dto/atendimento-com-relatorio-manual.dto';
 
 type AtendimentoResponse = { atendimento: Atendimento };
 type AtendimentosResponse = { atendimentos: AtendimentoModel[] };
+type AtendimentosComRelatorioManualResponse = {
+  atendimentosComRelatorioManual: AtendimentoComRelatorioManualPageGqlDTO;
+};
 
 @Injectable()
 export class AtendimentoGraphQLAPI extends GraphQLAPI {
@@ -30,6 +38,20 @@ export class AtendimentoGraphQLAPI extends GraphQLAPI {
       { id },
     );
     return atendimento;
+  }
+
+  async getAtendimentosComRelatorioManual({
+    pageSize,
+    cursor,
+    id_usuario,
+    id_reg_empresa,
+  }: AtendimentoComRelatorioManualQueryDTO): Promise<AtendimentoComRelatorioManualPageGqlDTO> {
+    const { atendimentosComRelatorioManual } =
+      await this.client.request<AtendimentosComRelatorioManualResponse>(
+        atendimentosComRelatorioManualQuery,
+        { pageSize, cursor, id_usuario, id_reg_empresa },
+      );
+    return atendimentosComRelatorioManual;
   }
 
   async createAtendimento(createAtendimentoInput: CreateAtendimentoStorageDto) {

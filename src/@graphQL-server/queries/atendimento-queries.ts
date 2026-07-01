@@ -50,6 +50,59 @@ export const atendimentosQuery = gql`
   }
 `;
 
+export const atendimentosComRelatorioManualQuery = gql`
+  query AtendimentosComRelatorioManual(
+    $pageSize: Int
+    $cursor: BigInt
+    $id_usuario: BigInt
+    $id_reg_empresa: String
+  ) {
+    atendimentosComRelatorioManual(
+      pageSize: $pageSize
+      cursor: $cursor
+      id_usuario: $id_usuario
+      id_reg_empresa: $id_reg_empresa
+    ) {
+      pageSize
+      nextCursor
+      hasMore
+      items {
+        id_at_atendimento
+        data_inicio_atendimento
+        data_fim_atendimento
+        data_validacao
+        data_atualizacao
+        data_criacao
+        data_sei
+        data_see
+        sn_pendencia
+        sn_validado
+        dt_update_record
+        id_at_anterior
+        id_und_empresa
+        ativo
+        clientes {
+          produtor {
+            nm_pessoa
+            nr_cpf_cnpj
+            dap
+            caf
+          }
+          propriedade {
+            nome_propriedade
+            geo_ponto_texto
+          }
+        }
+        usuarios {
+          id_usuario
+          nome_usuario
+          id_und_empresa
+        }
+      }
+    }
+  }
+`;
+
 export const createAtendimentoMutation = gql`
   mutation createAtendimento($input: CreateAtendimentoInput!) {
     createAtendimento(createAtendimentoInput: $input) {

@@ -8,3 +8,28 @@ export type CreatePdfInput = {
   dados_producao_in_natura: any;
   dados_producao_agro_industria: any;
 };
+
+export type ManualPdfInput = {
+  perfilPDFModel: PerfilPDFModel | null;
+  produtor: {
+    nomeProdutor: string;
+    cpf: string;
+    caf: string | null;
+    id_und_empresa: string | null;
+  };
+  atendimento: {
+    atendimentoId: string;
+    data: string | null;
+    id_und_empresa: string | null;
+    produtorId: string;
+    propriedadeId: string | null;
+    tecnicoId: string | null;
+  };
+  nome_propriedade: string | null;
+  dados_producao_in_natura: any;
+  dados_producao_agro_industria: any;
+  imagens: {
+    dataUri: string;
+    legenda: string;
+  }[];
+};

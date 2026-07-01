@@ -1,6 +1,16 @@
 import * as fs from 'fs/promises';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateAtendimentoInputDto } from './dto/create-atendimento.dto';
+import {
+  AtendimentoComRelatorioManualPageDTO,
+  AtendimentoComRelatorioManualQueryDTO,
+} from './dto/atendimento-com-relatorio-manual.dto';
+import { GetArquivosQueryDTO } from './dto/get-arquivos.dto';
+import { decodeArquivo, DecodedArquivo } from './utils/decode-arquivo';
 import { UpdateAtendimentoStorageDto } from './dto/update-atendimento.dto';
 import { AtendimentoGraphQLAPI } from 'src/@graphQL-server/atendimento-api.service';
 import { Atendimento } from './entities/atendimento.entity';
@@ -46,6 +56,17 @@ export class AtendimentoService {
       };
     });
     return parsedAtendimentos;
+  }
+
+  async listAtendimentosComRelatorioManual(
+    query: AtendimentoComRelatorioManualQueryDTO,
+  ): Promise<AtendimentoComRelatorioManualPageDTO> {
+    const [page, localidadeMap] = await Promise.all([
+      this.graphQLAPI.getAtendimentosComRelatorioManual(query),
+      this.cachedMunicipiosReader.getUnidadeToLocalidadeMap(),
+    ]);
+
+    return AtendimentoDataMapper.toComRelatorioManualPage(page, localidadeMap);
   }
 
   async findOne(id: string) {
@@ -283,5 +304,13 @@ export class AtendimentoService {
 
   getReplacedAtendimentos() {
     return this.restAPI.getReplacedAtendimentos();
+  }
+
+  async getArquivos(query: GetArquivosQueryDTO): Promise<DecodedArquivo> {
+    const result = await this.restAPI.getArquivos(query);
+    if (!result?.arquivo) {
+      throw new NotFoundException('Arquivo não encontrado.');
+    }
+    return decodeArquivo(result.arquivo, query.fileType);
   }
 }

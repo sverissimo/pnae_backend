@@ -8,6 +8,9 @@ jest.mock('graphql-request', () => ({
 }));
 
 import { RelatorioController } from './relatorios.controller';
+import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
+import { PassThrough } from 'stream';
+import { BadRequestException } from '@nestjs/common';
 
 describe('RelatorioController', () => {
   describe('mobile/static-token regression — req.user undefined', () => {
@@ -173,4 +176,89 @@ describe('RelatorioController', () => {
       });
     });
   });
+
+  describe('GET /manual?id=<base64urlToken>', () => {
+    let relatorioExportService: any;
+    let logger: any;
+    let controller: RelatorioController;
+
+    beforeEach(() => {
+      relatorioExportService = {
+        createManualPdfInput: jest.fn().mockResolvedValue({
+          produtor: { nomeProdutor: 'João da Silva' },
+          atendimento: { atendimentoId: '987' },
+          imagens: [],
+        }),
+      };
+      logger = { error: jest.fn() };
+      controller = new RelatorioController(
+        {} as any,
+        relatorioExportService,
+        logger,
+      );
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('decodes the obfuscated token and streams the public manual PDF', async () => {
+      const pdfStream = new PassThrough();
+      const res = new PassThrough() as any;
+      res.setHeader = jest.fn();
+      const generateManualPdfSpy = jest
+        .spyOn(PdfGenerator, 'generateManualPdf')
+        .mockResolvedValue(pdfStream);
+
+      await controller.generateManualPdf(createManualPdfToken('987'), res);
+
+      expect(relatorioExportService.createManualPdfInput).toHaveBeenCalledWith(
+        '987',
+      );
+      expect(generateManualPdfSpy).toHaveBeenCalledWith({
+        produtor: { nomeProdutor: 'João da Silva' },
+        atendimento: { atendimentoId: '987' },
+        imagens: [],
+      });
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'application/pdf',
+      );
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'inline; filename=relatorio_manual_João_da_Silva_987.pdf',
+      );
+    });
+
+    it('rejects missing or malformed manual PDF tokens with 400', async () => {
+      const res = new PassThrough() as any;
+      res.setHeader = jest.fn();
+
+      await expect(
+        controller.generateManualPdf(undefined, res),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        controller.generateManualPdf('not-valid*', res),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        controller.generateManualPdf(base64Url('12345abc'), res),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(
+        relatorioExportService.createManualPdfInput,
+      ).not.toHaveBeenCalled();
+    });
+  });
 });
+
+function createManualPdfToken(atendimentoId: string): string {
+  return base64Url(`12345${atendimentoId}`);
+}
+
+function base64Url(value: string): string {
+  return Buffer.from(value, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}

@@ -17,6 +17,7 @@ export class AuthMiddleware implements NestMiddleware {
     if (
       req.method === 'OPTIONS' || // CORS preflight
       req.baseUrl.match('/relatorios/pdf') ||
+      req.baseUrl.match('/relatorios/manual') ||
       req.baseUrl.match('/relatorios/zip') ||
       req.baseUrl.match('/cmc') ||
       req.baseUrl.match('/login')

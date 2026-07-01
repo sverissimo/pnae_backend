@@ -5,14 +5,17 @@ import {
   Body,
   Patch,
   Param,
+  Query,
+  Res,
   Delete,
   Req,
+  BadRequestException,
   ForbiddenException,
   NotFoundException,
   HttpException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { AtendimentoService } from './atendimento.service';
 import { CreateAtendimentoInputDto } from './dto/create-atendimento.dto';
 import { UpdateAtendimentoInputDto } from './dto/update-atendimento.dto';
@@ -33,9 +36,10 @@ export class AtendimentoController {
       );
       return id;
     } catch (error) {
+      const normalizedError = this.normalizeError(error);
       this.logger.error(
-        'AtendimentoController:20 ~ create:' + error.message,
-        error.trace,
+        'AtendimentoController:20 ~ create:' + normalizedError.message,
+        normalizedError.stack,
       );
       throw error;
     }
@@ -51,10 +55,64 @@ export class AtendimentoController {
     try {
       return await this.atendimentoService.getReplacedAtendimentos();
     } catch (error) {
+      const normalizedError = this.normalizeError(error);
       this.logger.error(
-        'AtendimentoController:97 ~ getReplacedAtendimentos :' + error.message,
-        error.trace,
+        'AtendimentoController:97 ~ getReplacedAtendimentos :' +
+          normalizedError.message,
+        normalizedError.stack,
       );
+    }
+  }
+
+  @Get('/com-relatorio-manual')
+  async listAtendimentosComRelatorioManual(
+    @Query('pageSize') pageSize?: string,
+    @Query('cursor') cursor?: string,
+    @Req() req?: Request,
+  ) {
+    try {
+      const parsedPageSize = this.parsePageSize(pageSize);
+      return await this.atendimentoService.listAtendimentosComRelatorioManual({
+        pageSize: parsedPageSize,
+        cursor: cursor || undefined,
+        ...this.getRelatorioManualScope(req),
+      });
+    } catch (error) {
+      this.errorHandler(
+        error,
+        'AtendimentoController.listAtendimentosComRelatorioManual',
+      );
+    }
+  }
+
+  // Web-only. Static path declared above `@Get(':id')` so it isn't shadowed.
+  // Streams the decoded file with a sniffed Content-Type. See
+  // docs/mobile-endpoint-contract.md.
+  @Get('/getArquivos')
+  async getArquivo(
+    @Query('atendimentoId') atendimentoId: string,
+    @Query('fileType') fileType: string,
+    @Res() res: Response,
+  ) {
+    try {
+      if (!atendimentoId) {
+        throw new BadRequestException('atendimentoId é obrigatório.');
+      }
+      if (fileType !== 'foto' && fileType !== 'relatorio') {
+        throw new BadRequestException(
+          "fileType deve ser 'foto' ou 'relatorio'.",
+        );
+      }
+
+      const { buffer, contentType } = await this.atendimentoService.getArquivos({
+        atendimentoId,
+        fileType,
+      });
+
+      res.setHeader('Content-Type', contentType);
+      res.send(buffer);
+    } catch (error) {
+      this.errorHandler(error, 'AtendimentoController.getArquivo');
     }
   }
 
@@ -167,6 +225,35 @@ export class AtendimentoController {
     }
   }
 
+  private parsePageSize(value?: string) {
+    if (value === undefined || value === '') return 200;
+
+    const pageSize = Number(value);
+    if (!Number.isFinite(pageSize)) {
+      throw new BadRequestException('pageSize deve ser um número.');
+    }
+
+    return Math.min(1000, Math.max(1, Math.trunc(pageSize)));
+  }
+
+  private getRelatorioManualScope(req?: Request) {
+    const user = req?.user;
+    if (!user) {
+      throw new ForbiddenException('É necessária autenticação de usuário.');
+    }
+
+    if (user.isAdmin() || user.isDeveloper()) return {};
+    if (user.isCoordenadorRegional()) {
+      return {
+        id_usuario: user.id_usuario,
+        id_reg_empresa: user.id_reg_empresa ?? null,
+      };
+    }
+    if (user.isStaff()) return { id_usuario: user.id_usuario };
+
+    throw new ForbiddenException('Usuário sem permissão para listar relatórios.');
+  }
+
   private errorHandler(error: any, caller: string) {
     this.logger.error(`Erro em ${caller}: ${error?.message}`, {
       stack: error?.stack,
@@ -183,6 +270,10 @@ export class AtendimentoController {
         String(error) ||
         'Erro interno ao processar a requisição.',
     );
+  }
+
+  private normalizeError(error: unknown): Error {
+    return error instanceof Error ? error : new Error(String(error));
   }
 
   @Patch(':id')

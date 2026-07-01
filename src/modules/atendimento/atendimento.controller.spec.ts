@@ -1,9 +1,150 @@
 import {
+  BadRequestException,
   ForbiddenException,
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
 import { AtendimentoController } from './atendimento.controller';
+
+describe('AtendimentoController — manual relatório list', () => {
+  let atendimentoService: any;
+  let logger: any;
+  let controller: AtendimentoController;
+  const adminUser = (): any => ({
+    id_usuario: '1',
+    id_reg_empresa: 'G0001',
+    isAdmin: () => true,
+    isDeveloper: () => false,
+    isCoordenadorRegional: () => false,
+    isStaff: () => false,
+  });
+  const coordUser = (): any => ({
+    id_usuario: '2',
+    id_reg_empresa: 'G0040',
+    isAdmin: () => false,
+    isDeveloper: () => false,
+    isCoordenadorRegional: () => true,
+    isStaff: () => false,
+  });
+  const staffUser = (): any => ({
+    id_usuario: '3',
+    id_reg_empresa: 'G0040',
+    isAdmin: () => false,
+    isDeveloper: () => false,
+    isCoordenadorRegional: () => false,
+    isStaff: () => true,
+  });
+  const otherUser = (): any => ({
+    id_usuario: '4',
+    id_reg_empresa: 'G0040',
+    isAdmin: () => false,
+    isDeveloper: () => false,
+    isCoordenadorRegional: () => false,
+    isStaff: () => false,
+  });
+
+  beforeEach(() => {
+    atendimentoService = {
+      listAtendimentosComRelatorioManual: jest.fn().mockResolvedValue({
+        items: [],
+        pageSize: 200,
+        nextCursor: null,
+        hasMore: false,
+      }),
+    };
+    logger = { error: jest.fn() };
+    controller = new AtendimentoController(atendimentoService, logger);
+  });
+
+  it('defaults pageSize to 200 and passes cursor through', async () => {
+    await controller.listAtendimentosComRelatorioManual(undefined, '123', {
+      user: adminUser(),
+    } as any);
+
+    expect(
+      atendimentoService.listAtendimentosComRelatorioManual,
+    ).toHaveBeenCalledWith({ pageSize: 200, cursor: '123' });
+  });
+
+  it('treats an empty cursor as absent', async () => {
+    await controller.listAtendimentosComRelatorioManual(undefined, '', {
+      user: adminUser(),
+    } as any);
+
+    expect(
+      atendimentoService.listAtendimentosComRelatorioManual,
+    ).toHaveBeenCalledWith({ pageSize: 200, cursor: undefined });
+  });
+
+  it('clamps pageSize to the 1..1000 range', async () => {
+    const req: any = { user: adminUser() };
+    await controller.listAtendimentosComRelatorioManual('5000', undefined, req);
+    await controller.listAtendimentosComRelatorioManual('0', undefined, req);
+
+    expect(
+      atendimentoService.listAtendimentosComRelatorioManual,
+    ).toHaveBeenNthCalledWith(1, { pageSize: 1000, cursor: undefined });
+    expect(
+      atendimentoService.listAtendimentosComRelatorioManual,
+    ).toHaveBeenNthCalledWith(2, { pageSize: 1, cursor: undefined });
+  });
+
+  it('rejects non-numeric pageSize with 400', async () => {
+    await expect(
+      controller.listAtendimentosComRelatorioManual('abc', undefined, {
+        user: adminUser(),
+      } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(
+      atendimentoService.listAtendimentosComRelatorioManual,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('passes coordinator region plus own user id to the gateway query', async () => {
+    await controller.listAtendimentosComRelatorioManual(undefined, undefined, {
+      user: coordUser(),
+    } as any);
+
+    expect(
+      atendimentoService.listAtendimentosComRelatorioManual,
+    ).toHaveBeenCalledWith({
+      pageSize: 200,
+      cursor: undefined,
+      id_usuario: '2',
+      id_reg_empresa: 'G0040',
+    });
+  });
+
+  it('passes only own user id for staff users', async () => {
+    await controller.listAtendimentosComRelatorioManual(undefined, undefined, {
+      user: staffUser(),
+    } as any);
+
+    expect(
+      atendimentoService.listAtendimentosComRelatorioManual,
+    ).toHaveBeenCalledWith({
+      pageSize: 200,
+      cursor: undefined,
+      id_usuario: '3',
+    });
+  });
+
+  it('rejects missing or unsupported users before calling the service', async () => {
+    await expect(
+      controller.listAtendimentosComRelatorioManual(undefined, undefined, {
+        user: undefined,
+      } as any),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      controller.listAtendimentosComRelatorioManual(undefined, undefined, {
+        user: otherUser(),
+      } as any),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(
+      atendimentoService.listAtendimentosComRelatorioManual,
+    ).not.toHaveBeenCalled();
+  });
+});
 
 describe('AtendimentoController — validation routes', () => {
   let atendimentoService: any;

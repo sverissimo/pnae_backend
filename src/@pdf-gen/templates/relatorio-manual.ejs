@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relatório Manual PNAE - Emater/MG</title>
+    <%- include('../styles/globalStyles'); %> <%- include('../styles/headerStyles'); %>
+    <%- include('../styles/relatorioStyles'); %>
+    <style>
+      .manualImage {
+        max-width: 100%;
+        max-height: 900px;
+        margin: 12px auto;
+      }
+      .manualCaption {
+        text-align: center;
+        font-weight: 600;
+        margin: 8px 0 14px;
+      }
+      .manualPageBreak {
+        page-break-before: always;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="container">
+      <% if (perfil) { %>
+        <%- include('perfil', {perfil, gruposProdutosNatura, gruposProdutosIndustriais, produtor })%>
+      <% } else { %>
+        <section class="table">
+          <table class="relatorioTable avoid-break">
+            <thead>
+              <th colspan="2" class="title relatorioTable">Relatório Manual</th>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="td-label">Agricultor(a) Familiar</td>
+                <td class="td-content"><%= produtor.nomeProdutor %></td>
+              </tr>
+              <tr>
+                <td class="td-label">CPF/CNPJ</td>
+                <td class="td-content"><%= produtor.cpf %></td>
+              </tr>
+              <tr>
+                <td class="td-label">DAP/CAF</td>
+                <td class="td-content"><%= produtor.caf || '' %></td>
+              </tr>
+              <tr>
+                <td class="td-label">Atendimento</td>
+                <td class="td-content"><%= atendimento.atendimentoId %></td>
+              </tr>
+              <tr>
+                <td class="td-label">Data</td>
+                <td class="td-content"><%= atendimento.data || '' %></td>
+              </tr>
+              <tr>
+                <td class="td-label">Unidade</td>
+                <td class="td-content"><%= atendimento.id_und_empresa || '' %></td>
+              </tr>
+              <% if (nome_propriedade) { %>
+              <tr>
+                <td class="td-label">Propriedade</td>
+                <td class="td-content"><%= nome_propriedade %></td>
+              </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </section>
+      <% } %>
+
+      <% if (!imagens.length) { %>
+        <section class="textBox avoid-break">
+          <h5 class="subtitle">Arquivos do relatório manual</h5>
+          <p>Nenhum arquivo foi encontrado para este atendimento.</p>
+        </section>
+      <% } %>
+
+      <% imagens.forEach(function(imagem, index) { %>
+        <section class="textBox avoid-break <%= index > 0 ? 'manualPageBreak' : '' %>">
+          <h5 class="subtitle"><%= imagem.legenda %></h5>
+          <div class="imageContainer">
+            <img src="<%= imagem.dataUri %>" alt="<%= imagem.legenda %>" class="manualImage" />
+          </div>
+        </section>
+      <% }) %>
+    </main>
+  </body>
+</html>

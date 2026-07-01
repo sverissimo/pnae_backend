@@ -18,9 +18,11 @@ import { Perfil, PerfilModel } from 'src/@domain/perfil';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
+import { ManualPdfInput } from 'src/@pdf-gen/types/create-pdf-input';
 import { ZipCreator } from 'src/@zip-gen/ZipCreator';
 import { RelatorioService } from './relatorios.service';
 import { AtendimentoService } from '../atendimento/atendimento.service';
+import { FileType } from '../atendimento/dto/get-arquivos.dto';
 import { ProdutorService } from '../produtor/produtor.service';
 import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import {
@@ -33,6 +35,8 @@ import { ProdutorFindManyOutputDTO } from '../produtor/types/produtores.output-d
 import { JobStatusDTO, ZipFileMetadata } from './dto/zip-job.dtos';
 import { cleanupOldZips } from './utils/cleanup-old-zips';
 import { UsuarioModel } from 'src/@domain/usuario/usuario-model';
+
+const CURRENT_PNAE_CONTRATO_ID = 2;
 
 @Injectable()
 export class RelatorioExportService {
@@ -216,6 +220,65 @@ export class RelatorioExportService {
     return { filename, filePath: tmpPath };
   }
 
+  public async createManualPdfInput(
+    atendimentoId: string,
+  ): Promise<ManualPdfInput> {
+    const atendimento = await this.atendimentoService.findOne(atendimentoId);
+    if (!atendimento) {
+      throw new NotFoundException('Atendimento não encontrado');
+    }
+
+    const atendimentoProdutor = atendimento.at_cli_atend_prop;
+    const produtorId = atendimentoProdutor?.id_pessoa_demeter;
+    if (!produtorId) {
+      throw new NotFoundException(
+        'Produtor não encontrado para este atendimento',
+      );
+    }
+
+    const produtor = await this.produtorApi.getProdutorById(String(produtorId));
+    if (!produtor) {
+      throw new NotFoundException('Produtor não encontrado');
+    }
+
+    const propriedades = produtor.propriedades ?? [];
+    const nome_propriedade = propriedades.length
+      ? propriedades.map((p) => p.nome_propriedade).filter(Boolean).join(', ')
+      : null;
+    const perfil = this.findManualPerfil(produtor.perfis ?? []);
+    const perfilDTO = perfil ? new Perfil(perfil).toDTO() : undefined;
+    const perfilPDFModel = perfil
+      ? new Perfil().toPDFModel({
+          ...perfil,
+          nome_propriedade: nome_propriedade ?? '',
+        })
+      : null;
+    const imagens = await this.getManualRelatorioImagens(atendimentoId);
+
+    return {
+      perfilPDFModel,
+      produtor: {
+        nomeProdutor: produtor.nm_pessoa,
+        cpf: formatCPF(produtor.nr_cpf_cnpj) || '',
+        caf: produtor.caf || produtor.dap || null,
+        id_und_empresa: produtor.id_und_empresa ?? atendimento.id_und_empresa,
+      },
+      atendimento: {
+        atendimentoId,
+        data: atendimento.data_inicio_atendimento ?? null,
+        id_und_empresa: atendimento.id_und_empresa ?? null,
+        produtorId: String(produtorId),
+        propriedadeId: atendimentoProdutor?.id_pl_propriedade ?? null,
+        tecnicoId: atendimento.at_atendimento_usuario?.id_usuario ?? null,
+      },
+      nome_propriedade,
+      dados_producao_in_natura: perfilDTO?.dados_producao_in_natura ?? null,
+      dados_producao_agro_industria:
+        perfilDTO?.dados_producao_agro_industria ?? null,
+      imagens,
+    };
+  }
+
   public async createZipJob({
     userId,
     from,
@@ -266,6 +329,50 @@ export class RelatorioExportService {
       );
       throw error;
     }
+  }
+
+  private findManualPerfil(perfis: PerfilModel[]): PerfilModel | undefined {
+    return (
+      perfis.find(
+        (p) =>
+          p.id_contrato === CURRENT_PNAE_CONTRATO_ID &&
+          p.tipo_perfil === 'ENTRADA',
+      ) ?? perfis.find((p) => p.tipo_perfil === 'ENTRADA')
+    );
+  }
+
+  private async getManualRelatorioImagens(
+    atendimentoId: string,
+  ): Promise<ManualPdfInput['imagens']> {
+    const files: { fileType: FileType; legenda: string }[] = [
+      { fileType: 'relatorio', legenda: 'Relatório assinado' },
+      { fileType: 'foto', legenda: 'Comprovação de visita' },
+    ];
+
+    const imagens = await Promise.all(
+      files.map(async ({ fileType, legenda }) => {
+        try {
+          const { buffer, contentType } =
+            await this.atendimentoService.getArquivos({
+              atendimentoId,
+              fileType,
+            });
+          return {
+            legenda,
+            dataUri: `data:${contentType};base64,${buffer.toString('base64')}`,
+          };
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return null;
+          }
+          throw error;
+        }
+      }),
+    );
+
+    return imagens.filter(
+      (imagem): imagem is ManualPdfInput['imagens'][number] => !!imagem,
+    );
   }
 
   public async getZipJobStatus(jobId?: string): Promise<JobStatusDTO | null> {

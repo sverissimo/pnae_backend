@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { correctValoresPnaeOrder } from './utils/correctValoresPnaeOrder';
 import { UpdateTemasAndVisitaAtendimentoDTO } from 'src/modules/atendimento/dto/update-temas-and-visita-atendimento.dto';
+import { GetArquivosQueryDTO } from 'src/modules/atendimento/dto/get-arquivos.dto';
 import { PerfilOptionDTO } from 'src/modules/perfil/types/perfil-option.dto';
 import { PerfilOptions } from 'src/modules/perfil/types/perfil.options';
 import { MunicipioEmater } from './types/municipio-emater';
@@ -141,6 +142,16 @@ export class RestAPI {
 
   getReplacedAtendimentos() {
     return this.get(`${this.url}/api/getReplacedAtendimentos`);
+  }
+
+  getArquivos({
+    atendimentoId,
+    fileType,
+  }: GetArquivosQueryDTO): Promise<{ arquivo: string } | null> {
+    const params = new URLSearchParams({ atendimentoId, fileType });
+    return this.get<{ arquivo: string }>(
+      `${this.url}/api/getArquivos?${params.toString()}`,
+    );
   }
 
   async aprovarAtendimento(atendimentoId: string): Promise<void> {

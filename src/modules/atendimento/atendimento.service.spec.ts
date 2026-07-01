@@ -7,6 +7,7 @@ jest.mock('src/@graphQL-server/atendimento-api.service', () => ({
 }));
 import { AtendimentoService } from './atendimento.service';
 import { CACHE_KEYS } from 'src/cache/cache.constants';
+import { NotFoundException } from '@nestjs/common';
 
 describe('AtendimentoService.fixDatesIfNeeded', () => {
   const buildService = () => {
@@ -111,6 +112,108 @@ describe('AtendimentoService.fixDatesIfNeeded', () => {
     expect(service.findOne).toHaveBeenCalledWith('42');
     expect(service.findOne).toHaveBeenCalledTimes(1);
     expect(service.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('AtendimentoService.listAtendimentosComRelatorioManual', () => {
+  const buildService = () => {
+    const service = Object.create(
+      AtendimentoService.prototype,
+    ) as AtendimentoService;
+    const graphQLAPI = {
+      getAtendimentosComRelatorioManual: jest.fn().mockResolvedValue({
+        items: [
+          {
+            id_at_atendimento: '1980461',
+            data_inicio_atendimento: '2026-06-20',
+            data_fim_atendimento: null,
+            data_validacao: null,
+            data_atualizacao: '2026-06-21',
+            data_criacao: '2026-06-20',
+            data_sei: null,
+            data_see: null,
+            sn_pendencia: 0,
+            sn_validado: 1,
+            dt_update_record: null,
+            id_at_anterior: null,
+            id_und_empresa: 'H1234',
+            ativo: true,
+            clientes: [
+              {
+                produtor: {
+                  nm_pessoa: 'João',
+                  nr_cpf_cnpj: '123',
+                  dap: null,
+                  caf: null,
+                },
+                propriedade: {
+                  nome_propriedade: 'Sítio A',
+                  geo_ponto_texto: null,
+                },
+              },
+            ],
+            usuarios: [
+              {
+                id_usuario: '7',
+                nome_usuario: 'TECNICA',
+                id_und_empresa: 'H1234',
+              },
+            ],
+          },
+        ],
+        pageSize: 200,
+        nextCursor: '1980461',
+        hasMore: true,
+      }),
+    };
+    const cachedMunicipiosReader = {
+      getUnidadeToLocalidadeMap: jest.fn().mockResolvedValue(
+        new Map([
+          [
+            'H1234',
+            {
+              nomeMunicipio: 'Viçosa',
+              id_reg_empresa: 'G0040',
+              nomeRegional: 'Regional Viçosa',
+            },
+          ],
+        ]),
+      ),
+    };
+    (service as any).graphQLAPI = graphQLAPI;
+    (service as any).cachedMunicipiosReader = cachedMunicipiosReader;
+    return { service, graphQLAPI, cachedMunicipiosReader };
+  };
+
+  it('fetches the upstream page, enriches localidade, and flattens first cliente/usuario', async () => {
+    const { service, graphQLAPI, cachedMunicipiosReader } = buildService();
+
+    const page = await service.listAtendimentosComRelatorioManual({
+      pageSize: 200,
+      cursor: '1980461',
+    });
+
+    expect(graphQLAPI.getAtendimentosComRelatorioManual).toHaveBeenCalledWith({
+      pageSize: 200,
+      cursor: '1980461',
+    });
+    expect(cachedMunicipiosReader.getUnidadeToLocalidadeMap).toHaveBeenCalled();
+    expect(page).toMatchObject({
+      pageSize: 200,
+      nextCursor: '1980461',
+      hasMore: true,
+      items: [
+        {
+          id_at_atendimento: '1980461',
+          produtor: { nm_pessoa: 'João' },
+          propriedade: { nome_propriedade: 'Sítio A' },
+          usuario: { id_usuario: '7' },
+          nomeMunicipio: 'Viçosa',
+          id_reg_empresa: 'G0040',
+          nomeRegional: 'Regional Viçosa',
+        },
+      ],
+    });
   });
 });
 
@@ -273,5 +376,38 @@ describe('AtendimentoService.getAtendimentoAuthScope', () => {
     const scope = await service.getAtendimentoAuthScope('does-not-exist');
 
     expect(scope).toEqual({ ownerId: null, regionId: null });
+  });
+});
+
+describe('AtendimentoService.getArquivos', () => {
+  const buildService = () => {
+    const service = Object.create(
+      AtendimentoService.prototype,
+    ) as AtendimentoService;
+    const restAPI = { getArquivos: jest.fn() };
+    (service as any).restAPI = restAPI;
+    return { service, restAPI };
+  };
+
+  it('forwards the query and decodes the base64 payload into a buffer', async () => {
+    const { service, restAPI } = buildService();
+    const pdf = Buffer.from('%PDF-1.4 sample');
+    restAPI.getArquivos.mockResolvedValue({ arquivo: pdf.toString('base64') });
+
+    const query = { atendimentoId: '7', fileType: 'relatorio' as const };
+    const result = await service.getArquivos(query);
+
+    expect(restAPI.getArquivos).toHaveBeenCalledWith(query);
+    expect(result.contentType).toBe('application/pdf');
+    expect(result.buffer.equals(pdf)).toBe(true);
+  });
+
+  it('throws NotFound when the REST API returns no arquivo', async () => {
+    const { service, restAPI } = buildService();
+    restAPI.getArquivos.mockResolvedValue(null);
+
+    await expect(
+      service.getArquivos({ atendimentoId: '7', fileType: 'foto' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

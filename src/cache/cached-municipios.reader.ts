@@ -1,17 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import IORedis from 'ioredis';
 import { RestAPI } from 'src/@rest-api-server/rest-api.service';
+import { MunicipioEmater } from 'src/@rest-api-server/types/municipio-emater';
 import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import { CACHE_KEYS, CACHE_TTLS, REDIS_CLIENT } from './cache.constants';
 
-/**
- * Caches the canonical `getMunicipiosEmater` table as a unit→regional map
- * (`id_und_empresa` "H…" → `regional_id` "G…"). Slow-changing, so a single
- * long-TTL blob with in-flight dedup (mirrors PerfilService's regionais cache).
- */
+export type UnidadeLocalidade = {
+  nomeMunicipio: string | null;
+  id_reg_empresa: string | null;
+  nomeRegional: string | null;
+};
+
 @Injectable()
 export class CachedMunicipiosReader {
-  private inFlight: Promise<Map<string, string>> | null = null;
+  private inFlight: Promise<MunicipioEmater[]> | null = null;
 
   constructor(
     @Inject(REDIS_CLIENT) private readonly redis: IORedis,
@@ -20,6 +22,31 @@ export class CachedMunicipiosReader {
   ) {}
 
   async getUnidadeToRegionalMap(): Promise<Map<string, string>> {
+    const municipios = await this.loadAll();
+    const entries: [string, string][] = municipios
+      .filter((m) => !!m?.id_und_empresa && !!m?.regional_id)
+      .map((m) => [String(m.id_und_empresa), String(m.regional_id)]);
+
+    return new Map(entries);
+  }
+
+  async getUnidadeToLocalidadeMap(): Promise<Map<string, UnidadeLocalidade>> {
+    const municipios = await this.loadAll();
+    const entries: [string, UnidadeLocalidade][] = municipios
+      .filter((m) => !!m?.id_und_empresa)
+      .map((m) => [
+        String(m.id_und_empresa),
+        {
+          nomeMunicipio: m.nome_municipio ?? null,
+          id_reg_empresa: m.regional_id ? String(m.regional_id) : null,
+          nomeRegional: m.nome_regional ?? null,
+        },
+      ]);
+
+    return new Map(entries);
+  }
+
+  private async loadAll(): Promise<MunicipioEmater[]> {
     if (this.inFlight) return this.inFlight;
     this.inFlight = this.load().finally(() => {
       this.inFlight = null;
@@ -27,7 +54,7 @@ export class CachedMunicipiosReader {
     return this.inFlight;
   }
 
-  private async load(): Promise<Map<string, string>> {
+  private async load(): Promise<MunicipioEmater[]> {
     const key = CACHE_KEYS.municipiosEmater;
 
     let raw: string | null = null;
@@ -38,28 +65,25 @@ export class CachedMunicipiosReader {
     }
     if (raw) {
       try {
-        return new Map(JSON.parse(raw) as [string, string][]);
+        return JSON.parse(raw) as MunicipioEmater[];
       } catch (err) {
         this.logRedisFailure('json-parse', err);
       }
     }
 
     const municipios = (await this.restAPI.getMunicipiosEmater()) ?? [];
-    const entries: [string, string][] = municipios
-      .filter((m) => !!m?.id_und_empresa && !!m?.regional_id)
-      .map((m) => [String(m.id_und_empresa), String(m.regional_id)]);
 
     try {
       await this.redis.setex(
         key,
         CACHE_TTLS.municipiosEmater,
-        JSON.stringify(entries),
+        JSON.stringify(municipios),
       );
     } catch (err) {
       this.logRedisFailure('setex', err);
     }
 
-    return new Map(entries);
+    return municipios;
   }
 
   private logRedisFailure(op: string, err: unknown) {

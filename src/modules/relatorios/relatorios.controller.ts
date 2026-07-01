@@ -88,6 +88,40 @@ export class RelatorioController {
     }
   }
 
+  @Get('/manual')
+  async generateManualPdf(
+    @Query('id') token: string | undefined,
+    @Res() res: Response,
+  ) {
+    try {
+      const atendimentoId = this.decodeManualPdfToken(token);
+      console.log({ atendimentoId });
+      const input =
+        await this.relatorioExportService.createManualPdfInput(atendimentoId);
+      const filename = this.sanitizeFilename(
+        `relatorio_manual_${input.produtor.nomeProdutor}_${atendimentoId}.pdf`,
+      );
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename=${filename}`);
+
+      const pdfStream = await PdfGenerator.generateManualPdf(input);
+      pdfStream.pipe(res);
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      this.logger.error(
+        'RelatorioController.generateManualPdf - ' + error.message,
+        error.stack,
+      );
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        error.message || 'Erro ao gerar PDF manual',
+      );
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: Request) {
     // Web (verified JWT) gets scoped; mobile (static CLIENT_TOKEN, undefined
@@ -251,6 +285,36 @@ export class RelatorioController {
         error?.message || 'Erro ao gerar PDF',
       );
     }
+  }
+
+  private sanitizeFilename(filename: string): string {
+    return filename
+      .normalize('NFKC')
+      .replace(/[\/\\:*?"<>|]/g, '')
+      .replace(/\s+/g, '_')
+      .trim();
+  }
+
+  private decodeManualPdfToken(token?: string): string {
+    if (!token) {
+      throw new BadRequestException('Token do relatório manual é obrigatório.');
+    }
+    if (!/^[A-Za-z0-9_-]+$/.test(token)) {
+      throw new BadRequestException('Token do relatório manual inválido.');
+    }
+
+    const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      '=',
+    );
+    const decoded = Buffer.from(padded, 'base64').toString('utf8');
+
+    if (!/^\d{6,}$/.test(decoded)) {
+      throw new BadRequestException('Token do relatório manual inválido.');
+    }
+
+    return decoded.slice(5);
   }
 
   @Post('/zip/create-job')
