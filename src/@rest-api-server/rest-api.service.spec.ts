@@ -162,3 +162,45 @@ describe('RestAPI.getArquivos', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 });
+
+describe('RestAPI.getArquivosAtendimento', () => {
+  const buildRestAPI = () =>
+    new RestAPI({
+      get: (key: string) => (key === 'url' ? 'http://gateway' : 'tok'),
+    } as unknown as ConfigService);
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('fetches the full file set of the atendimento from the gateway', async () => {
+    const restAPI = buildRestAPI();
+    const arquivos = [
+      { idArquivo: '5', tipoArquivo: 'application/pdf', arquivo: 'JVBERi0=' },
+      { idArquivo: '9', tipoArquivo: 'image/jpeg', arquivo: '/9j/4A==' },
+    ];
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ arquivos }),
+    } as unknown as Response);
+
+    await expect(
+      restAPI.getArquivosAtendimento('2290036'),
+    ).resolves.toEqual({ arquivos });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'http://gateway/api/getArquivosAtendimento?atendimentoId=2290036',
+      { headers: { Authorization: 'Bearer tok' } },
+    );
+  });
+
+  it('returns null when the gateway call fails', async () => {
+    const restAPI = buildRestAPI();
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue({ ok: false, status: 500 } as Response);
+
+    await expect(restAPI.getArquivosAtendimento('2290036')).resolves.toBeNull();
+  });
+});

@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateAtendimentoInputDto } from './dto/create-atendimento.dto';
@@ -10,7 +11,11 @@ import {
   AtendimentoComRelatorioManualQueryDTO,
 } from './dto/atendimento-com-relatorio-manual.dto';
 import { GetArquivosQueryDTO } from './dto/get-arquivos.dto';
-import { decodeArquivo, DecodedArquivo } from './utils/decode-arquivo';
+import {
+  decodeArquivo,
+  DecodedArquivo,
+  DecodedArquivoAtendimento,
+} from './utils/decode-arquivo';
 import { UpdateAtendimentoStorageDto } from './dto/update-atendimento.dto';
 import { AtendimentoGraphQLAPI } from 'src/@graphQL-server/atendimento-api.service';
 import { Atendimento } from './entities/atendimento.entity';
@@ -312,5 +317,31 @@ export class AtendimentoService {
       throw new NotFoundException('Arquivo não encontrado.');
     }
     return decodeArquivo(result.arquivo, query.fileType, result.contentType);
+  }
+
+  // Every active Demeter file of the atendimento, decoded, lowest `idArquivo` first. Rows
+  // without a stored binary are skipped (missing-file degrade); a null gateway response is
+  // an upstream failure, not an empty file set.
+  async getArquivosAtendimento(
+    atendimentoId: string,
+  ): Promise<DecodedArquivoAtendimento[]> {
+    const result = await this.restAPI.getArquivosAtendimento(atendimentoId);
+    if (!result?.arquivos) {
+      throw new InternalServerErrorException(
+        'Falha ao buscar os arquivos do atendimento.',
+      );
+    }
+
+    return result.arquivos
+      .filter((arquivo) => !!arquivo.arquivo)
+      .map(({ idArquivo, tipoArquivo, arquivo }) => ({
+        idArquivo,
+        tipoArquivo,
+        ...decodeArquivo(
+          arquivo,
+          tipoArquivo === 'application/pdf' ? 'relatorio' : 'foto',
+          tipoArquivo ?? undefined,
+        ),
+      }));
   }
 }

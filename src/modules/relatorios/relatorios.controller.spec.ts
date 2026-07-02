@@ -8,7 +8,6 @@ jest.mock('graphql-request', () => ({
 }));
 
 import { RelatorioController } from './relatorios.controller';
-import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
 import { PassThrough } from 'stream';
 import { BadRequestException } from '@nestjs/common';
 
@@ -178,16 +177,16 @@ describe('RelatorioController', () => {
   });
 
   describe('GET /manual?id=<base64urlToken>', () => {
+    const combinedPdf = Buffer.from('%PDF combined');
     let relatorioExportService: any;
     let logger: any;
     let controller: RelatorioController;
 
     beforeEach(() => {
       relatorioExportService = {
-        createManualPdfInput: jest.fn().mockResolvedValue({
-          produtor: { nomeProdutor: 'João da Silva' },
-          atendimento: { atendimentoId: '987' },
-          imagens: [],
+        createManualRelatorioPdf: jest.fn().mockResolvedValue({
+          pdf: combinedPdf,
+          nomeProdutor: 'João da Silva',
         }),
       };
       logger = { error: jest.fn() };
@@ -202,24 +201,16 @@ describe('RelatorioController', () => {
       jest.restoreAllMocks();
     });
 
-    it('decodes the obfuscated token and streams the public manual PDF', async () => {
-      const pdfStream = new PassThrough();
+    it('decodes the obfuscated token and sends the combined manual PDF', async () => {
       const res = new PassThrough() as any;
       res.setHeader = jest.fn();
-      const generateManualPdfSpy = jest
-        .spyOn(PdfGenerator, 'generateManualPdf')
-        .mockResolvedValue(pdfStream);
+      res.send = jest.fn();
 
       await controller.generateManualPdf(createManualPdfToken('987'), res);
 
-      expect(relatorioExportService.createManualPdfInput).toHaveBeenCalledWith(
-        '987',
-      );
-      expect(generateManualPdfSpy).toHaveBeenCalledWith({
-        produtor: { nomeProdutor: 'João da Silva' },
-        atendimento: { atendimentoId: '987' },
-        imagens: [],
-      });
+      expect(
+        relatorioExportService.createManualRelatorioPdf,
+      ).toHaveBeenCalledWith('987');
       expect(res.setHeader).toHaveBeenCalledWith(
         'Content-Type',
         'application/pdf',
@@ -228,11 +219,13 @@ describe('RelatorioController', () => {
         'Content-Disposition',
         'inline; filename=relatorio_manual_João_da_Silva_987.pdf',
       );
+      expect(res.send).toHaveBeenCalledWith(combinedPdf);
     });
 
     it('rejects missing or malformed manual PDF tokens with 400', async () => {
       const res = new PassThrough() as any;
       res.setHeader = jest.fn();
+      res.send = jest.fn();
 
       await expect(
         controller.generateManualPdf(undefined, res),
@@ -245,7 +238,7 @@ describe('RelatorioController', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(
-        relatorioExportService.createManualPdfInput,
+        relatorioExportService.createManualRelatorioPdf,
       ).not.toHaveBeenCalled();
     });
   });

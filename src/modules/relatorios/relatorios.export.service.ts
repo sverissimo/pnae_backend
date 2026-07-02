@@ -7,6 +7,7 @@ import IORedis from 'ioredis';
 
 import { Readable } from 'stream';
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -18,11 +19,11 @@ import { Perfil, PerfilModel } from 'src/@domain/perfil';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
+import { assembleManualPdf } from 'src/@pdf-gen/manual-pdf-assembler';
 import { ManualPdfInput } from 'src/@pdf-gen/types/create-pdf-input';
 import { ZipCreator } from 'src/@zip-gen/ZipCreator';
 import { RelatorioService } from './relatorios.service';
 import { AtendimentoService } from '../atendimento/atendimento.service';
-import { FileType } from '../atendimento/dto/get-arquivos.dto';
 import { ProdutorService } from '../produtor/produtor.service';
 import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import {
@@ -37,6 +38,15 @@ import { cleanupOldZips } from './utils/cleanup-old-zips';
 import { UsuarioModel } from 'src/@domain/usuario/usuario-model';
 
 const CURRENT_PNAE_CONTRATO_ID = 2;
+
+// PNAE-supported stored MIMEs for the combined manual PDF; anything else (the ~3 stray
+// `application/msword` rows) is bad stored data and gets a clear unsupported-file error.
+const MANUAL_PDF_SUPPORTED_TIPOS = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+]);
 
 @Injectable()
 export class RelatorioExportService {
@@ -220,8 +230,49 @@ export class RelatorioExportService {
     return { filename, filePath: tmpPath };
   }
 
-  public async createManualPdfInput(
+  // Combined manual-relatório PDF (docs/plans/atendimentos-manuais-file-download-options.md,
+  // Phase 2): perfil cover, then every relatório PDF's pages, then every proof photo as an
+  // image page — file groups ordered lowest idArquivo first.
+  public async createManualRelatorioPdf(
     atendimentoId: string,
+  ): Promise<{ pdf: Buffer; nomeProdutor: string }> {
+    const arquivos =
+      await this.atendimentoService.getArquivosAtendimento(atendimentoId);
+
+    const naoSuportado = arquivos.find(
+      (arquivo) => !MANUAL_PDF_SUPPORTED_TIPOS.has(arquivo.tipoArquivo),
+    );
+    if (naoSuportado) {
+      throw new BadRequestException(
+        `Arquivo em formato não suportado para o relatório manual: ${
+          naoSuportado.tipoArquivo ?? 'desconhecido'
+        }.`,
+      );
+    }
+
+    const input = await this.createManualPdfInput(
+      atendimentoId,
+      arquivos.length > 0,
+    );
+    const coverStream = await PdfGenerator.generateManualPdf(input);
+    const coverPdf = await this.streamToBuffer(coverStream);
+
+    const pdf = await assembleManualPdf({
+      coverPdf,
+      relatorioPdfs: arquivos.filter(
+        (arquivo) => arquivo.tipoArquivo === 'application/pdf',
+      ),
+      fotos: arquivos.filter(
+        (arquivo) => arquivo.tipoArquivo !== 'application/pdf',
+      ),
+    });
+
+    return { pdf, nomeProdutor: input.produtor.nomeProdutor };
+  }
+
+  private async createManualPdfInput(
+    atendimentoId: string,
+    possuiArquivos: boolean,
   ): Promise<ManualPdfInput> {
     const atendimento = await this.atendimentoService.findOne(atendimentoId);
     if (!atendimento) {
@@ -253,7 +304,6 @@ export class RelatorioExportService {
           nome_propriedade: nome_propriedade ?? '',
         })
       : null;
-    const imagens = await this.getManualRelatorioImagens(atendimentoId);
 
     return {
       perfilPDFModel,
@@ -275,7 +325,7 @@ export class RelatorioExportService {
       dados_producao_in_natura: perfilDTO?.dados_producao_in_natura ?? null,
       dados_producao_agro_industria:
         perfilDTO?.dados_producao_agro_industria ?? null,
-      imagens,
+      possuiArquivos,
     };
   }
 
@@ -341,37 +391,14 @@ export class RelatorioExportService {
     );
   }
 
-  private async getManualRelatorioImagens(
-    atendimentoId: string,
-  ): Promise<ManualPdfInput['imagens']> {
-    const files: { fileType: FileType; legenda: string }[] = [
-      { fileType: 'foto', legenda: 'Comprovação de visita' },
-    ];
-
-    const imagens = await Promise.all(
-      files.map(async ({ fileType, legenda }) => {
-        try {
-          const { buffer, contentType } =
-            await this.atendimentoService.getArquivos({
-              atendimentoId,
-              fileType,
-            });
-          return {
-            legenda,
-            dataUri: `data:${contentType};base64,${buffer.toString('base64')}`,
-          };
-        } catch (error) {
-          if (error instanceof NotFoundException) {
-            return null;
-          }
-          throw error;
-        }
-      }),
-    );
-
-    return imagens.filter(
-      (imagem): imagem is ManualPdfInput['imagens'][number] => !!imagem,
-    );
+  private async streamToBuffer(
+    stream: NodeJS.ReadableStream,
+  ): Promise<Buffer> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
   }
 
   public async getZipJobStatus(jobId?: string): Promise<JobStatusDTO | null> {

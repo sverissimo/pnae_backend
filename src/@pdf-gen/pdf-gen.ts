@@ -134,7 +134,7 @@ export class PdfGenerator {
       nome_propriedade,
       dados_producao_agro_industria,
       dados_producao_in_natura,
-      imagens,
+      possuiArquivos,
     } = pdfInputData;
     const data = atendimento.data ? formatDate(atendimento.data) : '';
     const logoBase64Image = await this.readLogo();
@@ -152,7 +152,7 @@ export class PdfGenerator {
           dados_producao_in_natura?.at_prf_see_grupos_produtos ?? [],
         gruposProdutosIndustriais:
           dados_producao_agro_industria?.at_prf_see_grupos_produtos ?? [],
-        imagens,
+        possuiArquivos,
       }),
       ejs.renderFile(`${this.templatesDir}/footer.ejs`, {
         numeroRelatorio: atendimento.atendimentoId,

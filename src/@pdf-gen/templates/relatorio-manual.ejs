@@ -6,21 +6,6 @@
     <title>Relatório Manual PNAE - Emater/MG</title>
     <%- include('../styles/globalStyles'); %> <%- include('../styles/headerStyles'); %>
     <%- include('../styles/relatorioStyles'); %>
-    <style>
-      .manualImage {
-        max-width: 100%;
-        max-height: 900px;
-        margin: 12px auto;
-      }
-      .manualCaption {
-        text-align: center;
-        font-weight: 600;
-        margin: 8px 0 14px;
-      }
-      .manualPageBreak {
-        page-break-before: always;
-      }
-    </style>
   </head>
 
   <body>
@@ -69,21 +54,12 @@
         </section>
       <% } %>
 
-      <% if (!imagens.length) { %>
+      <% if (!possuiArquivos) { %>
         <section class="textBox avoid-break">
           <h5 class="subtitle">Arquivos do relatório manual</h5>
           <p>Nenhum arquivo foi encontrado para este atendimento.</p>
         </section>
       <% } %>
-
-      <% imagens.forEach(function(imagem, index) { %>
-        <section class="textBox avoid-break <%= index > 0 ? 'manualPageBreak' : '' %>">
-          <h5 class="subtitle"><%= imagem.legenda %></h5>
-          <div class="imageContainer">
-            <img src="<%= imagem.dataUri %>" alt="<%= imagem.legenda %>" class="manualImage" />
-          </div>
-        </section>
-      <% }) %>
     </main>
   </body>
 </html>

@@ -95,18 +95,17 @@ export class RelatorioController {
   ) {
     try {
       const atendimentoId = this.decodeManualPdfToken(token);
-      console.log({ atendimentoId });
-      const input =
-        await this.relatorioExportService.createManualPdfInput(atendimentoId);
+      const { pdf, nomeProdutor } =
+        await this.relatorioExportService.createManualRelatorioPdf(
+          atendimentoId,
+        );
       const filename = this.sanitizeFilename(
-        `relatorio_manual_${input.produtor.nomeProdutor}_${atendimentoId}.pdf`,
+        `relatorio_manual_${nomeProdutor}_${atendimentoId}.pdf`,
       );
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename=${filename}`);
-
-      const pdfStream = await PdfGenerator.generateManualPdf(input);
-      pdfStream.pipe(res);
+      res.send(pdf);
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
       this.logger.error(

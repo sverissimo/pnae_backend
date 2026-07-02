@@ -5,6 +5,13 @@ export interface DecodedArquivo {
   contentType: string;
 }
 
+// One decoded file of an atendimento's full set: `tipoArquivo` is Demeter's stored MIME
+// (drives supported/unsupported classification); `contentType` is the byte-sniffed one.
+export interface DecodedArquivoAtendimento extends DecodedArquivo {
+  idArquivo: string;
+  tipoArquivo: string | null;
+}
+
 const DEFAULT_CONTENT_TYPE: Record<FileType, string> = {
   relatorio: 'application/pdf',
   foto: 'image/jpeg',
@@ -73,6 +80,9 @@ function sniffContentType(buffer: Buffer): string | undefined {
     buffer[3] === 0x47
   ) {
     return 'image/png';
+  }
+  if (buffer.length >= 4 && buffer.toString('ascii', 0, 4) === 'GIF8') {
+    return 'image/gif';
   }
   return undefined;
 }

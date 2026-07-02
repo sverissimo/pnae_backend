@@ -4,8 +4,13 @@ This is a follow-up decision note for the already-implemented manual-relatorio l
 only on the Demeter `arquivo` download problem behind `GET /atendimento/getArquivos` and the
 browser actions that open/download the legacy relatório files.
 
-This note was reconciled with the Phase 1 implementation on July 2, 2026. It assumes these plans are
-implemented:
+This note was reconciled with the Phase 1 implementation on July 2, 2026. Phase 2 (the combined
+manual PDF) was implemented on July 2, 2026: `GET /relatorios/manual` now assembles the perfil cover
+plus all relatório PDF pages and all proof-of-visit photos via `@cantoo/pdf-lib`/`sharp`
+(`src/@pdf-gen/manual-pdf-assembler.ts`), sourcing the full file set from the new gateway route
+`GET /api/getArquivosAtendimento`, and rejects `application/msword` with a clear unsupported-file
+error. See the `GET /relatorios/manual` entry in AGENTS.md for the current behavior. It assumes
+these plans are implemented:
 
 - `emater_graphql_server/docs/plans/atendimento-list-read-endpoint-plan.md`
 - `backend/docs/plans/atendimentos-manuais-list.md`

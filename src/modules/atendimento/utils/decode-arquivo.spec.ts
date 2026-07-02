@@ -30,6 +30,17 @@ describe('decodeArquivo', () => {
     expect(contentType).toBe('image/png');
   });
 
+  it('sniffs GIF bytes even when the stored tipo says otherwise', () => {
+    const gif = Buffer.from('GIF89a\x01\x00\x01\x00', 'binary');
+    const { contentType } = decodeArquivo(
+      gif.toString('base64'),
+      'foto',
+      'image/jpeg',
+    );
+
+    expect(contentType).toBe('image/gif');
+  });
+
   it('strips a base64 data URI prefix and uses its mime as fallback', () => {
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
     const dataUri = `data:image/png;base64,${png.toString('base64')}`;

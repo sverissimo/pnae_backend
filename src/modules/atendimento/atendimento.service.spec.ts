@@ -7,7 +7,10 @@ jest.mock('src/@graphQL-server/atendimento-api.service', () => ({
 }));
 import { AtendimentoService } from './atendimento.service';
 import { CACHE_KEYS } from 'src/cache/cache.constants';
-import { NotFoundException } from '@nestjs/common';
+import {
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 
 describe('AtendimentoService.fixDatesIfNeeded', () => {
   const buildService = () => {
@@ -442,5 +445,88 @@ describe('AtendimentoService.getArquivos', () => {
     await expect(
       service.getArquivos({ atendimentoId: '7', fileType: 'foto' }),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe('AtendimentoService.getArquivosAtendimento', () => {
+  const buildService = () => {
+    const service = Object.create(
+      AtendimentoService.prototype,
+    ) as AtendimentoService;
+    const restAPI = { getArquivosAtendimento: jest.fn() };
+    (service as any).restAPI = restAPI;
+    return { service, restAPI };
+  };
+
+  it('decodes every returned file, keeping order and stored tipoArquivo', async () => {
+    const { service, restAPI } = buildService();
+    const pdf = Buffer.from('%PDF-1.4 sample');
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    restAPI.getArquivosAtendimento.mockResolvedValue({
+      arquivos: [
+        {
+          idArquivo: '5',
+          tipoArquivo: 'application/pdf',
+          arquivo: pdf.toString('base64'),
+        },
+        {
+          idArquivo: '9',
+          tipoArquivo: 'image/jpeg',
+          arquivo: jpeg.toString('base64'),
+        },
+      ],
+    });
+
+    const result = await service.getArquivosAtendimento('7');
+
+    expect(restAPI.getArquivosAtendimento).toHaveBeenCalledWith('7');
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({
+      idArquivo: '5',
+      tipoArquivo: 'application/pdf',
+      contentType: 'application/pdf',
+    });
+    expect(result[0].buffer.equals(pdf)).toBe(true);
+    expect(result[1]).toMatchObject({
+      idArquivo: '9',
+      tipoArquivo: 'image/jpeg',
+      contentType: 'image/jpeg',
+    });
+  });
+
+  it('skips rows without a stored binary but keeps the rest', async () => {
+    const { service, restAPI } = buildService();
+    const pdf = Buffer.from('%PDF-1.4 sample');
+    restAPI.getArquivosAtendimento.mockResolvedValue({
+      arquivos: [
+        { idArquivo: '3', tipoArquivo: 'application/pdf', arquivo: null },
+        {
+          idArquivo: '5',
+          tipoArquivo: 'application/pdf',
+          arquivo: pdf.toString('base64'),
+        },
+      ],
+    });
+
+    const result = await service.getArquivosAtendimento('7');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].idArquivo).toBe('5');
+  });
+
+  it('returns an empty list for an atendimento without files', async () => {
+    const { service, restAPI } = buildService();
+    restAPI.getArquivosAtendimento.mockResolvedValue({ arquivos: [] });
+
+    await expect(service.getArquivosAtendimento('7')).resolves.toEqual([]);
+  });
+
+  it('throws 500 when the gateway call itself fails (null response)', async () => {
+    const { service, restAPI } = buildService();
+    restAPI.getArquivosAtendimento.mockResolvedValue(null);
+
+    await expect(service.getArquivosAtendimento('7')).rejects.toBeInstanceOf(
+      InternalServerErrorException,
+    );
   });
 });

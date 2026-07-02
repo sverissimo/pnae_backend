@@ -19,7 +19,7 @@ Layers, expressed as top-level folders under [src/](../src/):
 - [modules/](../src/modules/) — feature modules. Each owns a `*.module.ts`, `*.controller.ts`, `*.service.ts`, plus `dto/`, `entities/`, `data-mapper/`, `utils/`, `workers/` as needed. Modules: `relatorios/`, `atendimento/`, `produtor/`, `perfil/`, `usuario/`, `files/`, `@sync/`.
 - [@graphQL-server/](../src/@graphQL-server/) — typed client for the external GraphQL server. `GraphQLAPI` base class + per-aggregate `*-api.service.ts`, with colocated `queries/` and `mutations/`.
 - [@rest-api-server/](../src/@rest-api-server/) — legacy REST integration (`RestAPI` service + `utils/`).
-- [@pdf-gen/](../src/@pdf-gen/), [@zip-gen/](../src/@zip-gen/) — generation pipelines (EJS templates + wkhtmltopdf for PDF; archiver for ZIP). `@pdf-gen/` carries its own `templates/`, `styles/`, `workers/`, `types/`, `utils/`.
+- [@pdf-gen/](../src/@pdf-gen/), [@zip-gen/](../src/@zip-gen/) — generation pipelines (EJS templates + wkhtmltopdf for PDF; archiver for ZIP; `manual-pdf-assembler.ts` composes the combined manual-relatório PDF with `@cantoo/pdf-lib` + `sharp`). `@pdf-gen/` carries its own `templates/`, `styles/`, `workers/`, `types/`, `utils/`.
 - [auth/](../src/auth/), [prisma/](../src/prisma/), [redis/](../src/redis/), [logging/](../src/logging/), [interceptors/](../src/interceptors/), [filters/](../src/filters/), [config/](../src/config/), [utils/](../src/utils/), [views/](../src/views/), [types/](../src/types/) — cross-cutting.
 
 ## Environment topology

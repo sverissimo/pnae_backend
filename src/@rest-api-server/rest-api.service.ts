@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { correctValoresPnaeOrder } from './utils/correctValoresPnaeOrder';
 import { UpdateTemasAndVisitaAtendimentoDTO } from 'src/modules/atendimento/dto/update-temas-and-visita-atendimento.dto';
-import { GetArquivosQueryDTO } from 'src/modules/atendimento/dto/get-arquivos.dto';
+import {
+  ArquivoAtendimentoDTO,
+  GetArquivosQueryDTO,
+} from 'src/modules/atendimento/dto/get-arquivos.dto';
 import { PerfilOptionDTO } from 'src/modules/perfil/types/perfil-option.dto';
 import { PerfilOptions } from 'src/modules/perfil/types/perfil.options';
 import { MunicipioEmater } from './types/municipio-emater';
@@ -163,6 +166,18 @@ export class RestAPI {
         : ['image/jpeg', 'image/png', 'image/gif'];
 
     return this.getArquivoByTipo(atendimentoId, gatewayFileTypes);
+  }
+
+  // All active files of the atendimento (metadata + raw binary), lowest `idArquivo` first —
+  // feeds the combined manual-PDF assembly, which embeds every relatório PDF and proof photo.
+  // `null` means the gateway call itself failed; an atendimento without files is `{ arquivos: [] }`.
+  getArquivosAtendimento(
+    atendimentoId: string,
+  ): Promise<{ arquivos: ArquivoAtendimentoDTO[] } | null> {
+    const params = new URLSearchParams({ atendimentoId });
+    return this.get(
+      `${this.url}/api/getArquivosAtendimento?${params.toString()}`,
+    );
   }
 
   private async getArquivoByTipo(

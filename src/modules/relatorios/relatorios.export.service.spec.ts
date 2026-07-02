@@ -6,17 +6,23 @@ jest.mock('graphql-request', () => ({
   gql: (literals: TemplateStringsArray) => literals[0],
   GraphQLClient: jest.fn().mockImplementation(() => ({ request: jest.fn() })),
 }));
+jest.mock('src/@pdf-gen/manual-pdf-assembler', () => ({
+  assembleManualPdf: jest.fn(),
+}));
 
-import { NotFoundException } from '@nestjs/common';
+import { Readable } from 'stream';
+import { BadRequestException } from '@nestjs/common';
+import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
+import { assembleManualPdf } from 'src/@pdf-gen/manual-pdf-assembler';
 import { RelatorioExportService } from './relatorios.export.service';
 
-describe('RelatorioExportService.createManualPdfInput', () => {
+describe('RelatorioExportService.createManualRelatorioPdf', () => {
+  const coverBytes = Buffer.from('%PDF cover');
+  const combinedBytes = Buffer.from('%PDF combined');
+
   const buildService = ({
     produtorOverrides = {},
-    getArquivos,
-  }: {
-    produtorOverrides?: Record<string, any>;
-    getArquivos?: jest.Mock;
+    arquivos = [] as any[],
   } = {}) => {
     const service = Object.create(
       RelatorioExportService.prototype,
@@ -35,19 +41,7 @@ describe('RelatorioExportService.createManualPdfInput', () => {
           id_usuario: '7',
         },
       }),
-      getArquivos:
-        getArquivos ??
-        jest.fn().mockImplementation(({ fileType }) => {
-          const bytes =
-            fileType === 'relatorio'
-              ? Buffer.from('%PDF manual')
-              : Buffer.from([0xff, 0xd8, 0xff]);
-          return Promise.resolve({
-            buffer: bytes,
-            contentType:
-              fileType === 'relatorio' ? 'application/pdf' : 'image/jpeg',
-          });
-        }),
+      getArquivosAtendimento: jest.fn().mockResolvedValue(arquivos),
     };
     const produtorApi = {
       getProdutorById: jest.fn().mockResolvedValue({
@@ -68,13 +62,51 @@ describe('RelatorioExportService.createManualPdfInput', () => {
     return { service, atendimentoService, produtorApi };
   };
 
-  it('builds manual PDF input from atendimento, produtor, perfil, and Demeter files', async () => {
-    const { service, atendimentoService, produtorApi } = buildService();
+  const arquivo = (
+    idArquivo: string,
+    tipoArquivo: string,
+    contentType = tipoArquivo,
+  ) => ({
+    idArquivo,
+    tipoArquivo,
+    contentType,
+    buffer: Buffer.from(`file-${idArquivo}`),
+  });
 
-    const input = await service.createManualPdfInput('987');
+  let generateManualPdfSpy: jest.SpyInstance;
 
+  beforeEach(() => {
+    generateManualPdfSpy = jest
+      .spyOn(PdfGenerator, 'generateManualPdf')
+      .mockResolvedValue(Readable.from([coverBytes]) as any);
+    (assembleManualPdf as jest.Mock).mockResolvedValue(combinedBytes);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    (assembleManualPdf as jest.Mock).mockReset();
+  });
+
+  it('assembles cover + every relatório PDF + every foto, keeping idArquivo order per group', async () => {
+    const arquivos = [
+      arquivo('3', 'application/pdf'),
+      arquivo('5', 'image/jpeg'),
+      arquivo('9', 'application/pdf'),
+      arquivo('11', 'image/gif'),
+    ];
+    const { service, atendimentoService, produtorApi } = buildService({
+      arquivos,
+    });
+
+    const result = await service.createManualRelatorioPdf('987');
+
+    expect(atendimentoService.getArquivosAtendimento).toHaveBeenCalledWith(
+      '987',
+    );
     expect(atendimentoService.findOne).toHaveBeenCalledWith('987');
     expect(produtorApi.getProdutorById).toHaveBeenCalledWith('42');
+
+    const input = generateManualPdfSpy.mock.calls[0][0];
     expect(input.produtor).toMatchObject({
       nomeProdutor: 'João da Silva',
       cpf: '123.456.789-01',
@@ -89,35 +121,58 @@ describe('RelatorioExportService.createManualPdfInput', () => {
     });
     expect(input.nome_propriedade).toBe('Sítio A');
     expect(input.perfilPDFModel).not.toBeNull();
-    expect(input.imagens).toHaveLength(1);
-    expect(input.imagens[0]).toMatchObject({
-      legenda: 'Comprovação de visita',
+    expect(input.possuiArquivos).toBe(true);
+
+    const assembly = (assembleManualPdf as jest.Mock).mock.calls[0][0];
+    expect(assembly.coverPdf.equals(coverBytes)).toBe(true);
+    expect(assembly.relatorioPdfs.map((a) => a.idArquivo)).toEqual(['3', '9']);
+    expect(assembly.fotos.map((a) => a.idArquivo)).toEqual(['5', '11']);
+
+    expect(result.pdf.equals(combinedBytes)).toBe(true);
+    expect(result.nomeProdutor).toBe('João da Silva');
+  });
+
+  it('rejects application/msword with a clear unsupported-file error before any PDF work', async () => {
+    const { service } = buildService({
+      arquivos: [arquivo('3', 'application/msword')],
     });
-    expect(input.imagens[0].dataUri).toContain('data:image/jpeg;base64,');
+
+    await expect(service.createManualRelatorioPdf('987')).rejects.toThrow(
+      new BadRequestException(
+        'Arquivo em formato não suportado para o relatório manual: application/msword.',
+      ),
+    );
+
+    expect(generateManualPdfSpy).not.toHaveBeenCalled();
+    expect(assembleManualPdf).not.toHaveBeenCalled();
+  });
+
+  it('degrades to a cover-only PDF when the atendimento has no files', async () => {
+    const { service } = buildService({ arquivos: [] });
+
+    const result = await service.createManualRelatorioPdf('987');
+
+    const input = generateManualPdfSpy.mock.calls[0][0];
+    expect(input.possuiArquivos).toBe(false);
+
+    const assembly = (assembleManualPdf as jest.Mock).mock.calls[0][0];
+    expect(assembly.relatorioPdfs).toEqual([]);
+    expect(assembly.fotos).toEqual([]);
+    expect(result.pdf.equals(combinedBytes)).toBe(true);
   });
 
   it('falls back to a minimal cover when the produtor has no perfil', async () => {
     const { service } = buildService({
       produtorOverrides: { perfis: [] },
+      arquivos: [arquivo('3', 'application/pdf')],
     });
 
-    const input = await service.createManualPdfInput('987');
+    await service.createManualRelatorioPdf('987');
 
+    const input = generateManualPdfSpy.mock.calls[0][0];
     expect(input.perfilPDFModel).toBeNull();
     expect(input.dados_producao_in_natura).toBeNull();
     expect(input.dados_producao_agro_industria).toBeNull();
-    expect(input.imagens).toHaveLength(1);
-  });
-
-  it('renders no manual files when no image file exists', async () => {
-    const getArquivos = jest
-      .fn()
-      .mockRejectedValue(new NotFoundException('Arquivo não encontrado.'));
-    const { service } = buildService({ getArquivos });
-
-    const input = await service.createManualPdfInput('987');
-
-    expect(input.imagens).toEqual([]);
   });
 });
 

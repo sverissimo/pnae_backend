@@ -28,8 +28,5 @@ export type ManualPdfInput = {
   nome_propriedade: string | null;
   dados_producao_in_natura: any;
   dados_producao_agro_industria: any;
-  imagens: {
-    dataUri: string;
-    legenda: string;
-  }[];
+  possuiArquivos: boolean;
 };
