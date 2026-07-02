@@ -2,10 +2,10 @@
 
 This is a follow-up decision note for the already-implemented manual-relatorio list flow. It focuses
 only on the Demeter `arquivo` download problem behind `GET /atendimento/getArquivos` and the
-browser action that opens/downloads the legacy relatório.
+browser actions that open/download the legacy relatório files.
 
-No implementation code was inspected for this note. Existing `getArquivos` mapping details referenced
-below come from `AGENTS.md`, not direct code inspection. It assumes these plans are implemented:
+This note was reconciled with the Phase 1 implementation on July 2, 2026. It assumes these plans are
+implemented:
 
 - `emater_graphql_server/docs/plans/atendimento-list-read-endpoint-plan.md`
 - `backend/docs/plans/atendimentos-manuais-list.md`
@@ -59,8 +59,10 @@ Not present for PNAE:
 ```
 
 The original implemented plan aimed for a generated PDF: perfil cover plus embedded manual-relatório
-images. With the updated DB facts, the real remaining problem is smaller: copy the relatório PDF
-pages, append proof-of-visit images, and reject the rare `application/msword` rows as bad stored data.
+images. Phase 1 now keeps that generated manual PDF as the **Ver relatório** action, and also lets the
+frontend download the raw relatório PDF and proof-of-visit photo separately. Phase 2 remains the
+future improvement: copy the relatório PDF pages into the generated PDF, append proof-of-visit images,
+and reject the rare `application/msword` rows as bad stored data.
 
 ## List Metadata Change
 
@@ -103,12 +105,16 @@ Upstream files read for this decision:
   columns are `id_at_arquivo`, `arquivo`, `id_at_atendimento`, `ativo`, `tipo_arquivo`, and
   update/sync metadata.
 
-Frontend rendering can then be deterministic:
+Frontend rendering is deterministic:
 
-- `application/pdf` relatório: show **Ver relatório** as the primary action.
+- **Ver relatório**: open `GET /relatorios/manual?id=<base64urlToken>`, which currently generates the
+  perfil/manual PDF and embeds the proof-of-visit photo when available.
+- `application/pdf`: show **Baixar relatório**, which downloads the raw Demeter relatório PDF via
+  `GET /atendimento/getArquivos?fileType=relatorio`.
 - `application/msword`: do not render a special download action; if the user reaches the assembled-PDF
   endpoint, return a clear unsupported-file error.
-- Image MIME (`image/gif`, `image/jpeg`, `image/png`): treat as the proof-of-visit photo.
+- Image MIME (`image/gif`, `image/jpeg`, `image/png`): show **Baixar foto**, which downloads the raw
+  proof-of-visit image via `GET /atendimento/getArquivos?fileType=foto`.
 - Generate user-facing filenames in the backend presentation mapper from MIME plus atendimento id, not
   from Demeter `nome_arquivo`. For example: `relatorio_<atendimentoId>` for PDFs and
   `foto_<atendimentoId>` for images. This keeps the messy Demeter filename out of the presentation DTO
@@ -128,7 +134,7 @@ removed from this plan after the DB check showed PNAE-relevant files are PDF/ima
 
 ### Phase 1: Raw Semantic-File Endpoint
 
-Keep one endpoint that downloads one Demeter file by semantic file type:
+Keep one endpoint that downloads one raw Demeter file by semantic file type:
 
 - `fileType=relatorio` downloads the original relatório artifact as stored by Demeter.
 - `fileType=foto` downloads the proof-of-visit image as stored by Demeter.
@@ -149,6 +155,11 @@ Implementation shape:
 - Use `at_arquivo.tipo_arquivo` from Demeter to set `Content-Type` and filename extension.
 - Use `Content-Disposition: attachment` for formats browsers might try to render inconsistently.
 - Use this endpoint for Postman testing and raw downloads of supported PNAE files.
+- Frontend Phase 1 shows separate actions for:
+  - **Ver relatório**: opens the generated manual PDF route (`/relatorios/manual`), which includes
+    perfil data and the proof-of-visit photo;
+  - **Baixar relatório**: downloads the raw PDF file;
+  - **Baixar foto**: downloads the raw proof-of-visit image.
 
 ### Phase 2: Combined PDF For PDF Relatório + Proof Image
 
@@ -183,10 +194,13 @@ Build Phase 1 first, then Phase 2.
 The practical product behavior should be:
 
 - Primary action: **Ver relatório**
-  - Opens one generated combined PDF.
-  - Includes perfil cover when available.
-  - Copies all relatório PDF pages in `idArquivo` order.
-  - Includes all proof-of-visit photos in `idArquivo` order when available.
+  - Phase 1 opens the existing generated manual PDF: perfil data plus proof-of-visit photo when
+    available.
+  - Phase 2 changes that generated PDF to also copy all raw relatório PDF pages in `idArquivo` order
+    and include all proof-of-visit photos in `idArquivo` order.
+- Raw download actions:
+  - **Baixar relatório** downloads the original PDF stored in Demeter.
+  - **Baixar foto** downloads the original proof-of-visit image stored in Demeter.
 - Error behavior:
   - If `application/msword` appears, return a clear unsupported-file error from the assembled-PDF
     endpoint.
