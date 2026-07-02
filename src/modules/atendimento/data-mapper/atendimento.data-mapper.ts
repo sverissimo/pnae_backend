@@ -43,10 +43,11 @@ export class AtendimentoDataMapper {
   ): AtendimentoComRelatorioManualDTO {
     const cliente = item.clientes[0] ?? null;
     const usuario = item.usuarios[0] ?? null;
-    const { clientes, usuarios, ...scalars } = item;
+    const { clientes, usuarios, arquivos, ...scalars } = item;
 
     return {
       ...scalars,
+      arquivos: arquivos ?? [],
       produtor: cliente?.produtor ?? null,
       propriedade: cliente?.propriedade ?? null,
       usuario,

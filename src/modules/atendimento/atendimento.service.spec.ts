@@ -159,6 +159,13 @@ describe('AtendimentoService.listAtendimentosComRelatorioManual', () => {
                 id_und_empresa: 'H1234',
               },
             ],
+            arquivos: [
+              {
+                idArquivo: '501',
+                tipoArquivo: 'application/pdf',
+                nomeArquivo: 'relatorio_1980461',
+              },
+            ],
           },
         ],
         pageSize: 200,
@@ -211,6 +218,13 @@ describe('AtendimentoService.listAtendimentosComRelatorioManual', () => {
           nomeMunicipio: 'Viçosa',
           id_reg_empresa: 'G0040',
           nomeRegional: 'Regional Viçosa',
+          arquivos: [
+            {
+              idArquivo: '501',
+              tipoArquivo: 'application/pdf',
+              nomeArquivo: 'relatorio_1980461',
+            },
+          ],
         },
       ],
     });
@@ -400,6 +414,25 @@ describe('AtendimentoService.getArquivos', () => {
     expect(restAPI.getArquivos).toHaveBeenCalledWith(query);
     expect(result.contentType).toBe('application/pdf');
     expect(result.buffer.equals(pdf)).toBe(true);
+  });
+
+  it('uses the content type selected by the REST lookup when magic bytes do not identify the file', async () => {
+    const { service, restAPI } = buildService();
+    // GIF is a supported foto MIME but is not magic-byte-sniffed, so decode must fall back to the
+    // content type the REST lookup selected.
+    const gif = Buffer.from('gif-placeholder-without-magic-bytes');
+    restAPI.getArquivos.mockResolvedValue({
+      arquivo: gif.toString('base64'),
+      contentType: 'image/gif',
+    });
+
+    const result = await service.getArquivos({
+      atendimentoId: '7',
+      fileType: 'foto',
+    });
+
+    expect(result.contentType).toBe('image/gif');
+    expect(result.buffer.equals(gif)).toBe(true);
   });
 
   it('throws NotFound when the REST API returns no arquivo', async () => {

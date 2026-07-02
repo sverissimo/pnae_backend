@@ -31,6 +31,15 @@ export type AtendimentoUsuarioResumoDTO = {
   id_und_empresa: string | null;
 };
 
+// One Demeter `at_arquivo` projected for the list. `idArquivo` is a BigInt serialized to string by
+// the gateway scalar; `tipoArquivo` is the raw stored MIME (frontend derives actions from it);
+// `nomeArquivo` is an app-generated presentation name, never Demeter's `nome_arquivo`.
+export type ArquivoRelatorioManualResumoDTO = {
+  idArquivo: string;
+  tipoArquivo: string;
+  nomeArquivo: string;
+};
+
 export type AtendimentoComRelatorioManualItemDTO = {
   id_at_atendimento: string;
   data_inicio_atendimento: string;
@@ -48,6 +57,7 @@ export type AtendimentoComRelatorioManualItemDTO = {
   ativo: boolean;
   clientes: AtendimentoClienteResumoDTO[];
   usuarios: AtendimentoUsuarioResumoDTO[];
+  arquivos: ArquivoRelatorioManualResumoDTO[];
 };
 
 export type AtendimentoComRelatorioManualPageGqlDTO = {

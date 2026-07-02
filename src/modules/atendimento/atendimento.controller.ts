@@ -104,10 +104,13 @@ export class AtendimentoController {
         );
       }
 
-      const { buffer, contentType } = await this.atendimentoService.getArquivos({
-        atendimentoId,
-        fileType,
-      });
+      const { buffer, contentType } = await this.atendimentoService.getArquivos(
+        {
+          atendimentoId,
+
+          fileType,
+        },
+      );
 
       res.setHeader('Content-Type', contentType);
       res.send(buffer);
@@ -251,7 +254,9 @@ export class AtendimentoController {
     }
     if (user.isStaff()) return { id_usuario: user.id_usuario };
 
-    throw new ForbiddenException('Usuário sem permissão para listar relatórios.');
+    throw new ForbiddenException(
+      'Usuário sem permissão para listar relatórios.',
+    );
   }
 
   private errorHandler(error: any, caller: string) {

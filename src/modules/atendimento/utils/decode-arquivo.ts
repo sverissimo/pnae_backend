@@ -18,11 +18,13 @@ const DEFAULT_CONTENT_TYPE: Record<FileType, string> = {
 export function decodeArquivo(
   arquivo: string,
   fileType: FileType,
+  contentTypeFromLookup?: string,
 ): DecodedArquivo {
   const { buffer, mimeFromPrefix } = toBuffer(arquivo);
   const contentType =
     sniffContentType(buffer) ??
     mimeFromPrefix ??
+    contentTypeFromLookup ??
     DEFAULT_CONTENT_TYPE[fileType] ??
     'application/octet-stream';
 

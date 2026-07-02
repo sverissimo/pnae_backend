@@ -345,7 +345,6 @@ export class RelatorioExportService {
     atendimentoId: string,
   ): Promise<ManualPdfInput['imagens']> {
     const files: { fileType: FileType; legenda: string }[] = [
-      { fileType: 'relatorio', legenda: 'Relatório assinado' },
       { fileType: 'foto', legenda: 'Comprovação de visita' },
     ];
 

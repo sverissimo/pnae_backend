@@ -89,11 +89,11 @@ describe('RelatorioExportService.createManualPdfInput', () => {
     });
     expect(input.nome_propriedade).toBe('Sítio A');
     expect(input.perfilPDFModel).not.toBeNull();
-    expect(input.imagens).toHaveLength(2);
+    expect(input.imagens).toHaveLength(1);
     expect(input.imagens[0]).toMatchObject({
-      legenda: 'Relatório assinado',
+      legenda: 'Comprovação de visita',
     });
-    expect(input.imagens[0].dataUri).toContain('data:application/pdf;base64,');
+    expect(input.imagens[0].dataUri).toContain('data:image/jpeg;base64,');
   });
 
   it('falls back to a minimal cover when the produtor has no perfil', async () => {
@@ -106,26 +106,18 @@ describe('RelatorioExportService.createManualPdfInput', () => {
     expect(input.perfilPDFModel).toBeNull();
     expect(input.dados_producao_in_natura).toBeNull();
     expect(input.dados_producao_agro_industria).toBeNull();
-    expect(input.imagens).toHaveLength(2);
+    expect(input.imagens).toHaveLength(1);
   });
 
-  it('renders whatever files exist when one manual file is missing', async () => {
-    const getArquivos = jest.fn().mockImplementation(({ fileType }) => {
-      if (fileType === 'foto') {
-        throw new NotFoundException('Arquivo não encontrado.');
-      }
-      return Promise.resolve({
-        buffer: Buffer.from('%PDF manual'),
-        contentType: 'application/pdf',
-      });
-    });
+  it('renders no manual files when no image file exists', async () => {
+    const getArquivos = jest
+      .fn()
+      .mockRejectedValue(new NotFoundException('Arquivo não encontrado.'));
     const { service } = buildService({ getArquivos });
 
     const input = await service.createManualPdfInput('987');
 
-    expect(input.imagens).toEqual([
-      expect.objectContaining({ legenda: 'Relatório assinado' }),
-    ]);
+    expect(input.imagens).toEqual([]);
   });
 });
 

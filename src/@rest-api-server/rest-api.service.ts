@@ -144,14 +144,41 @@ export class RestAPI {
     return this.get(`${this.url}/api/getReplacedAtendimentos`);
   }
 
+  // PNAE-supported MIME set only: the relatório artifact is always PDF and the proof-of-visit is
+  // always an image. DOCX/TIFF are absent for PNAE and the ~3 stray `application/msword` rows are
+  // treated as bad data — never fetched here (the assembled-PDF endpoint rejects them instead).
+  // We probe one MIME at a time in a fixed order; the gateway (`GET /api/getArquivos`) returns the
+  // lowest-`idArquivo` active file for that exact `tipo_arquivo` and a `{ arquivo: null }` miss, so
+  // selection is deterministic and a miss simply advances to the next MIME.
   getArquivos({
     atendimentoId,
     fileType,
-  }: GetArquivosQueryDTO): Promise<{ arquivo: string } | null> {
-    const params = new URLSearchParams({ atendimentoId, fileType });
-    return this.get<{ arquivo: string }>(
-      `${this.url}/api/getArquivos?${params.toString()}`,
-    );
+  }: GetArquivosQueryDTO): Promise<{
+    arquivo: string;
+    contentType?: string;
+  } | null> {
+    const gatewayFileTypes =
+      fileType === 'relatorio'
+        ? ['application/pdf']
+        : ['image/jpeg', 'image/png', 'image/gif'];
+
+    return this.getArquivoByTipo(atendimentoId, gatewayFileTypes);
+  }
+
+  private async getArquivoByTipo(
+    atendimentoId: string,
+    gatewayFileTypes: string[],
+  ): Promise<{ arquivo: string; contentType?: string } | null> {
+    for (const gatewayFileType of gatewayFileTypes) {
+      const params = new URLSearchParams({
+        atendimentoId,
+      });
+      const result = await this.get<{ arquivo: string }>(
+        `${this.url}/api/getArquivos?${params.toString()}&fileType=${gatewayFileType}`,
+      );
+      if (result?.arquivo) return { ...result, contentType: gatewayFileType };
+    }
+    return null;
   }
 
   async aprovarAtendimento(atendimentoId: string): Promise<void> {

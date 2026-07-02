@@ -18,6 +18,7 @@ const baseItem: AtendimentoComRelatorioManualItemDTO = {
   ativo: true,
   clientes: [],
   usuarios: [],
+  arquivos: [],
 };
 
 describe('AtendimentoDataMapper.toComRelatorioManual', () => {
@@ -81,6 +82,29 @@ describe('AtendimentoDataMapper.toComRelatorioManual', () => {
     expect(item.nomeMunicipio).toBeNull();
     expect(item.id_reg_empresa).toBeNull();
     expect(item.nomeRegional).toBeNull();
+    expect(item.arquivos).toEqual([]);
+  });
+
+  it('passes the upstream arquivos[] through unchanged', () => {
+    const arquivos = [
+      {
+        idArquivo: '501',
+        tipoArquivo: 'application/pdf',
+        nomeArquivo: 'relatorio_1980461',
+      },
+      {
+        idArquivo: '777',
+        tipoArquivo: 'image/jpeg',
+        nomeArquivo: 'foto_1980461',
+      },
+    ];
+
+    const item = AtendimentoDataMapper.toComRelatorioManual({
+      ...baseItem,
+      arquivos,
+    });
+
+    expect(item.arquivos).toEqual(arquivos);
   });
 });
 

@@ -98,6 +98,11 @@ export const atendimentosComRelatorioManualQuery = gql`
           nome_usuario
           id_und_empresa
         }
+        arquivos {
+          idArquivo
+          tipoArquivo
+          nomeArquivo
+        }
       }
     }
   }

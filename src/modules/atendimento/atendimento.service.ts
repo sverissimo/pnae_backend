@@ -311,6 +311,6 @@ export class AtendimentoService {
     if (!result?.arquivo) {
       throw new NotFoundException('Arquivo não encontrado.');
     }
-    return decodeArquivo(result.arquivo, query.fileType);
+    return decodeArquivo(result.arquivo, query.fileType, result.contentType);
   }
 }
