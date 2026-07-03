@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreateAtendimentoInputDto } from './dto/create-atendimento.dto';
 import {
+  AtendimentoComRelatorioDemeterDTO,
   AtendimentoComRelatorioDemeterPageDTO,
   AtendimentoComRelatorioDemeterQueryDTO,
 } from './dto/atendimento-com-relatorio-demeter.dto';
@@ -98,6 +99,23 @@ export class AtendimentoService {
         : `staff:${id_usuario}`;
 
     return [scopeKey, String(pageSize ?? 200), cursor || 'first'];
+  }
+
+  // Single Demeter atendimento by id, enriched like a list row (município/regional). Null when
+  // the id is not a Demeter atendimento. Uncached — one fast upstream lookup per search.
+  async getAtendimentoComRelatorioDemeter(
+    atendimentoId: string,
+  ): Promise<AtendimentoComRelatorioDemeterDTO | null> {
+    const [item, localidadeMap] = await Promise.all([
+      this.graphQLAPI.getAtendimentoComRelatorioDemeter(atendimentoId),
+      this.cachedMunicipiosReader.getUnidadeToLocalidadeMap(),
+    ]);
+    if (!item) return null;
+
+    return AtendimentoDataMapper.toComRelatorioDemeter(
+      item,
+      localidadeMap.get(item.id_und_empresa),
+    );
   }
 
   // ISO start dates of active manual relatórios from the last 30 days (dashboard count + line).

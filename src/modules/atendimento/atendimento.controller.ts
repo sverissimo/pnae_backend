@@ -119,6 +119,46 @@ export class AtendimentoController {
     }
   }
 
+  // Web-only single Demeter atendimento by id (the fast lookup behind the search box), declared
+  // above `@Get(':id')` so the 2-segment path isn't shadowed. Visibility uses the same
+  // hasAccessTo scope as the validation routes — 404 (not 403) when out of scope so an id's
+  // existence isn't confirmed. 404 too when the id is not a Demeter atendimento.
+  @Get('/com-relatorio-demeter/:atendimentoId')
+  async getAtendimentoComRelatorioDemeter(
+    @Param('atendimentoId') atendimentoId: string,
+    @Req() req: Request,
+  ) {
+    try {
+      const user = req.user;
+      if (!user) {
+        throw new ForbiddenException('É necessária autenticação de usuário.');
+      }
+      if (!atendimentoId) {
+        throw new BadRequestException('atendimentoId é obrigatório.');
+      }
+
+      const scope =
+        await this.atendimentoService.getAtendimentoAuthScope(atendimentoId);
+      if (!user.hasAccessTo(scope)) {
+        throw new NotFoundException('Atendimento não encontrado.');
+      }
+
+      const item =
+        await this.atendimentoService.getAtendimentoComRelatorioDemeter(
+          atendimentoId,
+        );
+      if (!item) {
+        throw new NotFoundException('Atendimento não encontrado.');
+      }
+      return item;
+    } catch (error) {
+      this.errorHandler(
+        error,
+        'AtendimentoController.getAtendimentoComRelatorioDemeter',
+      );
+    }
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {

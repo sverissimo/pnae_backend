@@ -109,6 +109,50 @@ export const atendimentosComRelatorioManualQuery = gql`
   }
 `;
 
+export const atendimentoComRelatorioManualQuery = gql`
+  query AtendimentoComRelatorioManual($id: BigInt!) {
+    atendimentoComRelatorioManual(id: $id) {
+      id_at_atendimento
+      data_inicio_atendimento
+      data_fim_atendimento
+      data_validacao
+      data_atualizacao
+      data_criacao
+      data_sei
+      data_see
+      dt_export_ok
+      sn_pendencia
+      sn_validado
+      dt_update_record
+      id_at_anterior
+      id_und_empresa
+      ativo
+      clientes {
+        produtor {
+          nm_pessoa
+          nr_cpf_cnpj
+          dap
+          caf
+        }
+        propriedade {
+          nome_propriedade
+          geo_ponto_texto
+        }
+      }
+      usuarios {
+        id_usuario
+        nome_usuario
+        id_und_empresa
+      }
+      arquivos {
+        idArquivo
+        tipoArquivo
+        nomeArquivo
+      }
+    }
+  }
+`;
+
 export const atendimentosManuaisUltimos30DiasQuery = gql`
   query AtendimentosManuaisUltimos30Dias {
     atendimentosManuaisUltimos30Dias

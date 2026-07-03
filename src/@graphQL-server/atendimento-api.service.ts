@@ -3,6 +3,7 @@ import { GraphQLAPI } from './GraphQLAPI';
 import { createAtendimentoMutation } from './mutations/atendimento-mutations';
 import { Atendimento } from 'src/modules/atendimento/entities/atendimento.entity';
 import {
+  atendimentoComRelatorioManualQuery,
   atendimentoQuery,
   atendimentosComRelatorioManualQuery,
   atendimentosManuaisUltimos30DiasQuery,
@@ -13,6 +14,7 @@ import {
 import { CreateAtendimentoStorageDto } from 'src/modules/atendimento/dto/create-atendimento.dto';
 import { AtendimentoModel } from 'src/@domain/atendimento/atendimento-model';
 import {
+  AtendimentoComRelatorioDemeterItemDTO,
   AtendimentoComRelatorioDemeterPageGqlDTO,
   AtendimentoComRelatorioDemeterQueryDTO,
 } from 'src/modules/atendimento/dto/atendimento-com-relatorio-demeter.dto';
@@ -21,6 +23,9 @@ type AtendimentoResponse = { atendimento: Atendimento };
 type AtendimentosResponse = { atendimentos: AtendimentoModel[] };
 type AtendimentosComRelatorioDemeterResponse = {
   atendimentosComRelatorioManual: AtendimentoComRelatorioDemeterPageGqlDTO;
+};
+type AtendimentoComRelatorioDemeterResponse = {
+  atendimentoComRelatorioManual: AtendimentoComRelatorioDemeterItemDTO | null;
 };
 type AtendimentosManuaisUltimos30DiasResponse = {
   atendimentosManuaisUltimos30Dias: string[];
@@ -64,6 +69,17 @@ export class AtendimentoGraphQLAPI extends GraphQLAPI {
         { pageSize, cursor, id_usuario, id_reg_empresa },
       );
     return atendimentosComRelatorioManual;
+  }
+
+  async getAtendimentoComRelatorioDemeter(
+    id: string,
+  ): Promise<AtendimentoComRelatorioDemeterItemDTO | null> {
+    const { atendimentoComRelatorioManual } =
+      await this.client.request<AtendimentoComRelatorioDemeterResponse>(
+        atendimentoComRelatorioManualQuery,
+        { id },
+      );
+    return atendimentoComRelatorioManual ?? null;
   }
 
   async createAtendimento(createAtendimentoInput: CreateAtendimentoStorageDto) {
