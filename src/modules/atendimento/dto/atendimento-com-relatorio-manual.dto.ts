@@ -49,6 +49,7 @@ export type AtendimentoComRelatorioManualItemDTO = {
   data_criacao: string;
   data_sei: string | null;
   data_see: string | null;
+  dt_export_ok: string | null;
   sn_pendencia: number | null;
   sn_validado: number | null;
   dt_update_record: string | null;

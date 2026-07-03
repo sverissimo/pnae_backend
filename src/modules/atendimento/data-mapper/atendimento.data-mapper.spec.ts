@@ -10,6 +10,7 @@ const baseItem: AtendimentoComRelatorioManualItemDTO = {
   data_criacao: '2026-06-20',
   data_sei: null,
   data_see: null,
+  dt_export_ok: null,
   sn_pendencia: 0,
   sn_validado: 1,
   dt_update_record: '2026-06-21T13:42:05.000Z',
@@ -83,6 +84,15 @@ describe('AtendimentoDataMapper.toComRelatorioManual', () => {
     expect(item.id_reg_empresa).toBeNull();
     expect(item.nomeRegional).toBeNull();
     expect(item.arquivos).toEqual([]);
+  });
+
+  it('carries dt_export_ok through to the output DTO', () => {
+    const item = AtendimentoDataMapper.toComRelatorioManual({
+      ...baseItem,
+      dt_export_ok: '2026-06-25',
+    });
+
+    expect(item.dt_export_ok).toBe('2026-06-25');
   });
 
   it('passes the upstream arquivos[] through unchanged', () => {

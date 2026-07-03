@@ -11,7 +11,9 @@ open the generated manual PDF, download the raw relatório PDF, and download the
 photo. All additive; mobile is untouched.
 
 For the later plan that copies the raw relatório PDF pages into the generated manual PDF, see
-`docs/plans/atendimentos-manuais-file-download-options.md`.
+`docs/plans/atendimentos-manuais-file-download-options.md`. For the table's validation actions
+(aprovar/pendência/SEI), the page-level Redis cache, and the DBA index requests, see
+`docs/plans/atendimentos-manuais-validation-actions-and-caching.md`.
 
 ## Domain context (read this first — the naming only makes sense with it)
 

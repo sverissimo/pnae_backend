@@ -75,6 +75,7 @@ export const atendimentosComRelatorioManualQuery = gql`
         data_criacao
         data_sei
         data_see
+        dt_export_ok
         sn_pendencia
         sn_validado
         dt_update_record

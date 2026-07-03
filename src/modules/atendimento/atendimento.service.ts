@@ -26,6 +26,7 @@ import { AtendimentoModel } from 'src/@domain/atendimento/atendimento-model';
 import { RedisInvalidator } from 'src/cache/redis-invalidator';
 import { CACHE_KEYS } from 'src/cache/cache.constants';
 import { CachedMunicipiosReader } from 'src/cache/cached-municipios.reader';
+import { CachedManualListReader } from './cache/cached-manual-list.reader';
 import { AtendimentoAuthScope } from 'src/@domain/atendimento/atendimento-auth-scope';
 
 @Injectable()
@@ -35,6 +36,7 @@ export class AtendimentoService {
     private restAPI: RestAPI,
     private readonly redisInvalidator: RedisInvalidator,
     private readonly cachedMunicipiosReader: CachedMunicipiosReader,
+    private readonly cachedManualListReader: CachedManualListReader,
   ) {}
 
   async create(CreateAtendimentoInputDto: CreateAtendimentoInputDto) {
@@ -66,12 +68,36 @@ export class AtendimentoService {
   async listAtendimentosComRelatorioManual(
     query: AtendimentoComRelatorioManualQueryDTO,
   ): Promise<AtendimentoComRelatorioManualPageDTO> {
+    return this.cachedManualListReader.getOrLoad(
+      this.manualListKeyParts(query),
+      () => this.loadComRelatorioManual(query),
+    );
+  }
+
+  private async loadComRelatorioManual(
+    query: AtendimentoComRelatorioManualQueryDTO,
+  ): Promise<AtendimentoComRelatorioManualPageDTO> {
     const [page, localidadeMap] = await Promise.all([
       this.graphQLAPI.getAtendimentosComRelatorioManual(query),
       this.cachedMunicipiosReader.getUnidadeToLocalidadeMap(),
     ]);
 
     return AtendimentoDataMapper.toComRelatorioManualPage(page, localidadeMap);
+  }
+
+  // Scope key mirrors getRelatorioManualScope's shapes; a coordenador without a
+  // regional degrades to owner-only upstream, so it keys as staff.
+  private manualListKeyParts(
+    query: AtendimentoComRelatorioManualQueryDTO,
+  ): string[] {
+    const { id_usuario, id_reg_empresa, pageSize, cursor } = query;
+    const scopeKey = !id_usuario
+      ? 'admin'
+      : id_reg_empresa
+        ? `coord:${id_usuario}:${id_reg_empresa}`
+        : `staff:${id_usuario}`;
+
+    return [scopeKey, String(pageSize ?? 200), cursor || 'first'];
   }
 
   async findOne(id: string) {
@@ -202,6 +228,7 @@ export class AtendimentoService {
     await this.redisInvalidator.invalidate(CACHE_KEYS.atendimento, [
       atendimentoId,
     ]);
+    await this.cachedManualListReader.bumpVersion();
   }
 
   // Single source for atendimento authorization: resolves the normalized

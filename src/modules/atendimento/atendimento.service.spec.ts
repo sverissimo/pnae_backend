@@ -135,6 +135,7 @@ describe('AtendimentoService.listAtendimentosComRelatorioManual', () => {
             data_criacao: '2026-06-20',
             data_sei: null,
             data_see: null,
+            dt_export_ok: null,
             sn_pendencia: 0,
             sn_validado: 1,
             dt_update_record: null,
@@ -190,9 +191,21 @@ describe('AtendimentoService.listAtendimentosComRelatorioManual', () => {
         ]),
       ),
     };
+    const cachedManualListReader = {
+      getOrLoad: jest.fn(
+        (_keyParts: string[], loader: () => Promise<unknown>) => loader(),
+      ),
+      bumpVersion: jest.fn().mockResolvedValue(undefined),
+    };
     (service as any).graphQLAPI = graphQLAPI;
     (service as any).cachedMunicipiosReader = cachedMunicipiosReader;
-    return { service, graphQLAPI, cachedMunicipiosReader };
+    (service as any).cachedManualListReader = cachedManualListReader;
+    return {
+      service,
+      graphQLAPI,
+      cachedMunicipiosReader,
+      cachedManualListReader,
+    };
   };
 
   it('fetches the upstream page, enriches localidade, and flattens first cliente/usuario', async () => {
@@ -232,6 +245,48 @@ describe('AtendimentoService.listAtendimentosComRelatorioManual', () => {
       ],
     });
   });
+
+  it('derives per-scope cache key parts (admin / staff / coord, cursor sentinel)', async () => {
+    const admin = buildService();
+    await admin.service.listAtendimentosComRelatorioManual({ pageSize: 200 });
+    expect(admin.cachedManualListReader.getOrLoad).toHaveBeenCalledWith(
+      ['admin', '200', 'first'],
+      expect.any(Function),
+    );
+
+    const staff = buildService();
+    await staff.service.listAtendimentosComRelatorioManual({
+      pageSize: 100,
+      cursor: '555',
+      id_usuario: '7',
+    });
+    expect(staff.cachedManualListReader.getOrLoad).toHaveBeenCalledWith(
+      ['staff:7', '100', '555'],
+      expect.any(Function),
+    );
+
+    const coord = buildService();
+    await coord.service.listAtendimentosComRelatorioManual({
+      pageSize: 200,
+      id_usuario: '7',
+      id_reg_empresa: 'G0040',
+    });
+    expect(coord.cachedManualListReader.getOrLoad).toHaveBeenCalledWith(
+      ['coord:7:G0040', '200', 'first'],
+      expect.any(Function),
+    );
+
+    // A coordenador without a regional degrades to owner-only upstream → staff key.
+    const coordSemRegional = buildService();
+    await coordSemRegional.service.listAtendimentosComRelatorioManual({
+      pageSize: 200,
+      id_usuario: '7',
+      id_reg_empresa: null,
+    });
+    expect(
+      coordSemRegional.cachedManualListReader.getOrLoad,
+    ).toHaveBeenCalledWith(['staff:7', '200', 'first'], expect.any(Function));
+  });
 });
 
 describe('AtendimentoService validation', () => {
@@ -248,13 +303,18 @@ describe('AtendimentoService validation', () => {
     const redisInvalidator = {
       invalidate: jest.fn().mockResolvedValue(undefined),
     };
+    const cachedManualListReader = {
+      bumpVersion: jest.fn().mockResolvedValue(undefined),
+    };
     (service as any).restAPI = restAPI;
     (service as any).redisInvalidator = redisInvalidator;
-    return { service, restAPI, redisInvalidator };
+    (service as any).cachedManualListReader = cachedManualListReader;
+    return { service, restAPI, redisInvalidator, cachedManualListReader };
   };
 
   it('aprovarAtendimento forwards to restAPI and busts the atendimento cache', async () => {
-    const { service, restAPI, redisInvalidator } = buildService();
+    const { service, restAPI, redisInvalidator, cachedManualListReader } =
+      buildService();
 
     await service.aprovarAtendimento('99');
 
@@ -264,10 +324,12 @@ describe('AtendimentoService validation', () => {
       CACHE_KEYS.atendimento,
       ['99'],
     );
+    expect(cachedManualListReader.bumpVersion).toHaveBeenCalledTimes(1);
   });
 
   it('criarPendenciaAtendimento forwards to restAPI and busts the atendimento cache', async () => {
-    const { service, restAPI, redisInvalidator } = buildService();
+    const { service, restAPI, redisInvalidator, cachedManualListReader } =
+      buildService();
 
     await service.criarPendenciaAtendimento('99');
 
@@ -277,20 +339,24 @@ describe('AtendimentoService validation', () => {
       CACHE_KEYS.atendimento,
       ['99'],
     );
+    expect(cachedManualListReader.bumpVersion).toHaveBeenCalledTimes(1);
   });
 
   it('throws and does not call restAPI when atendimentoId is missing', async () => {
-    const { service, restAPI, redisInvalidator } = buildService();
+    const { service, restAPI, redisInvalidator, cachedManualListReader } =
+      buildService();
 
     await expect(service.aprovarAtendimento('')).rejects.toThrow(
       'atendimentoId é obrigatório.',
     );
     expect(restAPI.aprovarAtendimento).not.toHaveBeenCalled();
     expect(redisInvalidator.invalidate).not.toHaveBeenCalled();
+    expect(cachedManualListReader.bumpVersion).not.toHaveBeenCalled();
   });
 
   it('aprovarSei forwards to restAPI and busts the atendimento cache', async () => {
-    const { service, restAPI, redisInvalidator } = buildService();
+    const { service, restAPI, redisInvalidator, cachedManualListReader } =
+      buildService();
 
     await service.aprovarSei('99');
 
@@ -300,10 +366,12 @@ describe('AtendimentoService validation', () => {
       CACHE_KEYS.atendimento,
       ['99'],
     );
+    expect(cachedManualListReader.bumpVersion).toHaveBeenCalledTimes(1);
   });
 
   it('removerAprovacaoSei forwards to restAPI and busts the atendimento cache', async () => {
-    const { service, restAPI, redisInvalidator } = buildService();
+    const { service, restAPI, redisInvalidator, cachedManualListReader } =
+      buildService();
 
     await service.removerAprovacaoSei('99');
 
@@ -313,6 +381,7 @@ describe('AtendimentoService validation', () => {
       CACHE_KEYS.atendimento,
       ['99'],
     );
+    expect(cachedManualListReader.bumpVersion).toHaveBeenCalledTimes(1);
   });
 
   it('aprovarSei throws and skips restAPI when atendimentoId is missing', async () => {

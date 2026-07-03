@@ -4,6 +4,8 @@ export const CACHE_KEYS = {
   regionaisEmater: 'perfil:regionaisEmater:v1',
   municipiosEmater: 'perfil:municipiosEmater:v2',
   replacedAtendimentos: 'atendimento:replaced:v1',
+  manualList: 'atendimento:manual-list:v1',
+  manualListVersion: 'atendimento:manual-list:ver',
 } as const;
 
 export const CACHE_TTLS = {
@@ -12,6 +14,7 @@ export const CACHE_TTLS = {
   regionaisEmater: 60 * 60 * 24,
   municipiosEmater: 60 * 60 * 24,
   replacedAtendimentos: 60 * 3,
+  manualList: 90,
 } as const;
 
 export const REDIS_CLIENT = Symbol('RELATORIOS_CACHE_REDIS_CLIENT');
