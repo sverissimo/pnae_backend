@@ -149,11 +149,19 @@ export class RelatorioService {
   async getDashboardData(user?: Usuario): Promise<DashboardData> {
     const role = user?.getRole() ?? 'other';
 
-    const [fullRelatorios, regionais] = await Promise.all([
+    const [fullRelatorios, regionais, manuaisDates] = await Promise.all([
       this.findAll({ contratoId: 2 }, { expand: true }) as Promise<
         RelatorioPresentationModel[]
       >,
       this.perfilService.getRegionaisEmater(),
+      // State-wide manual relatórios — a gateway hiccup must not blank the whole dashboard.
+      this.atendimentoService.getManuaisUltimos30Dias().catch((error) => {
+        this.logger.error(
+          `getDashboardData - manuais fetch failed: ${error?.message}`,
+          error?.stack,
+        );
+        return [] as string[];
+      }),
     ]);
 
     // Scoped set drives gauges + line chart; tops + by-regional use the full set.
@@ -168,6 +176,7 @@ export class RelatorioService {
       regionalLabel,
       topTecnicosLimit: 100,
       topSREsLimit: 10,
+      manuaisDates,
     });
   }
 

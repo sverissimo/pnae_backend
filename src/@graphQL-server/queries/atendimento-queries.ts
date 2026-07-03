@@ -109,6 +109,12 @@ export const atendimentosComRelatorioManualQuery = gql`
   }
 `;
 
+export const atendimentosManuaisUltimos30DiasQuery = gql`
+  query AtendimentosManuaisUltimos30Dias {
+    atendimentosManuaisUltimos30Dias
+  }
+`;
+
 export const createAtendimentoMutation = gql`
   mutation createAtendimento($input: CreateAtendimentoInput!) {
     createAtendimento(createAtendimentoInput: $input) {

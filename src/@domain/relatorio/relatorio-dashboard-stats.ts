@@ -45,6 +45,13 @@ export type DashboardLineChart = {
   approved: number[];
 };
 
+// Manual (hand-made) relatórios over the same 30-day window as the line chart. State-wide,
+// not user-scoped — mirrors the tops/by-regional charts. `byDay` aligns to lineChart.categories.
+export type DashboardManuais = {
+  total: number;
+  byDay: number[];
+};
+
 export type DashboardData = {
   summary: DashboardSummary;
   topSREs: { sre: string; visitas: number }[] | null;
@@ -55,6 +62,7 @@ export type DashboardData = {
     aprovados: number;
   }[];
   lineChart: DashboardLineChart;
+  manuais30Dias: DashboardManuais;
   scope: {
     role: UsuarioRole;
     regionalLabel: string | null;
@@ -188,16 +196,13 @@ export function buildRelatoriosByRegional(
     .sort((a, b) => b.aprovados - a.aprovados || b.total - a.total);
 }
 
-function countByDay(
-  relatorios: DashboardRelatorioInput[],
-  prop: keyof DashboardRelatorioInput,
-): number[] {
+// Buckets raw date strings into a LINE_CHART_DAYS-long array ending today (index 29 = today).
+function bucketByDay(rawDates: (string | null | undefined)[]): number[] {
   const counts = new Array(LINE_CHART_DAYS).fill(0);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  for (const r of relatorios) {
-    const raw = r[prop] as string | null | undefined;
+  for (const raw of rawDates) {
     if (!raw) continue;
     const d = new Date(raw);
     if (isNaN(d.getTime())) continue;
@@ -210,6 +215,24 @@ function countByDay(
     }
   }
   return counts;
+}
+
+function countByDay(
+  relatorios: DashboardRelatorioInput[],
+  prop: keyof DashboardRelatorioInput,
+): number[] {
+  return bucketByDay(
+    relatorios.map((r) => r[prop] as string | null | undefined),
+  );
+}
+
+// Total + per-day counts of manual relatórios over the 30-day window. `total` is the sum of the
+// bucketed days (strictly the last 30 days), so the badge and the line series always agree.
+export function buildManuais30Dias(
+  dates: (string | null | undefined)[],
+): DashboardManuais {
+  const byDay = bucketByDay(dates);
+  return { total: byDay.reduce((sum, n) => sum + n, 0), byDay };
 }
 
 export function buildLineChart(
@@ -248,6 +271,7 @@ export function buildDashboardData(input: {
   regionalLabel: string | null;
   topTecnicosLimit: number;
   topSREsLimit: number;
+  manuaisDates?: (string | null | undefined)[];
 }): DashboardData {
   const {
     fullRelatorios,
@@ -257,6 +281,7 @@ export function buildDashboardData(input: {
     regionalLabel,
     topTecnicosLimit,
     topSREsLimit,
+    manuaisDates = [],
   } = input;
 
   const isAdminView = role === 'admin';
@@ -267,6 +292,7 @@ export function buildDashboardData(input: {
     topTecnicos: buildTopTecnicos(fullRelatorios, topTecnicosLimit),
     relatoriosByRegional: buildRelatoriosByRegional(fullRelatorios, regionais),
     lineChart: buildLineChart(scopedRelatorios, isAdminView),
+    manuais30Dias: buildManuais30Dias(manuaisDates),
     scope: { role, regionalLabel },
   };
 }

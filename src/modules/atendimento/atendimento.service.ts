@@ -100,6 +100,11 @@ export class AtendimentoService {
     return [scopeKey, String(pageSize ?? 200), cursor || 'first'];
   }
 
+  // ISO start dates of active manual relatórios from the last 30 days (dashboard count + line).
+  getManuaisUltimos30Dias(): Promise<string[]> {
+    return this.graphQLAPI.getManuaisUltimos30Dias();
+  }
+
   async findOne(id: string) {
     const atendimento = await this.graphQLAPI.findOne(id);
     const { at_cli_atend_prop, at_atendimento_usuario } = atendimento;

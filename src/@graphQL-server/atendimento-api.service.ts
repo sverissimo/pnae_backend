@@ -5,6 +5,7 @@ import { Atendimento } from 'src/modules/atendimento/entities/atendimento.entity
 import {
   atendimentoQuery,
   atendimentosComRelatorioManualQuery,
+  atendimentosManuaisUltimos30DiasQuery,
   atendimentosQuery,
   setAtendimentosExportDateMutation,
   updateAtendimentoMutation,
@@ -20,6 +21,9 @@ type AtendimentoResponse = { atendimento: Atendimento };
 type AtendimentosResponse = { atendimentos: AtendimentoModel[] };
 type AtendimentosComRelatorioManualResponse = {
   atendimentosComRelatorioManual: AtendimentoComRelatorioManualPageGqlDTO;
+};
+type AtendimentosManuaisUltimos30DiasResponse = {
+  atendimentosManuaisUltimos30Dias: string[];
 };
 
 @Injectable()
@@ -38,6 +42,14 @@ export class AtendimentoGraphQLAPI extends GraphQLAPI {
       { id },
     );
     return atendimento;
+  }
+
+  async getManuaisUltimos30Dias(): Promise<string[]> {
+    const { atendimentosManuaisUltimos30Dias } =
+      await this.client.request<AtendimentosManuaisUltimos30DiasResponse>(
+        atendimentosManuaisUltimos30DiasQuery,
+      );
+    return atendimentosManuaisUltimos30Dias ?? [];
   }
 
   async getAtendimentosComRelatorioManual({
