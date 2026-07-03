@@ -184,7 +184,7 @@ describe('RelatorioController', () => {
 
     beforeEach(() => {
       relatorioExportService = {
-        createManualRelatorioPdf: jest.fn().mockResolvedValue({
+        createDemeterRelatorioPdf: jest.fn().mockResolvedValue({
           pdf: combinedPdf,
           nomeProdutor: 'João da Silva',
         }),
@@ -206,10 +206,10 @@ describe('RelatorioController', () => {
       res.setHeader = jest.fn();
       res.send = jest.fn();
 
-      await controller.generateManualPdf(createManualPdfToken('987'), res);
+      await controller.generateDemeterPdf(createDemeterPdfToken('987'), res);
 
       expect(
-        relatorioExportService.createManualRelatorioPdf,
+        relatorioExportService.createDemeterRelatorioPdf,
       ).toHaveBeenCalledWith('987');
       expect(res.setHeader).toHaveBeenCalledWith(
         'Content-Type',
@@ -228,23 +228,23 @@ describe('RelatorioController', () => {
       res.send = jest.fn();
 
       await expect(
-        controller.generateManualPdf(undefined, res),
+        controller.generateDemeterPdf(undefined, res),
       ).rejects.toBeInstanceOf(BadRequestException);
       await expect(
-        controller.generateManualPdf('not-valid*', res),
+        controller.generateDemeterPdf('not-valid*', res),
       ).rejects.toBeInstanceOf(BadRequestException);
       await expect(
-        controller.generateManualPdf(base64Url('12345abc'), res),
+        controller.generateDemeterPdf(base64Url('12345abc'), res),
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(
-        relatorioExportService.createManualRelatorioPdf,
+        relatorioExportService.createDemeterRelatorioPdf,
       ).not.toHaveBeenCalled();
     });
   });
 });
 
-function createManualPdfToken(atendimentoId: string): string {
+function createDemeterPdfToken(atendimentoId: string): string {
   return base64Url(`12345${atendimentoId}`);
 }
 

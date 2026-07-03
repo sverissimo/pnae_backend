@@ -13,14 +13,14 @@ import {
 import { CreateAtendimentoStorageDto } from 'src/modules/atendimento/dto/create-atendimento.dto';
 import { AtendimentoModel } from 'src/@domain/atendimento/atendimento-model';
 import {
-  AtendimentoComRelatorioManualPageGqlDTO,
-  AtendimentoComRelatorioManualQueryDTO,
-} from 'src/modules/atendimento/dto/atendimento-com-relatorio-manual.dto';
+  AtendimentoComRelatorioDemeterPageGqlDTO,
+  AtendimentoComRelatorioDemeterQueryDTO,
+} from 'src/modules/atendimento/dto/atendimento-com-relatorio-demeter.dto';
 
 type AtendimentoResponse = { atendimento: Atendimento };
 type AtendimentosResponse = { atendimentos: AtendimentoModel[] };
-type AtendimentosComRelatorioManualResponse = {
-  atendimentosComRelatorioManual: AtendimentoComRelatorioManualPageGqlDTO;
+type AtendimentosComRelatorioDemeterResponse = {
+  atendimentosComRelatorioManual: AtendimentoComRelatorioDemeterPageGqlDTO;
 };
 type AtendimentosManuaisUltimos30DiasResponse = {
   atendimentosManuaisUltimos30Dias: string[];
@@ -52,14 +52,14 @@ export class AtendimentoGraphQLAPI extends GraphQLAPI {
     return atendimentosManuaisUltimos30Dias ?? [];
   }
 
-  async getAtendimentosComRelatorioManual({
+  async getAtendimentosComRelatorioDemeter({
     pageSize,
     cursor,
     id_usuario,
     id_reg_empresa,
-  }: AtendimentoComRelatorioManualQueryDTO): Promise<AtendimentoComRelatorioManualPageGqlDTO> {
+  }: AtendimentoComRelatorioDemeterQueryDTO): Promise<AtendimentoComRelatorioDemeterPageGqlDTO> {
     const { atendimentosComRelatorioManual } =
-      await this.client.request<AtendimentosComRelatorioManualResponse>(
+      await this.client.request<AtendimentosComRelatorioDemeterResponse>(
         atendimentosComRelatorioManualQuery,
         { pageSize, cursor, id_usuario, id_reg_empresa },
       );

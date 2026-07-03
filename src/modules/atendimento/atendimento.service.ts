@@ -7,9 +7,9 @@ import {
 } from '@nestjs/common';
 import { CreateAtendimentoInputDto } from './dto/create-atendimento.dto';
 import {
-  AtendimentoComRelatorioManualPageDTO,
-  AtendimentoComRelatorioManualQueryDTO,
-} from './dto/atendimento-com-relatorio-manual.dto';
+  AtendimentoComRelatorioDemeterPageDTO,
+  AtendimentoComRelatorioDemeterQueryDTO,
+} from './dto/atendimento-com-relatorio-demeter.dto';
 import { GetArquivosQueryDTO } from './dto/get-arquivos.dto';
 import {
   decodeArquivo,
@@ -26,7 +26,7 @@ import { AtendimentoModel } from 'src/@domain/atendimento/atendimento-model';
 import { RedisInvalidator } from 'src/cache/redis-invalidator';
 import { CACHE_KEYS } from 'src/cache/cache.constants';
 import { CachedMunicipiosReader } from 'src/cache/cached-municipios.reader';
-import { CachedManualListReader } from './cache/cached-manual-list.reader';
+import { CachedDemeterListReader } from './cache/cached-demeter-list.reader';
 import { AtendimentoAuthScope } from 'src/@domain/atendimento/atendimento-auth-scope';
 
 @Injectable()
@@ -36,7 +36,7 @@ export class AtendimentoService {
     private restAPI: RestAPI,
     private readonly redisInvalidator: RedisInvalidator,
     private readonly cachedMunicipiosReader: CachedMunicipiosReader,
-    private readonly cachedManualListReader: CachedManualListReader,
+    private readonly cachedDemeterListReader: CachedDemeterListReader,
   ) {}
 
   async create(CreateAtendimentoInputDto: CreateAtendimentoInputDto) {
@@ -65,30 +65,30 @@ export class AtendimentoService {
     return parsedAtendimentos;
   }
 
-  async listAtendimentosComRelatorioManual(
-    query: AtendimentoComRelatorioManualQueryDTO,
-  ): Promise<AtendimentoComRelatorioManualPageDTO> {
-    return this.cachedManualListReader.getOrLoad(
-      this.manualListKeyParts(query),
-      () => this.loadComRelatorioManual(query),
+  async listAtendimentosComRelatorioDemeter(
+    query: AtendimentoComRelatorioDemeterQueryDTO,
+  ): Promise<AtendimentoComRelatorioDemeterPageDTO> {
+    return this.cachedDemeterListReader.getOrLoad(
+      this.demeterListKeyParts(query),
+      () => this.loadComRelatorioDemeter(query),
     );
   }
 
-  private async loadComRelatorioManual(
-    query: AtendimentoComRelatorioManualQueryDTO,
-  ): Promise<AtendimentoComRelatorioManualPageDTO> {
+  private async loadComRelatorioDemeter(
+    query: AtendimentoComRelatorioDemeterQueryDTO,
+  ): Promise<AtendimentoComRelatorioDemeterPageDTO> {
     const [page, localidadeMap] = await Promise.all([
-      this.graphQLAPI.getAtendimentosComRelatorioManual(query),
+      this.graphQLAPI.getAtendimentosComRelatorioDemeter(query),
       this.cachedMunicipiosReader.getUnidadeToLocalidadeMap(),
     ]);
 
-    return AtendimentoDataMapper.toComRelatorioManualPage(page, localidadeMap);
+    return AtendimentoDataMapper.toComRelatorioDemeterPage(page, localidadeMap);
   }
 
-  // Scope key mirrors getRelatorioManualScope's shapes; a coordenador without a
+  // Scope key mirrors getRelatorioDemeterScope's shapes; a coordenador without a
   // regional degrades to owner-only upstream, so it keys as staff.
-  private manualListKeyParts(
-    query: AtendimentoComRelatorioManualQueryDTO,
+  private demeterListKeyParts(
+    query: AtendimentoComRelatorioDemeterQueryDTO,
   ): string[] {
     const { id_usuario, id_reg_empresa, pageSize, cursor } = query;
     const scopeKey = !id_usuario
@@ -233,7 +233,7 @@ export class AtendimentoService {
     await this.redisInvalidator.invalidate(CACHE_KEYS.atendimento, [
       atendimentoId,
     ]);
-    await this.cachedManualListReader.bumpVersion();
+    await this.cachedDemeterListReader.bumpVersion();
   }
 
   // Single source for atendimento authorization: resolves the normalized

@@ -19,8 +19,8 @@ import { Perfil, PerfilModel } from 'src/@domain/perfil';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
 import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
-import { assembleManualPdf } from 'src/@pdf-gen/manual-pdf-assembler';
-import { ManualPdfInput } from 'src/@pdf-gen/types/create-pdf-input';
+import { assembleDemeterPdf } from 'src/@pdf-gen/demeter-pdf-assembler';
+import { DemeterPdfInput } from 'src/@pdf-gen/types/create-pdf-input';
 import { ZipCreator } from 'src/@zip-gen/ZipCreator';
 import { RelatorioService } from './relatorios.service';
 import { AtendimentoService } from '../atendimento/atendimento.service';
@@ -41,7 +41,7 @@ const CURRENT_PNAE_CONTRATO_ID = 2;
 
 // PNAE-supported stored MIMEs for the combined manual PDF; anything else (the ~3 stray
 // `application/msword` rows) is bad stored data and gets a clear unsupported-file error.
-const MANUAL_PDF_SUPPORTED_TIPOS = new Set([
+const DEMETER_PDF_SUPPORTED_TIPOS = new Set([
   'application/pdf',
   'image/jpeg',
   'image/png',
@@ -233,14 +233,14 @@ export class RelatorioExportService {
   // Combined manual-relatório PDF (docs/plans/atendimentos-manuais-file-download-options.md,
   // Phase 2): perfil cover, then every relatório PDF's pages, then every proof photo as an
   // image page — file groups ordered lowest idArquivo first.
-  public async createManualRelatorioPdf(
+  public async createDemeterRelatorioPdf(
     atendimentoId: string,
   ): Promise<{ pdf: Buffer; nomeProdutor: string }> {
     const arquivos =
       await this.atendimentoService.getArquivosAtendimento(atendimentoId);
 
     const naoSuportado = arquivos.find(
-      (arquivo) => !MANUAL_PDF_SUPPORTED_TIPOS.has(arquivo.tipoArquivo),
+      (arquivo) => !DEMETER_PDF_SUPPORTED_TIPOS.has(arquivo.tipoArquivo),
     );
     if (naoSuportado) {
       throw new BadRequestException(
@@ -250,14 +250,14 @@ export class RelatorioExportService {
       );
     }
 
-    const input = await this.createManualPdfInput(
+    const input = await this.createDemeterPdfInput(
       atendimentoId,
       arquivos.length > 0,
     );
-    const coverStream = await PdfGenerator.generateManualPdf(input);
+    const coverStream = await PdfGenerator.generateDemeterPdf(input);
     const coverPdf = await this.streamToBuffer(coverStream);
 
-    const pdf = await assembleManualPdf({
+    const pdf = await assembleDemeterPdf({
       coverPdf,
       relatorioPdfs: arquivos.filter(
         (arquivo) => arquivo.tipoArquivo === 'application/pdf',
@@ -270,10 +270,10 @@ export class RelatorioExportService {
     return { pdf, nomeProdutor: input.produtor.nomeProdutor };
   }
 
-  private async createManualPdfInput(
+  private async createDemeterPdfInput(
     atendimentoId: string,
     possuiArquivos: boolean,
-  ): Promise<ManualPdfInput> {
+  ): Promise<DemeterPdfInput> {
     const atendimento = await this.atendimentoService.findOne(atendimentoId);
     if (!atendimento) {
       throw new NotFoundException('Atendimento não encontrado');
@@ -296,7 +296,7 @@ export class RelatorioExportService {
     const nome_propriedade = propriedades.length
       ? propriedades.map((p) => p.nome_propriedade).filter(Boolean).join(', ')
       : null;
-    const perfil = this.findManualPerfil(produtor.perfis ?? []);
+    const perfil = this.findDemeterPerfil(produtor.perfis ?? []);
     const perfilDTO = perfil ? new Perfil(perfil).toDTO() : undefined;
     const perfilPDFModel = perfil
       ? new Perfil().toPDFModel({
@@ -381,7 +381,7 @@ export class RelatorioExportService {
     }
   }
 
-  private findManualPerfil(perfis: PerfilModel[]): PerfilModel | undefined {
+  private findDemeterPerfil(perfis: PerfilModel[]): PerfilModel | undefined {
     return (
       perfis.find(
         (p) =>

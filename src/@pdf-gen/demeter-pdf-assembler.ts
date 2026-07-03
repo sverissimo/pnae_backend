@@ -4,7 +4,7 @@ import { PDFDocument, PDFImage } from '@cantoo/pdf-lib';
 // esModuleInterop only a typed require() is both compile- and runtime-correct here.
 const sharp = require('sharp') as typeof import('sharp').default;
 
-export type ManualPdfArquivo = {
+export type DemeterPdfArquivo = {
   idArquivo: string;
   buffer: Buffer;
   contentType: string;
@@ -16,14 +16,14 @@ const PAGE_MARGIN = 36;
 
 // Combined manual-relatório PDF: perfil cover pages, then every relatório PDF's pages, then one
 // page per proof photo — both groups already ordered lowest `idArquivo` first by the caller.
-export async function assembleManualPdf({
+export async function assembleDemeterPdf({
   coverPdf,
   relatorioPdfs,
   fotos,
 }: {
   coverPdf: Buffer;
-  relatorioPdfs: ManualPdfArquivo[];
-  fotos: ManualPdfArquivo[];
+  relatorioPdfs: DemeterPdfArquivo[];
+  fotos: DemeterPdfArquivo[];
 }): Promise<Buffer> {
   const combined = await PDFDocument.load(coverPdf);
 
@@ -54,7 +54,7 @@ export async function assembleManualPdf({
 // pdf-lib cannot embed correctly on its own.
 async function embedFoto(
   doc: PDFDocument,
-  foto: ManualPdfArquivo,
+  foto: DemeterPdfArquivo,
 ): Promise<PDFImage> {
   if (foto.contentType === 'image/jpeg') {
     return doc.embedJpg(await sharp(foto.buffer).rotate().jpeg().toBuffer());
@@ -80,7 +80,7 @@ function addImagePage(doc: PDFDocument, image: PDFImage): void {
 }
 
 function arquivoError(
-  arquivo: ManualPdfArquivo,
+  arquivo: DemeterPdfArquivo,
   kind: 'PDF' | 'imagem',
   error: unknown,
 ): Error {

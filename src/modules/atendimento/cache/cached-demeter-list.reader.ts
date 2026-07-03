@@ -7,14 +7,14 @@ import {
   CACHE_TTLS,
   REDIS_CLIENT,
 } from 'src/cache/cache.constants';
-import { AtendimentoComRelatorioManualPageDTO } from '../dto/atendimento-com-relatorio-manual.dto';
+import { AtendimentoComRelatorioDemeterPageDTO } from '../dto/atendimento-com-relatorio-demeter.dto';
 
 // Page-level cache for the manual-relatório list. Takes the loader as a callback
 // so it never depends on AtendimentoService (which calls it). The version key
 // only covers PNAE-initiated writes; externally-created/edited Demeter rows are
 // covered by the TTL alone.
 @Injectable()
-export class CachedManualListReader {
+export class CachedDemeterListReader {
   constructor(
     @Inject(REDIS_CLIENT) private readonly redis: IORedis,
     private readonly logger: WinstonLoggerService,
@@ -22,8 +22,8 @@ export class CachedManualListReader {
 
   async getOrLoad(
     keyParts: string[],
-    loader: () => Promise<AtendimentoComRelatorioManualPageDTO>,
-  ): Promise<AtendimentoComRelatorioManualPageDTO> {
+    loader: () => Promise<AtendimentoComRelatorioDemeterPageDTO>,
+  ): Promise<AtendimentoComRelatorioDemeterPageDTO> {
     let key: string | null = null;
     try {
       const version =
@@ -37,7 +37,7 @@ export class CachedManualListReader {
       try {
         const raw = await this.redis.get(key);
         if (raw) {
-          const page = JSON.parse(raw) as AtendimentoComRelatorioManualPageDTO;
+          const page = JSON.parse(raw) as AtendimentoComRelatorioDemeterPageDTO;
           if (CACHE_LOG_ENABLED) {
             this.logger.log(`atendimento.manual-list cache hit key=${key}`);
           }
@@ -76,7 +76,7 @@ export class CachedManualListReader {
 
   private logRedisFailure(op: string, err: unknown) {
     const error = err instanceof Error ? err : new Error(String(err));
-    this.logger.error(`CachedManualListReader.${op} failed: ${error.message}`, {
+    this.logger.error(`CachedDemeterListReader.${op} failed: ${error.message}`, {
       stack: error.stack,
       error,
     });

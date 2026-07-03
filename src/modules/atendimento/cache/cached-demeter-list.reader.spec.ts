@@ -1,8 +1,8 @@
-import { CachedManualListReader } from './cached-manual-list.reader';
+import { CachedDemeterListReader } from './cached-demeter-list.reader';
 import { CACHE_KEYS } from 'src/cache/cache.constants';
-import { AtendimentoComRelatorioManualPageDTO } from '../dto/atendimento-com-relatorio-manual.dto';
+import { AtendimentoComRelatorioDemeterPageDTO } from '../dto/atendimento-com-relatorio-demeter.dto';
 
-const page: AtendimentoComRelatorioManualPageDTO = {
+const page: AtendimentoComRelatorioDemeterPageDTO = {
   items: [],
   pageSize: 200,
   nextCursor: null,
@@ -17,11 +17,11 @@ const buildReader = (redisOverrides: Record<string, jest.Mock> = {}) => {
     ...redisOverrides,
   };
   const logger = { error: jest.fn(), log: jest.fn() };
-  const reader = new CachedManualListReader(redis as any, logger as any);
+  const reader = new CachedDemeterListReader(redis as any, logger as any);
   return { reader, redis, logger };
 };
 
-describe('CachedManualListReader.getOrLoad', () => {
+describe('CachedDemeterListReader.getOrLoad', () => {
   it('returns the cached page without calling the loader on a hit', async () => {
     const { reader, redis } = buildReader({
       get: jest
@@ -122,7 +122,7 @@ describe('CachedManualListReader.getOrLoad', () => {
   });
 });
 
-describe('CachedManualListReader.bumpVersion', () => {
+describe('CachedDemeterListReader.bumpVersion', () => {
   it('swallows and logs redis errors (fail-open)', async () => {
     const { reader, logger } = buildReader({
       incr: jest.fn().mockRejectedValue(new Error('redis down')),

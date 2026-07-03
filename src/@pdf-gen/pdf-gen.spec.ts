@@ -1,9 +1,9 @@
 import { PdfGenerator } from './pdf-gen';
-import { ManualPdfInput } from './types/create-pdf-input';
+import { DemeterPdfInput } from './types/create-pdf-input';
 
 describe('PdfGenerator manual PDF templates', () => {
   it('renders the manual relatório template with the minimal-cover fallback', async () => {
-    const input: ManualPdfInput = {
+    const input: DemeterPdfInput = {
       perfilPDFModel: null,
       produtor: {
         nomeProdutor: 'João da Silva',
@@ -26,7 +26,7 @@ describe('PdfGenerator manual PDF templates', () => {
     };
 
     const { mainHtml, footerHtml } = await (PdfGenerator as any)
-      .createManualHtmlTemplates(input);
+      .createDemeterHtmlTemplates(input);
 
     expect(mainHtml).toContain('Relatório Manual');
     expect(mainHtml).toContain('João da Silva');
@@ -35,7 +35,7 @@ describe('PdfGenerator manual PDF templates', () => {
   });
 
   it('renders the no-files note when the atendimento has no stored files', async () => {
-    const input: ManualPdfInput = {
+    const input: DemeterPdfInput = {
       perfilPDFModel: null,
       produtor: {
         nomeProdutor: 'João da Silva',
@@ -57,7 +57,7 @@ describe('PdfGenerator manual PDF templates', () => {
       possuiArquivos: false,
     };
 
-    const { mainHtml } = await (PdfGenerator as any).createManualHtmlTemplates(
+    const { mainHtml } = await (PdfGenerator as any).createDemeterHtmlTemplates(
       input,
     );
 

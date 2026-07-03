@@ -89,14 +89,14 @@ export class RelatorioController {
   }
 
   @Get('/manual')
-  async generateManualPdf(
+  async generateDemeterPdf(
     @Query('id') token: string | undefined,
     @Res() res: Response,
   ) {
     try {
-      const atendimentoId = this.decodeManualPdfToken(token);
+      const atendimentoId = this.decodeDemeterPdfToken(token);
       const { pdf, nomeProdutor } =
-        await this.relatorioExportService.createManualRelatorioPdf(
+        await this.relatorioExportService.createDemeterRelatorioPdf(
           atendimentoId,
         );
       const filename = this.sanitizeFilename(
@@ -109,7 +109,7 @@ export class RelatorioController {
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
       this.logger.error(
-        'RelatorioController.generateManualPdf - ' + error.message,
+        'RelatorioController.generateDemeterPdf - ' + error.message,
         error.stack,
       );
       if (error instanceof HttpException) {
@@ -294,7 +294,7 @@ export class RelatorioController {
       .trim();
   }
 
-  private decodeManualPdfToken(token?: string): string {
+  private decodeDemeterPdfToken(token?: string): string {
     if (!token) {
       throw new BadRequestException('Token do relatório manual é obrigatório.');
     }

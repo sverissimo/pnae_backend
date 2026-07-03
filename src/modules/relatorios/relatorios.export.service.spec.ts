@@ -6,17 +6,17 @@ jest.mock('graphql-request', () => ({
   gql: (literals: TemplateStringsArray) => literals[0],
   GraphQLClient: jest.fn().mockImplementation(() => ({ request: jest.fn() })),
 }));
-jest.mock('src/@pdf-gen/manual-pdf-assembler', () => ({
-  assembleManualPdf: jest.fn(),
+jest.mock('src/@pdf-gen/demeter-pdf-assembler', () => ({
+  assembleDemeterPdf: jest.fn(),
 }));
 
 import { Readable } from 'stream';
 import { BadRequestException } from '@nestjs/common';
 import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
-import { assembleManualPdf } from 'src/@pdf-gen/manual-pdf-assembler';
+import { assembleDemeterPdf } from 'src/@pdf-gen/demeter-pdf-assembler';
 import { RelatorioExportService } from './relatorios.export.service';
 
-describe('RelatorioExportService.createManualRelatorioPdf', () => {
+describe('RelatorioExportService.createDemeterRelatorioPdf', () => {
   const coverBytes = Buffer.from('%PDF cover');
   const combinedBytes = Buffer.from('%PDF combined');
 
@@ -73,18 +73,18 @@ describe('RelatorioExportService.createManualRelatorioPdf', () => {
     buffer: Buffer.from(`file-${idArquivo}`),
   });
 
-  let generateManualPdfSpy: jest.SpyInstance;
+  let generateDemeterPdfSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    generateManualPdfSpy = jest
-      .spyOn(PdfGenerator, 'generateManualPdf')
+    generateDemeterPdfSpy = jest
+      .spyOn(PdfGenerator, 'generateDemeterPdf')
       .mockResolvedValue(Readable.from([coverBytes]) as any);
-    (assembleManualPdf as jest.Mock).mockResolvedValue(combinedBytes);
+    (assembleDemeterPdf as jest.Mock).mockResolvedValue(combinedBytes);
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
-    (assembleManualPdf as jest.Mock).mockReset();
+    (assembleDemeterPdf as jest.Mock).mockReset();
   });
 
   it('assembles cover + every relatório PDF + every foto, keeping idArquivo order per group', async () => {
@@ -98,7 +98,7 @@ describe('RelatorioExportService.createManualRelatorioPdf', () => {
       arquivos,
     });
 
-    const result = await service.createManualRelatorioPdf('987');
+    const result = await service.createDemeterRelatorioPdf('987');
 
     expect(atendimentoService.getArquivosAtendimento).toHaveBeenCalledWith(
       '987',
@@ -106,7 +106,7 @@ describe('RelatorioExportService.createManualRelatorioPdf', () => {
     expect(atendimentoService.findOne).toHaveBeenCalledWith('987');
     expect(produtorApi.getProdutorById).toHaveBeenCalledWith('42');
 
-    const input = generateManualPdfSpy.mock.calls[0][0];
+    const input = generateDemeterPdfSpy.mock.calls[0][0];
     expect(input.produtor).toMatchObject({
       nomeProdutor: 'João da Silva',
       cpf: '123.456.789-01',
@@ -123,7 +123,7 @@ describe('RelatorioExportService.createManualRelatorioPdf', () => {
     expect(input.perfilPDFModel).not.toBeNull();
     expect(input.possuiArquivos).toBe(true);
 
-    const assembly = (assembleManualPdf as jest.Mock).mock.calls[0][0];
+    const assembly = (assembleDemeterPdf as jest.Mock).mock.calls[0][0];
     expect(assembly.coverPdf.equals(coverBytes)).toBe(true);
     expect(assembly.relatorioPdfs.map((a) => a.idArquivo)).toEqual(['3', '9']);
     expect(assembly.fotos.map((a) => a.idArquivo)).toEqual(['5', '11']);
@@ -137,25 +137,25 @@ describe('RelatorioExportService.createManualRelatorioPdf', () => {
       arquivos: [arquivo('3', 'application/msword')],
     });
 
-    await expect(service.createManualRelatorioPdf('987')).rejects.toThrow(
+    await expect(service.createDemeterRelatorioPdf('987')).rejects.toThrow(
       new BadRequestException(
         'Arquivo em formato não suportado para o relatório manual: application/msword.',
       ),
     );
 
-    expect(generateManualPdfSpy).not.toHaveBeenCalled();
-    expect(assembleManualPdf).not.toHaveBeenCalled();
+    expect(generateDemeterPdfSpy).not.toHaveBeenCalled();
+    expect(assembleDemeterPdf).not.toHaveBeenCalled();
   });
 
   it('degrades to a cover-only PDF when the atendimento has no files', async () => {
     const { service } = buildService({ arquivos: [] });
 
-    const result = await service.createManualRelatorioPdf('987');
+    const result = await service.createDemeterRelatorioPdf('987');
 
-    const input = generateManualPdfSpy.mock.calls[0][0];
+    const input = generateDemeterPdfSpy.mock.calls[0][0];
     expect(input.possuiArquivos).toBe(false);
 
-    const assembly = (assembleManualPdf as jest.Mock).mock.calls[0][0];
+    const assembly = (assembleDemeterPdf as jest.Mock).mock.calls[0][0];
     expect(assembly.relatorioPdfs).toEqual([]);
     expect(assembly.fotos).toEqual([]);
     expect(result.pdf.equals(combinedBytes)).toBe(true);
@@ -167,9 +167,9 @@ describe('RelatorioExportService.createManualRelatorioPdf', () => {
       arquivos: [arquivo('3', 'application/pdf')],
     });
 
-    await service.createManualRelatorioPdf('987');
+    await service.createDemeterRelatorioPdf('987');
 
-    const input = generateManualPdfSpy.mock.calls[0][0];
+    const input = generateDemeterPdfSpy.mock.calls[0][0];
     expect(input.perfilPDFModel).toBeNull();
     expect(input.dados_producao_in_natura).toBeNull();
     expect(input.dados_producao_agro_industria).toBeNull();

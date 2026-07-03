@@ -45,7 +45,7 @@ describe('AtendimentoController — manual relatório list', () => {
 
   beforeEach(() => {
     atendimentoService = {
-      listAtendimentosComRelatorioManual: jest.fn().mockResolvedValue({
+      listAtendimentosComRelatorioDemeter: jest.fn().mockResolvedValue({
         items: [],
         pageSize: 200,
         nextCursor: null,
@@ -57,56 +57,56 @@ describe('AtendimentoController — manual relatório list', () => {
   });
 
   it('defaults pageSize to 200 and passes cursor through', async () => {
-    await controller.listAtendimentosComRelatorioManual(undefined, '123', {
+    await controller.listAtendimentosComRelatorioDemeter(undefined, '123', {
       user: adminUser(),
     } as any);
 
     expect(
-      atendimentoService.listAtendimentosComRelatorioManual,
+      atendimentoService.listAtendimentosComRelatorioDemeter,
     ).toHaveBeenCalledWith({ pageSize: 200, cursor: '123' });
   });
 
   it('treats an empty cursor as absent', async () => {
-    await controller.listAtendimentosComRelatorioManual(undefined, '', {
+    await controller.listAtendimentosComRelatorioDemeter(undefined, '', {
       user: adminUser(),
     } as any);
 
     expect(
-      atendimentoService.listAtendimentosComRelatorioManual,
+      atendimentoService.listAtendimentosComRelatorioDemeter,
     ).toHaveBeenCalledWith({ pageSize: 200, cursor: undefined });
   });
 
   it('clamps pageSize to the 1..1000 range', async () => {
     const req: any = { user: adminUser() };
-    await controller.listAtendimentosComRelatorioManual('5000', undefined, req);
-    await controller.listAtendimentosComRelatorioManual('0', undefined, req);
+    await controller.listAtendimentosComRelatorioDemeter('5000', undefined, req);
+    await controller.listAtendimentosComRelatorioDemeter('0', undefined, req);
 
     expect(
-      atendimentoService.listAtendimentosComRelatorioManual,
+      atendimentoService.listAtendimentosComRelatorioDemeter,
     ).toHaveBeenNthCalledWith(1, { pageSize: 1000, cursor: undefined });
     expect(
-      atendimentoService.listAtendimentosComRelatorioManual,
+      atendimentoService.listAtendimentosComRelatorioDemeter,
     ).toHaveBeenNthCalledWith(2, { pageSize: 1, cursor: undefined });
   });
 
   it('rejects non-numeric pageSize with 400', async () => {
     await expect(
-      controller.listAtendimentosComRelatorioManual('abc', undefined, {
+      controller.listAtendimentosComRelatorioDemeter('abc', undefined, {
         user: adminUser(),
       } as any),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(
-      atendimentoService.listAtendimentosComRelatorioManual,
+      atendimentoService.listAtendimentosComRelatorioDemeter,
     ).not.toHaveBeenCalled();
   });
 
   it('passes coordinator region plus own user id to the gateway query', async () => {
-    await controller.listAtendimentosComRelatorioManual(undefined, undefined, {
+    await controller.listAtendimentosComRelatorioDemeter(undefined, undefined, {
       user: coordUser(),
     } as any);
 
     expect(
-      atendimentoService.listAtendimentosComRelatorioManual,
+      atendimentoService.listAtendimentosComRelatorioDemeter,
     ).toHaveBeenCalledWith({
       pageSize: 200,
       cursor: undefined,
@@ -116,12 +116,12 @@ describe('AtendimentoController — manual relatório list', () => {
   });
 
   it('passes only own user id for staff users', async () => {
-    await controller.listAtendimentosComRelatorioManual(undefined, undefined, {
+    await controller.listAtendimentosComRelatorioDemeter(undefined, undefined, {
       user: staffUser(),
     } as any);
 
     expect(
-      atendimentoService.listAtendimentosComRelatorioManual,
+      atendimentoService.listAtendimentosComRelatorioDemeter,
     ).toHaveBeenCalledWith({
       pageSize: 200,
       cursor: undefined,
@@ -131,17 +131,17 @@ describe('AtendimentoController — manual relatório list', () => {
 
   it('rejects missing or unsupported users before calling the service', async () => {
     await expect(
-      controller.listAtendimentosComRelatorioManual(undefined, undefined, {
+      controller.listAtendimentosComRelatorioDemeter(undefined, undefined, {
         user: undefined,
       } as any),
     ).rejects.toBeInstanceOf(ForbiddenException);
     await expect(
-      controller.listAtendimentosComRelatorioManual(undefined, undefined, {
+      controller.listAtendimentosComRelatorioDemeter(undefined, undefined, {
         user: otherUser(),
       } as any),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(
-      atendimentoService.listAtendimentosComRelatorioManual,
+      atendimentoService.listAtendimentosComRelatorioDemeter,
     ).not.toHaveBeenCalled();
   });
 });

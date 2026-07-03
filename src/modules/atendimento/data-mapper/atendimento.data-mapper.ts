@@ -1,10 +1,10 @@
 import { UnidadeLocalidade } from 'src/cache/cached-municipios.reader';
 import {
-  AtendimentoComRelatorioManualDTO,
-  AtendimentoComRelatorioManualItemDTO,
-  AtendimentoComRelatorioManualPageDTO,
-  AtendimentoComRelatorioManualPageGqlDTO,
-} from '../dto/atendimento-com-relatorio-manual.dto';
+  AtendimentoComRelatorioDemeterDTO,
+  AtendimentoComRelatorioDemeterItemDTO,
+  AtendimentoComRelatorioDemeterPageDTO,
+  AtendimentoComRelatorioDemeterPageGqlDTO,
+} from '../dto/atendimento-com-relatorio-demeter.dto';
 import { CreateAtendimentoStorageDto } from '../dto/create-atendimento.dto';
 import { Atendimento } from '../entities/atendimento.entity';
 
@@ -37,10 +37,10 @@ export class AtendimentoDataMapper {
     };
   }
 
-  static toComRelatorioManual(
-    item: AtendimentoComRelatorioManualItemDTO,
+  static toComRelatorioDemeter(
+    item: AtendimentoComRelatorioDemeterItemDTO,
     localidade?: UnidadeLocalidade,
-  ): AtendimentoComRelatorioManualDTO {
+  ): AtendimentoComRelatorioDemeterDTO {
     const cliente = item.clientes[0] ?? null;
     const usuario = item.usuarios[0] ?? null;
     const { clientes, usuarios, arquivos, ...scalars } = item;
@@ -57,13 +57,13 @@ export class AtendimentoDataMapper {
     };
   }
 
-  static toComRelatorioManualPage(
-    page: AtendimentoComRelatorioManualPageGqlDTO,
+  static toComRelatorioDemeterPage(
+    page: AtendimentoComRelatorioDemeterPageGqlDTO,
     localidadeMap: Map<string, UnidadeLocalidade>,
-  ): AtendimentoComRelatorioManualPageDTO {
+  ): AtendimentoComRelatorioDemeterPageDTO {
     return {
       items: page.items.map((item) =>
-        this.toComRelatorioManual(
+        this.toComRelatorioDemeter(
           item,
           localidadeMap.get(item.id_und_empresa),
         ),

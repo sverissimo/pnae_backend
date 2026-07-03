@@ -9,7 +9,7 @@ export type CreatePdfInput = {
   dados_producao_agro_industria: any;
 };
 
-export type ManualPdfInput = {
+export type DemeterPdfInput = {
   perfilPDFModel: PerfilPDFModel | null;
   produtor: {
     nomeProdutor: string;

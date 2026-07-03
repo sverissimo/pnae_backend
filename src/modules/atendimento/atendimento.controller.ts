@@ -65,22 +65,22 @@ export class AtendimentoController {
   }
 
   @Get('/com-relatorio-manual')
-  async listAtendimentosComRelatorioManual(
+  async listAtendimentosComRelatorioDemeter(
     @Query('pageSize') pageSize?: string,
     @Query('cursor') cursor?: string,
     @Req() req?: Request,
   ) {
     try {
       const parsedPageSize = this.parsePageSize(pageSize);
-      return await this.atendimentoService.listAtendimentosComRelatorioManual({
+      return await this.atendimentoService.listAtendimentosComRelatorioDemeter({
         pageSize: parsedPageSize,
         cursor: cursor || undefined,
-        ...this.getRelatorioManualScope(req),
+        ...this.getRelatorioDemeterScope(req),
       });
     } catch (error) {
       this.errorHandler(
         error,
-        'AtendimentoController.listAtendimentosComRelatorioManual',
+        'AtendimentoController.listAtendimentosComRelatorioDemeter',
       );
     }
   }
@@ -239,7 +239,7 @@ export class AtendimentoController {
     return Math.min(1000, Math.max(1, Math.trunc(pageSize)));
   }
 
-  private getRelatorioManualScope(req?: Request) {
+  private getRelatorioDemeterScope(req?: Request) {
     const user = req?.user;
     if (!user) {
       throw new ForbiddenException('É necessária autenticação de usuário.');

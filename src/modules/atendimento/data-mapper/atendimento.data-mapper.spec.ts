@@ -1,7 +1,7 @@
 import { AtendimentoDataMapper } from './atendimento.data-mapper';
-import { AtendimentoComRelatorioManualItemDTO } from '../dto/atendimento-com-relatorio-manual.dto';
+import { AtendimentoComRelatorioDemeterItemDTO } from '../dto/atendimento-com-relatorio-demeter.dto';
 
-const baseItem: AtendimentoComRelatorioManualItemDTO = {
+const baseItem: AtendimentoComRelatorioDemeterItemDTO = {
   id_at_atendimento: '1980461',
   data_inicio_atendimento: '2026-06-20',
   data_fim_atendimento: '2026-06-20',
@@ -22,9 +22,9 @@ const baseItem: AtendimentoComRelatorioManualItemDTO = {
   arquivos: [],
 };
 
-describe('AtendimentoDataMapper.toComRelatorioManual', () => {
+describe('AtendimentoDataMapper.toComRelatorioDemeter', () => {
   it('collapses first cliente and usuario, preserving scalar fields', () => {
-    const item = AtendimentoDataMapper.toComRelatorioManual(
+    const item = AtendimentoDataMapper.toComRelatorioDemeter(
       {
         ...baseItem,
         clientes: [
@@ -75,7 +75,7 @@ describe('AtendimentoDataMapper.toComRelatorioManual', () => {
   });
 
   it('maps empty arrays and localidade misses to nulls', () => {
-    const item = AtendimentoDataMapper.toComRelatorioManual(baseItem);
+    const item = AtendimentoDataMapper.toComRelatorioDemeter(baseItem);
 
     expect(item.produtor).toBeNull();
     expect(item.propriedade).toBeNull();
@@ -87,7 +87,7 @@ describe('AtendimentoDataMapper.toComRelatorioManual', () => {
   });
 
   it('carries dt_export_ok through to the output DTO', () => {
-    const item = AtendimentoDataMapper.toComRelatorioManual({
+    const item = AtendimentoDataMapper.toComRelatorioDemeter({
       ...baseItem,
       dt_export_ok: '2026-06-25',
     });
@@ -109,7 +109,7 @@ describe('AtendimentoDataMapper.toComRelatorioManual', () => {
       },
     ];
 
-    const item = AtendimentoDataMapper.toComRelatorioManual({
+    const item = AtendimentoDataMapper.toComRelatorioDemeter({
       ...baseItem,
       arquivos,
     });
@@ -118,9 +118,9 @@ describe('AtendimentoDataMapper.toComRelatorioManual', () => {
   });
 });
 
-describe('AtendimentoDataMapper.toComRelatorioManualPage', () => {
+describe('AtendimentoDataMapper.toComRelatorioDemeterPage', () => {
   it('keeps the upstream page envelope and enriches by id_und_empresa', () => {
-    const page = AtendimentoDataMapper.toComRelatorioManualPage(
+    const page = AtendimentoDataMapper.toComRelatorioDemeterPage(
       {
         items: [baseItem],
         pageSize: 200,

@@ -4,7 +4,7 @@ import * as wkhtmltopdf from 'wkhtmltopdf';
 import * as ejs from 'ejs';
 import { formatDate } from 'src/utils/dateUtils';
 import { Base64ImageService } from './utils/ base64-image.service';
-import { CreatePdfInput, ManualPdfInput } from './types/create-pdf-input';
+import { CreatePdfInput, DemeterPdfInput } from './types/create-pdf-input';
 
 export class PdfGenerator {
   private static readonly templatesDir = join(__dirname, 'templates');
@@ -49,12 +49,12 @@ export class PdfGenerator {
     }
   }
 
-  public static async generateManualPdf(
-    pdfInputData: ManualPdfInput,
+  public static async generateDemeterPdf(
+    pdfInputData: DemeterPdfInput,
   ): Promise<NodeJS.ReadableStream> {
     try {
       const { headerHtml, mainHtml, footerHtml } =
-        await this.createManualHtmlTemplates(pdfInputData);
+        await this.createDemeterHtmlTemplates(pdfInputData);
 
       const { headerFilePath, footerFilePath } =
         await this.writeHeaderAndFooter(headerHtml, footerHtml);
@@ -75,7 +75,7 @@ export class PdfGenerator {
     } catch (error) {
       const normalizedError =
         error instanceof Error ? error : new Error(String(error));
-      console.log('🚀 - PdfGenerator.generateManualPdf - error:', error);
+      console.log('🚀 - PdfGenerator.generateDemeterPdf - error:', error);
       throw new Error(
         `Failed to generate manual PDF: ${normalizedError.message}`,
       );
@@ -124,8 +124,8 @@ export class PdfGenerator {
     return { headerHtml, mainHtml, footerHtml };
   }
 
-  private static async createManualHtmlTemplates(
-    pdfInputData: ManualPdfInput,
+  private static async createDemeterHtmlTemplates(
+    pdfInputData: DemeterPdfInput,
   ): Promise<{ headerHtml: string; mainHtml: string; footerHtml: string }> {
     const {
       atendimento,

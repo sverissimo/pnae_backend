@@ -7,7 +7,7 @@ import { RestAPI } from 'src/@rest-api-server/rest-api.service';
 import { REDIS_CLIENT } from 'src/cache/cache.constants';
 import { RedisInvalidator } from 'src/cache/redis-invalidator';
 import { CachedMunicipiosReader } from 'src/cache/cached-municipios.reader';
-import { CachedManualListReader } from './cache/cached-manual-list.reader';
+import { CachedDemeterListReader } from './cache/cached-demeter-list.reader';
 import { createRedisConnection } from 'src/redis/redis.provider';
 
 @Module({
@@ -19,7 +19,7 @@ import { createRedisConnection } from 'src/redis/redis.provider';
     WinstonLoggerService,
     RedisInvalidator,
     CachedMunicipiosReader,
-    CachedManualListReader,
+    CachedDemeterListReader,
     { provide: REDIS_CLIENT, useFactory: createRedisConnection },
   ],
   exports: [AtendimentoService],

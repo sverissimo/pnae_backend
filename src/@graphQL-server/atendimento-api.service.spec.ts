@@ -1,7 +1,7 @@
 import { AtendimentoGraphQLAPI } from './atendimento-api.service';
 import { atendimentosComRelatorioManualQuery } from './queries/atendimento-queries';
 
-describe('AtendimentoGraphQLAPI.getAtendimentosComRelatorioManual', () => {
+describe('AtendimentoGraphQLAPI.getAtendimentosComRelatorioDemeter', () => {
   const buildApi = () => {
     const api = Object.create(
       AtendimentoGraphQLAPI.prototype,
@@ -22,7 +22,7 @@ describe('AtendimentoGraphQLAPI.getAtendimentosComRelatorioManual', () => {
   it('forwards the full scope (pageSize, cursor, id_usuario, id_reg_empresa) to the gateway', async () => {
     const { api, request, page } = buildApi();
 
-    const result = await api.getAtendimentosComRelatorioManual({
+    const result = await api.getAtendimentosComRelatorioDemeter({
       pageSize: 200,
       cursor: '1980461',
       id_usuario: '2',
@@ -41,7 +41,7 @@ describe('AtendimentoGraphQLAPI.getAtendimentosComRelatorioManual', () => {
   it('sends no scope for admin/developer (id_usuario/id_reg_empresa absent)', async () => {
     const { api, request } = buildApi();
 
-    await api.getAtendimentosComRelatorioManual({ pageSize: 200 });
+    await api.getAtendimentosComRelatorioDemeter({ pageSize: 200 });
 
     expect(request).toHaveBeenCalledWith(atendimentosComRelatorioManualQuery, {
       pageSize: 200,

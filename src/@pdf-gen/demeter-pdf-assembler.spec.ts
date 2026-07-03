@@ -1,9 +1,9 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { assembleManualPdf } from './manual-pdf-assembler';
+import { assembleDemeterPdf } from './demeter-pdf-assembler';
 
 const sharp = require('sharp') as typeof import('sharp').default;
 
-describe('assembleManualPdf', () => {
+describe('assembleDemeterPdf', () => {
   const createPdf = async (pages: number): Promise<Buffer> => {
     const doc = await PDFDocument.create();
     for (let i = 0; i < pages; i++) {
@@ -33,7 +33,7 @@ describe('assembleManualPdf', () => {
       createImage('gif'),
     ]);
 
-    const result = await assembleManualPdf({
+    const result = await assembleDemeterPdf({
       coverPdf,
       relatorioPdfs: [
         { idArquivo: '3', buffer: relatorioPdf, contentType: 'application/pdf' },
@@ -57,7 +57,7 @@ describe('assembleManualPdf', () => {
   it('returns just the cover when there are no files', async () => {
     const coverPdf = await createPdf(2);
 
-    const result = await assembleManualPdf({
+    const result = await assembleDemeterPdf({
       coverPdf,
       relatorioPdfs: [],
       fotos: [],
@@ -71,7 +71,7 @@ describe('assembleManualPdf', () => {
     const coverPdf = await createPdf(1);
 
     await expect(
-      assembleManualPdf({
+      assembleDemeterPdf({
         coverPdf,
         relatorioPdfs: [
           {
@@ -89,7 +89,7 @@ describe('assembleManualPdf', () => {
     const coverPdf = await createPdf(1);
 
     await expect(
-      assembleManualPdf({
+      assembleDemeterPdf({
         coverPdf,
         relatorioPdfs: [],
         fotos: [
