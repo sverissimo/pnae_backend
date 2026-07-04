@@ -25,7 +25,12 @@ import { FilesInputDto } from 'src/modules/files/files-input.dto';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { WinstonLoggerService } from 'src/logging/winston-logger.service';
 import { UpdateRelatorioDto } from './dto/update-relatorio.dto';
-import { JobStatusDTO, ZipFileMetadata } from './dto/zip-job.dtos';
+import {
+  CreateZipDto,
+  JobStatusDTO,
+  MAX_ZIP_ATENDIMENTO_IDS,
+  ZipFileMetadata,
+} from './dto/zip-job.dtos';
 import { RelatorioExportService } from './relatorios.export.service';
 import { toMobileRelatorio } from 'src/modules/@sync/utils/mobile-relatorio-fields';
 
@@ -317,21 +322,20 @@ export class RelatorioController {
   }
 
   @Post('/zip/create-job')
-  async createZipJob(
-    @Body() body: { from: string; to: string; userId: string },
-  ) {
-    const { from, to, userId } = body;
-    if (!from || !to || !userId) {
-      throw new BadRequestException('from, to e userId são obrigatórios.');
+  async createZipJob(@Body() body: CreateZipDto) {
+    const { userId } = body ?? {};
+    if (!userId) {
+      throw new BadRequestException('userId é obrigatório.');
     }
 
     this.ensureUserAllowed(userId); // If not allowed, an exception is thrown
 
+    const atendimentoIds = this.parseAtendimentoIds(body?.atendimentoIds);
+
     try {
       const job = await this.relatorioExportService.createZipJob({
         userId,
-        from,
-        to,
+        atendimentoIds,
       });
       return job;
     } catch (error: any) {
@@ -390,6 +394,31 @@ export class RelatorioController {
         `Erro ao obter histórico: ${error?.message ?? 'erro interno'}`,
       );
     }
+  }
+
+  // Dedupes preserving paste order; ids are Demeter at_atendimento PKs pasted from Excel.
+  private parseAtendimentoIds(input: unknown): string[] {
+    if (!Array.isArray(input) || input.length === 0) {
+      throw new BadRequestException(
+        'atendimentoIds deve ser uma lista com pelo menos um id.',
+      );
+    }
+
+    const ids = input.map((id) => String(id).trim());
+    if (ids.some((id) => !/^\d+$/.test(id))) {
+      throw new BadRequestException(
+        'atendimentoIds deve conter apenas números.',
+      );
+    }
+
+    const uniqueIds = [...new Set(ids)];
+    if (uniqueIds.length > MAX_ZIP_ATENDIMENTO_IDS) {
+      throw new BadRequestException(
+        `Máximo de ${MAX_ZIP_ATENDIMENTO_IDS} atendimentos por ZIP. Divida a lista em lotes menores.`,
+      );
+    }
+
+    return uniqueIds;
   }
 
   private ensureUserAllowed(userId: string): void {

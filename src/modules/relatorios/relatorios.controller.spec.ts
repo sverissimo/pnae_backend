@@ -242,6 +242,98 @@ describe('RelatorioController', () => {
       ).not.toHaveBeenCalled();
     });
   });
+
+  describe('POST /zip/create-job (atendimentoIds body)', () => {
+    let exportService: any;
+    let logger: any;
+    let controller: RelatorioController;
+    const originalAllowedUserIds = process.env.ALLOWED_USER_IDS;
+
+    beforeEach(() => {
+      process.env.ALLOWED_USER_IDS = '10, 20';
+      exportService = {
+        createZipJob: jest
+          .fn()
+          .mockResolvedValue({ jobId: '9', status: 'waiting' }),
+      };
+      logger = { error: jest.fn() };
+      controller = new RelatorioController({} as any, exportService, logger);
+    });
+
+    afterAll(() => {
+      if (originalAllowedUserIds === undefined) {
+        delete process.env.ALLOWED_USER_IDS;
+      } else {
+        process.env.ALLOWED_USER_IDS = originalAllowedUserIds;
+      }
+    });
+
+    it('rejects missing, empty, and non-numeric atendimentoIds with 400', async () => {
+      await expect(
+        controller.createZipJob({ userId: '10' } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        controller.createZipJob({ userId: '10', atendimentoIds: [] }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        controller.createZipJob({
+          userId: '10',
+          atendimentoIds: ['123', '45a'],
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(exportService.createZipJob).not.toHaveBeenCalled();
+    });
+
+    it('rejects more than 1000 unique ids with 400', async () => {
+      const ids = Array.from({ length: 1001 }, (_, i) => String(i + 1));
+
+      await expect(
+        controller.createZipJob({ userId: '10', atendimentoIds: ids }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(exportService.createZipJob).not.toHaveBeenCalled();
+    });
+
+    it('accepts exactly 1000 unique ids', async () => {
+      const ids = Array.from({ length: 1000 }, (_, i) => String(i + 1));
+
+      await controller.createZipJob({ userId: '10', atendimentoIds: ids });
+
+      expect(exportService.createZipJob).toHaveBeenCalledWith({
+        userId: '10',
+        atendimentoIds: ids,
+      });
+    });
+
+    it('dedupes ids preserving paste order and normalizes numbers to strings', async () => {
+      const result = await controller.createZipJob({
+        userId: '10',
+        atendimentoIds: ['5', 3, '5', ' 3 ', '7'] as any,
+      });
+
+      expect(exportService.createZipJob).toHaveBeenCalledWith({
+        userId: '10',
+        atendimentoIds: ['5', '3', '7'],
+      });
+      expect(result).toEqual({ jobId: '9', status: 'waiting' });
+    });
+
+    it('rejects a userId outside ALLOWED_USER_IDS with 403 before validating ids', async () => {
+      const { ForbiddenException } = require('@nestjs/common');
+
+      await expect(
+        controller.createZipJob({ userId: '99', atendimentoIds: ['1'] }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(exportService.createZipJob).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing userId with 400', async () => {
+      await expect(
+        controller.createZipJob({ atendimentoIds: ['1'] } as any),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(exportService.createZipJob).not.toHaveBeenCalled();
+    });
+  });
 });
 
 function createDemeterPdfToken(atendimentoId: string): string {

@@ -1,3 +1,6 @@
+import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
+import { AtendimentoComRelatorioDemeterDTO } from 'src/modules/atendimento/dto/atendimento-com-relatorio-demeter.dto';
+
 export type JobStatus =
   | 'active'
   | 'processing'
@@ -12,8 +15,6 @@ export interface JobStatusDTO {
   status: JobStatus;
   downloadUrl?: string;
   createdAt?: string; // ISO from BullMQ job.timestamp
-  fromDate?: string;
-  toDate?: string;
   errorMessage?: string;
   progress?: number; // 0..100 from BullMQ job.getProgress()
 }
@@ -21,14 +22,46 @@ export interface JobStatusDTO {
 export interface ZipFileMetadata {
   filename: string;
   createdAt: string; // ISO date string
-  fromDate: string; // ISO date string
-  toDate: string; // ISO date string
+  mode: 'date-range' | 'atendimento-ids';
+  fromDate?: string; // ISO date string, date-range ZIPs only
+  toDate?: string; // ISO date string, date-range ZIPs only
   downloadUrl: string;
 }
 
-// dto/create-zip.dto.ts
+export const MAX_ZIP_ATENDIMENTO_IDS = 1000;
+
+// Producer (RelatorioExportService) and consumer (ZipWorkerService) must always agree on this
+// name. Dev and hmg share one Redis instance, so ZIP_QUEUE_NAME must be set per environment
+// there — otherwise another environment's worker steals the job (see .env.example).
+export const ZIP_QUEUE_NAME = process.env.ZIP_QUEUE_NAME || 'zip-generation';
+
 export interface CreateZipDto {
-  from: string; // ISO start date
-  to: string; // ISO end date
   userId: string; // must be in allowed list from .env
+  atendimentoIds: string[]; // Demeter at_atendimento ids, numeric strings
 }
+
+export type ZipRelatorioItem =
+  | {
+      source: 'pnae';
+      atendimentoId: string;
+      regional: string;
+      municipio: string;
+      relatorio: RelatorioModel;
+    }
+  | {
+      source: 'demeter';
+      atendimentoId: string;
+      regional: string;
+      municipio: string;
+      demeter: AtendimentoComRelatorioDemeterDTO;
+    };
+
+export type MunicipioZipBucket = {
+  municipio: string;
+  items: ZipRelatorioItem[];
+};
+
+export type RegionalZipGroup = {
+  regional: string;
+  municipios: MunicipioZipBucket[];
+};

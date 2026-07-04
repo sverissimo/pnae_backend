@@ -3,13 +3,14 @@ import { Worker } from 'bullmq';
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { RelatorioExportService } from '../relatorios.export.service';
 import { createRedisConnection } from 'src/redis/redis.provider';
+import { ZIP_QUEUE_NAME } from '../dto/zip-job.dtos';
 
 @Injectable()
 export class ZipWorkerService implements OnModuleInit, OnModuleDestroy {
   private worker: Worker | null = null;
   private connection: IORedis | null = null;
 
-  private readonly QUEUE_NAME = process.env.ZIP_QUEUE_NAME || 'zip-generation';
+  private readonly QUEUE_NAME = ZIP_QUEUE_NAME;
 
   constructor(private readonly exportService: RelatorioExportService) {}
 
@@ -19,8 +20,11 @@ export class ZipWorkerService implements OnModuleInit, OnModuleDestroy {
     this.worker = new Worker(
       this.QUEUE_NAME,
       async (job) => {
-        const { from, to } = job.data as { from: string; to: string };
-        return this.exportService.createZipFile({ from, to });
+        const { atendimentoIds } = job.data as {
+          userId: string;
+          atendimentoIds: string[];
+        };
+        return this.exportService.createZipFile({ atendimentoIds });
       },
       { connection: this.connection },
     );

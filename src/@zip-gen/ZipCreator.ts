@@ -3,10 +3,9 @@ import * as os from 'os';
 import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import * as path from 'path';
-import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
 import { ZipCreatorOptions } from './types/temp-zip-part';
 
-type MunicipioBucket = { municipio: string; relatorios: RelatorioModel[] };
+type MunicipioBucket<T> = { municipio: string; items: T[] };
 let i = 0;
 export class ZipCreator {
   private region: string;
@@ -64,11 +63,15 @@ export class ZipCreator {
     });
   }
 
-  public async generateRegionZipParts(
-    municipios: MunicipioBucket[],
+  public async generateRegionZipParts<T>(
+    municipios: MunicipioBucket<T>[],
     createRelatorioStream: (
-      relatorio: RelatorioModel,
+      item: T,
     ) => Promise<{ filename: string; filePath: string }>,
+    describeItem: (item: T) => string = (item) =>
+      typeof item === 'object' && item && 'atendimentoId' in item
+        ? String((item as any).atendimentoId)
+        : String(item),
   ): Promise<string[]> {
     await this.ensureTmpDir();
 
@@ -81,24 +84,24 @@ export class ZipCreator {
     // 1) Flatten all relatorios for this region (stable order by municipio)
     const items = [...municipios]
       .sort((a, b) => a.municipio.localeCompare(b.municipio))
-      .flatMap(({ municipio, relatorios }) =>
-        relatorios.map((relatorio) => ({ municipio, relatorio })),
+      .flatMap(({ municipio, items }) =>
+        items.map((item) => ({ municipio, item })),
       );
 
     console.log(items.length, 'relatórios to process');
 
     // 2) Generate PDFs CONCURRENTLY (bounded by the limiter wrapped in createRelatorioStream)
     const results = await Promise.all(
-      items.map(async ({ municipio, relatorio }) => {
+      items.map(async ({ municipio, item }) => {
         try {
           i++;
           console.log('[ZipCreator] Generating PDF #', i);
-          const { filename, filePath } = await createRelatorioStream(relatorio);
+          const { filename, filePath } = await createRelatorioStream(item);
           const { size } = await fsp.stat(filePath);
           return { filename, filePath, size };
         } catch (err) {
           console.error(
-            `[ZipCreator] Failed PDF for relatório ${relatorio.id} (${this.region} / ${municipio}):`,
+            `[ZipCreator] Failed PDF for relatório ${describeItem(item)} (${this.region} / ${municipio}):`,
             err,
           );
           return null;
@@ -173,12 +176,10 @@ export class ZipCreator {
    */
   public static async generateFinalZip({
     filePaths,
-    from,
-    to,
+    finalZipName,
   }: {
     filePaths: string[];
-    from: string;
-    to: string;
+    finalZipName: string;
   }): Promise<string> {
     if (!filePaths.length) throw new Error('Nenhum arquivo para compactar.');
 
@@ -186,7 +187,6 @@ export class ZipCreator {
       process.env.ZIP_FILES_PATH || path.resolve(process.cwd(), 'zips');
     await fsp.mkdir(zipPathRoot, { recursive: true });
 
-    const finalZipName = `relatorios_${from}_a_${to}.zip`;
     const finalZipPath = path.join(zipPathRoot, finalZipName);
     console.log(
       '🚀 - ZipCreator - generateFinalZip - finalZipPath:',

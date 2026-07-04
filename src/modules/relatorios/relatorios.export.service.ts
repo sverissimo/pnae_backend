@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as fsp from 'fs/promises';
+import { randomUUID } from 'crypto';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 
@@ -14,7 +15,6 @@ import {
 } from '@nestjs/common';
 import pLimit from 'p-limit';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
-import { RelatorioDomainService } from 'src/@domain/relatorio/relatorio-domain-service';
 import { Perfil, PerfilModel } from 'src/@domain/perfil';
 import { ProdutorGraphQLAPI } from 'src/@graphQL-server/produtor-api.service';
 import { UsuarioGraphQLAPI } from 'src/@graphQL-server/usuario-api.service';
@@ -26,18 +26,23 @@ import { RelatorioService } from './relatorios.service';
 import { AtendimentoService } from '../atendimento/atendimento.service';
 import { ProdutorService } from '../produtor/produtor.service';
 import { WinstonLoggerService } from 'src/logging/winston-logger.service';
+import { formatCPF, unformatCPF, formatReverseDate } from 'src/utils';
 import {
-  formatCPF,
-  unformatCPF,
-  formatReverseDate,
-  parseAndValidateDateRange,
-} from 'src/utils';
-import { ProdutorFindManyOutputDTO } from '../produtor/types/produtores.output-dto';
-import { JobStatusDTO, ZipFileMetadata } from './dto/zip-job.dtos';
-import { cleanupOldZips } from './utils/cleanup-old-zips';
+  JobStatusDTO,
+  RegionalZipGroup,
+  ZIP_QUEUE_NAME,
+  ZipFileMetadata,
+  ZipRelatorioItem,
+} from './dto/zip-job.dtos';
 import { UsuarioModel } from 'src/@domain/usuario/usuario-model';
+import { groupZipItemsByRegional } from './utils/group-zip-items';
+import { cleanupOldZips } from './utils/cleanup-old-zips';
 
 const CURRENT_PNAE_CONTRATO_ID = 2;
+
+// Same placeholder names ZipCreator/groupByRegionAndCity already use for unresolved locations.
+const REGIONAL_NAO_ENCONTRADA = 'regional_nao_encontrada';
+const MUNICIPIO_NAO_ENCONTRADO = 'mun_nao_encontrado';
 
 // PNAE-supported stored MIMEs for the combined manual PDF; anything else (the ~3 stray
 // `application/msword` rows) is bad stored data and gets a clear unsupported-file error.
@@ -65,7 +70,7 @@ export class RelatorioExportService {
     private readonly logger: WinstonLoggerService,
   ) {
     this.redis = new IORedis(process.env.REDIS_URL);
-    this.zipQueue = new Queue('zip-generation', {
+    this.zipQueue = new Queue(ZIP_QUEUE_NAME, {
       connection: this.redis,
     });
   }
@@ -199,26 +204,18 @@ export class RelatorioExportService {
     const unformattedCPF = unformatCPF(cpfProdutor);
     const date = formatReverseDate(new Date(createdAt));
 
-    const sanitizeSegment = (s: string) =>
-      (s ?? '')
-        .normalize('NFKC')
-        .replace(/[\/\\:*?"<>|]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-
     const filename =
       [
         '2.3',
-        sanitizeSegment(municipio),
-        sanitizeSegment(nomeProdutor),
+        this.sanitizeSegment(municipio),
+        this.sanitizeSegment(nomeProdutor),
         date,
         atendimentoId,
         unformattedCPF,
         'final',
       ].join('_') + '.pdf';
 
-    // ✅ write to tmp file instead of buffering
-    const tmpPath = path.join(os.tmpdir(), `${relatorioId}.pdf`);
+    const tmpPath = this.createTempPdfPath(`pnae-${relatorioId}`);
     const writeStream = fs.createWriteStream(tmpPath);
     await new Promise<void>((resolve, reject) => {
       pdfStream.pipe(writeStream);
@@ -331,19 +328,15 @@ export class RelatorioExportService {
 
   public async createZipJob({
     userId,
-    from,
-    to,
+    atendimentoIds,
   }: {
     userId: string;
-    from: string;
-    to: string;
-  }): Promise<string> {
+    atendimentoIds: string[];
+  }) {
     try {
-      parseAndValidateDateRange(from, to); // throws if invalid
-
       const job = await this.zipQueue.add(
         'build-zip',
-        { userId, from, to },
+        { userId, atendimentoIds },
         {
           removeOnFail: true,
           removeOnComplete: { count: 10 }, // don’t lose result immediately
@@ -359,11 +352,9 @@ export class RelatorioExportService {
           `zip:${job.id}`,
           JSON.stringify({
             userId,
-            from,
-            to,
             status: jobState || 'processing',
-            fromDate: from,
-            toDate: to,
+            atendimentoCount: atendimentoIds.length,
+            requestedAtendimentoIds: atendimentoIds,
           }),
           'EX',
           60 * 60 * 24,
@@ -432,8 +423,6 @@ export class RelatorioExportService {
                 jobId,
                 status: 'empty',
                 createdAt,
-                fromDate: job?.data?.from,
-                toDate: job?.data?.to,
                 errorMessage: jobReturnedValue,
               };
             }
@@ -505,19 +494,25 @@ export class RelatorioExportService {
         .sort((a, b) => b.mtimeMs - a.mtimeMs)
         .slice(0, 5)
         .map(({ name, mtimeMs }) => {
-          // Expect format: relatorios_YYYY-MM-DD_a_YYYY-MM-DD.zip
-          const match = name.match(
+          const dateRangeMatch = name.match(
             /relatorios_(\d{4}-\d{2}-\d{2})_a_(\d{4}-\d{2}-\d{2})\.zip$/,
           );
-
-          const fromDate = match ? match[1] : '';
-          const toDate = match ? match[2] : '';
+          const atendimentoIdsMatch = name.match(
+            /relatorios_atendimentos_\d{4}-\d{2}-\d{2}_\d{6}\.zip$/,
+          );
+          const mode = dateRangeMatch
+            ? 'date-range'
+            : atendimentoIdsMatch
+              ? 'atendimento-ids'
+              : 'atendimento-ids';
 
           return {
             filename: name,
             createdAt: new Date(mtimeMs).toISOString().split('T')[0],
-            fromDate,
-            toDate,
+            mode,
+            ...(dateRangeMatch
+              ? { fromDate: dateRangeMatch[1], toDate: dateRangeMatch[2] }
+              : {}),
             downloadUrl: `relatorios/zip/download/${encodeURIComponent(name)}`,
           };
         });
@@ -532,136 +527,223 @@ export class RelatorioExportService {
     }
   }
 
-  public async createZipFile({ from, to }: { from: string; to: string }) {
-    const { selectedRelatorios, selectedAtendimentos } =
-      await this.findByDataSeeRange({
-        from,
-        to,
-      });
+  public async createZipFile({ atendimentoIds }: { atendimentoIds: string[] }) {
+    const { items, skippedIds } = await this.resolveZipItems(atendimentoIds);
 
-    console.log(`@@@ Relatórios ${from} a ${to}: ${selectedRelatorios.length}`);
+    if (skippedIds.length) {
+      this.logger.warn(
+        `[RelatorioExportService] createZipFile - ids sem relatório (ignorados): ${skippedIds.join(
+          ', ',
+        )}`,
+      );
+    }
 
-    if (!selectedRelatorios.length) {
+    if (!items.length) {
       return 'Não há nenhum relatório para ser anexado no SEI.';
     }
 
-    const relatoriosPorRegional =
-      await this.getRelatoriosPorRegional(selectedRelatorios);
-
-    const filePaths = await this.createZipFilesForAllRegions(
-      relatoriosPorRegional,
+    const grouped = groupZipItemsByRegional(items);
+    const tmpZipRootDir = await fsp.mkdtemp(
+      path.join(os.tmpdir(), 'pnae-zips-'),
     );
+    try {
+      const filePaths = await this.createZipFilesForAllRegions(
+        grouped,
+        tmpZipRootDir,
+      );
 
-    const finalZipPath = await ZipCreator.generateFinalZip({
-      from,
-      to,
-      filePaths,
-    });
+      if (!filePaths.length) {
+        throw new Error(
+          'Falha ao gerar os PDFs dos relatórios selecionados. Verifique os logs para identificar o atendimento com erro.',
+        );
+      }
 
-    await cleanupOldZips(this.historyDir, 5);
-
-    await this.atendimentoService.setAtendimentosExportDate(
-      selectedAtendimentos,
-    );
-
-    return `Arquivo gerado: ${finalZipPath}`;
-  }
-
-  private async getRelatoriosPorRegional(relatorios: RelatorioModel[]) {
-    const uniqueProdutoresIds = [
-      ...new Set(relatorios.map((r) => r.produtorId)),
-    ];
-
-    const produtores = (await this.produtorService.findManyById(
-      uniqueProdutoresIds,
-    )) as ProdutorFindManyOutputDTO[];
-
-    return RelatorioDomainService.groupByRegionAndCity(relatorios, produtores);
-  }
-
-  private async findByDataSeeRange({ from, to }: { from: string; to: string }) {
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-    toDate.setHours(23, 59, 59, 999);
-
-    const relatorios = await this.relatorioService.findAll(); // Already fixes atendimentoIds
-
-    const atendimentoIds = relatorios
-      .map((r) => r.atendimentoId)
-      .filter((id): id is string => !!id);
-
-    if (atendimentoIds.length === 0) {
-      return {
-        selectedRelatorios: [],
-        selectedAtendimentos: [],
-      };
-    }
-
-    const atendimentos = await this.atendimentoService.findMany(atendimentoIds);
-
-    const selectedAtendimentos = atendimentos.filter((at) => {
-      const dataSEE = new Date(at.data_see);
-      console.log('🚀 - RelatorioExportService - ', {
-        dataSEE,
-        fromDate,
-        toDate,
-        isBefore: dataSEE < fromDate,
-        isAfter: dataSEE > toDate,
+      const finalZipPath = await ZipCreator.generateFinalZip({
+        filePaths,
+        finalZipName: `relatorios_atendimentos_${this.buildZipTimestamp()}.zip`,
       });
 
-      return dataSEE >= fromDate && dataSEE <= toDate;
+      await cleanupOldZips(this.historyDir, 5);
+
+      return finalZipPath;
+    } finally {
+      await fsp.rm(tmpZipRootDir, { recursive: true, force: true });
+    }
+  }
+
+  // Buckets the requested Demeter atendimento ids into PNAE-backed relatórios, Demeter-only
+  // manual relatórios, and skipped ids (no relatório on either side), preserving paste order.
+  public async resolveZipItems(atendimentoIds: string[]): Promise<{
+    items: ZipRelatorioItem[];
+    skippedIds: string[];
+  }> {
+    const relatorios = await this.relatorioService.findAll({
+      contratoId: CURRENT_PNAE_CONTRATO_ID,
     });
 
-    const selectedAtendimentoIds = new Set(
-      selectedAtendimentos.map((at) => at.id_at_atendimento),
+    const relatorioByAtendimentoId = new Map<string, RelatorioModel>();
+    for (const relatorio of relatorios) {
+      if (relatorio.atendimentoId) {
+        relatorioByAtendimentoId.set(String(relatorio.atendimentoId), relatorio);
+      }
+    }
+
+    const pnaeIds = atendimentoIds.filter((id) =>
+      relatorioByAtendimentoId.has(id),
+    );
+    const missingIds = atendimentoIds.filter(
+      (id) => !relatorioByAtendimentoId.has(id),
     );
 
-    const relatoriosWithinDateRange = relatorios.filter((r) =>
-      selectedAtendimentoIds.has(r.atendimentoId),
+    const produtorIds = [
+      ...new Set(
+        pnaeIds.map((id) =>
+          String(relatorioByAtendimentoId.get(id).produtorId),
+        ),
+      ),
+    ];
+    const produtores = produtorIds.length
+      ? await this.produtorService.findManyById(produtorIds)
+      : [];
+    const produtorById = new Map(
+      produtores.map((p) => [String(p.id_pessoa_demeter), p]),
     );
 
-    return {
-      selectedRelatorios: relatoriosWithinDateRange,
-      selectedAtendimentos,
-    };
+    const demeterLimit = pLimit(5);
+    const demeterResults = await Promise.all(
+      missingIds.map((id) =>
+        demeterLimit(async () => ({
+          id,
+          demeter:
+            await this.atendimentoService.getAtendimentoComRelatorioDemeter(id),
+        })),
+      ),
+    );
+    const demeterById = new Map(demeterResults.map((r) => [r.id, r.demeter]));
+
+    const items: ZipRelatorioItem[] = [];
+    const skippedIds: string[] = [];
+
+    for (const atendimentoId of atendimentoIds) {
+      const relatorio = relatorioByAtendimentoId.get(atendimentoId);
+      if (relatorio) {
+        const produtor = produtorById.get(String(relatorio.produtorId));
+        items.push({
+          source: 'pnae',
+          atendimentoId,
+          regional: produtor?.regional_sre || REGIONAL_NAO_ENCONTRADA,
+          municipio: produtor?.municipio || MUNICIPIO_NAO_ENCONTRADO,
+          relatorio,
+        });
+        continue;
+      }
+
+      const demeter = demeterById.get(atendimentoId);
+      if (demeter) {
+        items.push({
+          source: 'demeter',
+          atendimentoId,
+          regional: demeter.nomeRegional || REGIONAL_NAO_ENCONTRADA,
+          municipio: demeter.nomeMunicipio || MUNICIPIO_NAO_ENCONTRADO,
+          demeter,
+        });
+        continue;
+      }
+
+      skippedIds.push(atendimentoId);
+    }
+
+    return { items, skippedIds };
   }
 
   private async createZipFilesForAllRegions(
-    grouped: Array<Record<string, Array<Record<string, RelatorioModel[]>>>>,
+    grouped: RegionalZipGroup[],
+    tmpRootDir: string,
   ): Promise<string[]> {
     const regionLimit = pLimit(3);
     const pdfLimit = pLimit(6); // inside each region, run 6 PDFs at a time
 
     const regionTasks = grouped.map((regionEntry) =>
       regionLimit(async () => {
-        const region = Object.keys(regionEntry)[0];
-        const municipiosArray = regionEntry[region];
-        const municipiosList = municipiosArray.map((m) => {
-          const municipio = Object.keys(m)[0];
-          return { municipio, relatorios: m[municipio] as RelatorioModel[] };
-        });
-
         try {
-          const creator = new ZipCreator(region, {
+          const creator = new ZipCreator(regionEntry.regional, {
             maxSizeBytes: 40 * 1024 * 1024,
+            tmpRootDir,
           });
 
           return creator.generateRegionZipParts(
-            municipiosList,
-            (relatorio) =>
-              pdfLimit(() => this.createPDFStream(relatorio.id, relatorio)), // ✅ concurrency per PDF
+            regionEntry.municipios,
+            (item) => pdfLimit(() => this.createZipItemPdfFile(item)),
+            (item) => `${item.source}:${item.atendimentoId}`,
           );
         } catch (error) {
           this.logger.error(
-            `[RelatorioService] Error creating zip for region ${region}: ${error.message}`,
+            `[RelatorioService] Error creating zip for region ${regionEntry.regional}: ${error.message}`,
             { error },
           );
+          return [];
         }
       }),
     );
 
     const regionPartsArrays = await Promise.all(regionTasks);
     return regionPartsArrays.flat();
+  }
+
+  private async createZipItemPdfFile(
+    item: ZipRelatorioItem,
+  ): Promise<{ filename: string; filePath: string }> {
+    if (item.source === 'pnae') {
+      return this.createPDFStream(item.relatorio.id, item.relatorio);
+    }
+
+    return this.createDemeterPDFFile(item);
+  }
+
+  private async createDemeterPDFFile(
+    item: Extract<ZipRelatorioItem, { source: 'demeter' }>,
+  ): Promise<{ filename: string; filePath: string }> {
+    const { pdf, nomeProdutor } = await this.createDemeterRelatorioPdf(
+      item.atendimentoId,
+    );
+    const filename =
+      [
+        '2.3',
+        this.sanitizeSegment(item.municipio),
+        this.sanitizeSegment(nomeProdutor),
+        item.atendimentoId,
+        'manual',
+      ].join('_') + '.pdf';
+    const filePath = this.createTempPdfPath(`demeter-${item.atendimentoId}`);
+    await fsp.writeFile(filePath, pdf);
+    return { filename, filePath };
+  }
+
+  private createTempPdfPath(label: string): string {
+    return path.join(
+      os.tmpdir(),
+      `pnae-pdf-${process.pid}-${Date.now()}-${randomUUID()}-${this.sanitizeSegment(
+        label,
+      )}.pdf`,
+    );
+  }
+
+  private sanitizeSegment(s: string): string {
+    return (s ?? '')
+      .normalize('NFKC')
+      .replace(/[\/\\:*?"<>|]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private buildZipTimestamp(date = new Date()): string {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mi = String(date.getMinutes()).padStart(2, '0');
+    const ss = String(date.getSeconds()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}_${hh}${mi}${ss}`;
   }
 
   private attachCleanup(pdfStream: NodeJS.ReadableStream) {
