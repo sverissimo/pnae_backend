@@ -30,6 +30,7 @@ import { formatCPF, unformatCPF, formatReverseDate } from 'src/utils';
 import {
   JobStatusDTO,
   RegionalZipGroup,
+  ZIP_ATENDIMENTOS_INCLUIDOS_KEY,
   ZIP_QUEUE_NAME,
   ZipFileMetadata,
   ZipRelatorioItem,
@@ -547,10 +548,8 @@ export class RelatorioExportService {
       path.join(os.tmpdir(), 'pnae-zips-'),
     );
     try {
-      const filePaths = await this.createZipFilesForAllRegions(
-        grouped,
-        tmpZipRootDir,
-      );
+      const { filePaths, includedAtendimentoIds } =
+        await this.createZipFilesForAllRegions(grouped, tmpZipRootDir);
 
       if (!filePaths.length) {
         throw new Error(
@@ -565,10 +564,70 @@ export class RelatorioExportService {
 
       await cleanupOldZips(this.historyDir, 5);
 
+      await this.persistZipSideEffects(
+        path.basename(finalZipPath),
+        includedAtendimentoIds,
+      );
+
       return finalZipPath;
     } finally {
       await fsp.rm(tmpZipRootDir, { recursive: true, force: true });
     }
+  }
+
+  // Post-ZIP side effects (plan §6/§7): mark the actually-included atendimentos as exported
+  // and persist their ids keyed by the final ZIP filename. Failures are logged, not fatal —
+  // the ZIP is already on disk and downloadable.
+  private async persistZipSideEffects(
+    finalZipFilename: string,
+    includedAtendimentoIds: string[],
+  ): Promise<void> {
+    try {
+      const atendimentos = await this.atendimentoService.findMany(
+        includedAtendimentoIds,
+      );
+      await this.atendimentoService.setAtendimentosExportDate(atendimentos);
+    } catch (error: any) {
+      this.logger.error(
+        `RelatorioExportService ~ persistZipSideEffects (export date) - ${
+          error?.message ?? String(error)
+        }\n${error?.stack ?? ''}`,
+      );
+    }
+
+    try {
+      await this.redis.hset(
+        ZIP_ATENDIMENTOS_INCLUIDOS_KEY,
+        finalZipFilename,
+        JSON.stringify(includedAtendimentoIds),
+      );
+    } catch (error: any) {
+      this.logger.error(
+        `RelatorioExportService ~ persistZipSideEffects (redis hash) - ${
+          error?.message ?? String(error)
+        }\n${error?.stack ?? ''}`,
+      );
+    }
+  }
+
+  public async getAtendimentosIncluidos(): Promise<Record<string, string[]>> {
+    const raw = await this.redis.hgetall(ZIP_ATENDIMENTOS_INCLUIDOS_KEY);
+    const result: Record<string, string[]> = {};
+
+    for (const [filename, json] of Object.entries(raw)) {
+      try {
+        const ids = JSON.parse(json);
+        if (Array.isArray(ids)) {
+          result[filename] = ids.map(String);
+        }
+      } catch {
+        this.logger.warn(
+          `RelatorioExportService ~ getAtendimentosIncluidos - entrada malformada ignorada: ${filename}`,
+        );
+      }
+    }
+
+    return result;
   }
 
   // Buckets the requested Demeter atendimento ids into PNAE-backed relatórios, Demeter-only
@@ -659,35 +718,49 @@ export class RelatorioExportService {
   private async createZipFilesForAllRegions(
     grouped: RegionalZipGroup[],
     tmpRootDir: string,
-  ): Promise<string[]> {
+  ): Promise<{ filePaths: string[]; includedAtendimentoIds: string[] }> {
     const regionLimit = pLimit(3);
     const pdfLimit = pLimit(6); // inside each region, run 6 PDFs at a time
 
     const regionTasks = grouped.map((regionEntry) =>
       regionLimit(async () => {
+        // Region-local so a region that fails as a whole contributes no included ids.
+        const includedAtendimentoIds: string[] = [];
         try {
           const creator = new ZipCreator(regionEntry.regional, {
             maxSizeBytes: 40 * 1024 * 1024,
             tmpRootDir,
           });
 
-          return creator.generateRegionZipParts(
+          const filePaths = await creator.generateRegionZipParts(
             regionEntry.municipios,
-            (item) => pdfLimit(() => this.createZipItemPdfFile(item)),
+            (item) =>
+              pdfLimit(async () => {
+                const file = await this.createZipItemPdfFile(item);
+                includedAtendimentoIds.push(item.atendimentoId);
+                return file;
+              }),
             (item) => `${item.source}:${item.atendimentoId}`,
           );
+
+          return { filePaths, includedAtendimentoIds };
         } catch (error) {
           this.logger.error(
             `[RelatorioService] Error creating zip for region ${regionEntry.regional}: ${error.message}`,
             { error },
           );
-          return [];
+          return { filePaths: [], includedAtendimentoIds: [] };
         }
       }),
     );
 
-    const regionPartsArrays = await Promise.all(regionTasks);
-    return regionPartsArrays.flat();
+    const regionResults = await Promise.all(regionTasks);
+    return {
+      filePaths: regionResults.flatMap((r) => r.filePaths),
+      includedAtendimentoIds: regionResults.flatMap(
+        (r) => r.includedAtendimentoIds,
+      ),
+    };
   }
 
   private async createZipItemPdfFile(

@@ -396,6 +396,26 @@ export class RelatorioController {
     }
   }
 
+  // Web-only: atendimento ids already included in previously generated ZIPs,
+  // keyed by final ZIP filename (Redis hash, no TTL — outlives the on-disk files).
+  @Get('/zip/atendimentos-incluidos')
+  async getAtendimentosIncluidos(): Promise<Record<string, string[]>> {
+    try {
+      return await this.relatorioExportService.getAtendimentosIncluidos();
+    } catch (error: any) {
+      this.logger.error(
+        `RelatorioController ~ getAtendimentosIncluidos - ${
+          error?.message ?? String(error)
+        }\n${error?.stack ?? ''}`,
+      );
+      throw new InternalServerErrorException(
+        `Erro ao obter atendimentos incluídos: ${
+          error?.message ?? 'erro interno'
+        }`,
+      );
+    }
+  }
+
   // Dedupes preserving paste order; ids are Demeter at_atendimento PKs pasted from Excel.
   private parseAtendimentoIds(input: unknown): string[] {
     if (!Array.isArray(input) || input.length === 0) {

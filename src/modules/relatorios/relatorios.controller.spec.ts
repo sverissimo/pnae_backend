@@ -334,6 +334,44 @@ describe('RelatorioController', () => {
       expect(exportService.createZipJob).not.toHaveBeenCalled();
     });
   });
+
+  describe('GET /zip/atendimentos-incluidos', () => {
+    it('returns the included atendimento ids keyed by ZIP filename', async () => {
+      const incluidos = {
+        'relatorios_atendimentos_2026-07-03_153000.zip': ['100', '200'],
+      };
+      const exportService = {
+        getAtendimentosIncluidos: jest.fn().mockResolvedValue(incluidos),
+      };
+      const controller = new RelatorioController(
+        {} as any,
+        exportService as any,
+        { error: jest.fn() } as any,
+      );
+
+      await expect(controller.getAtendimentosIncluidos()).resolves.toEqual(
+        incluidos,
+      );
+    });
+
+    it('translates service failures to 500', async () => {
+      const { InternalServerErrorException } = require('@nestjs/common');
+      const exportService = {
+        getAtendimentosIncluidos: jest
+          .fn()
+          .mockRejectedValue(new Error('redis offline')),
+      };
+      const controller = new RelatorioController(
+        {} as any,
+        exportService as any,
+        { error: jest.fn() } as any,
+      );
+
+      await expect(controller.getAtendimentosIncluidos()).rejects.toBeInstanceOf(
+        InternalServerErrorException,
+      );
+    });
+  });
 });
 
 function createDemeterPdfToken(atendimentoId: string): string {

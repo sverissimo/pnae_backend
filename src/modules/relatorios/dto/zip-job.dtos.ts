@@ -30,6 +30,10 @@ export interface ZipFileMetadata {
 
 export const MAX_ZIP_ATENDIMENTO_IDS = 1000;
 
+// Redis hash: field = final ZIP filename, value = JSON array of the atendimento ids that
+// actually produced a PDF. No TTL — entries outlive the last-5-files disk cleanup.
+export const ZIP_ATENDIMENTOS_INCLUIDOS_KEY = 'zip:atendimentos-incluidos';
+
 // Producer (RelatorioExportService) and consumer (ZipWorkerService) must always agree on this
 // name. Dev and hmg share one Redis instance, so ZIP_QUEUE_NAME must be set per environment
 // there — otherwise another environment's worker steals the job (see .env.example).

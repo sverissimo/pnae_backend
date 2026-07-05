@@ -387,27 +387,36 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
     relatorios = [] as any[],
     produtores = [] as any[],
     demeterById = {} as Record<string, any>,
+    atendimentoRows = [] as any[],
   } = {}) => {
     const service = Object.create(
       RelatorioExportService.prototype,
     ) as RelatorioExportService;
 
     const logger = { error: jest.fn(), warn: jest.fn() };
+    const atendimentoService = {
+      getAtendimentoComRelatorioDemeter: jest.fn(
+        async (id: string) => demeterById[id] ?? null,
+      ),
+      findMany: jest.fn().mockResolvedValue(atendimentoRows),
+      setAtendimentosExportDate: jest.fn().mockResolvedValue(undefined),
+    };
+    const redis = {
+      hset: jest.fn().mockResolvedValue(1),
+      hgetall: jest.fn().mockResolvedValue({}),
+    };
     (service as any).relatorioService = {
       findAll: jest.fn().mockResolvedValue(relatorios),
     };
     (service as any).produtorService = {
       findManyById: jest.fn().mockResolvedValue(produtores),
     };
-    (service as any).atendimentoService = {
-      getAtendimentoComRelatorioDemeter: jest.fn(
-        async (id: string) => demeterById[id] ?? null,
-      ),
-    };
+    (service as any).atendimentoService = atendimentoService;
+    (service as any).redis = redis;
     (service as any).logger = logger;
     (service as any).historyDir = tmpDir;
 
-    return { service, logger };
+    return { service, logger, atendimentoService, redis };
   };
 
   it('returns the empty-job message when no requested id resolves to a relatório', async () => {
@@ -481,7 +490,11 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
 
   it('creates a final ZIP from mixed PNAE and Demeter items', async () => {
     const relatorio = { id: 'r1', atendimentoId: '100', produtorId: '55' };
-    const { service } = buildFileService({
+    const atendimentoRows = [
+      { id_at_atendimento: '200', dt_export_ok: null },
+      { id_at_atendimento: '100', dt_export_ok: null },
+    ];
+    const { service, atendimentoService, redis } = buildFileService({
       relatorios: [relatorio],
       produtores: [
         { id_pessoa_demeter: '55', municipio: 'Lavras', regional_sre: 'SRE Sul' },
@@ -493,6 +506,7 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
           nomeMunicipio: 'Montes Claros',
         },
       },
+      atendimentoRows,
     });
     jest
       .spyOn(service, 'createPDFStream')
@@ -531,6 +545,102 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
       finalZipName: 'relatorios_atendimentos_2026-07-03_153000.zip',
     });
     expect(result).toBe('/tmp/relatorios_atendimentos_2026-07-03_153000.zip');
+
+    // Post-ZIP side effects: export-date marking + included-ids Redis hash (plan §6/§7).
+    expect(atendimentoService.findMany).toHaveBeenCalledWith(['200', '100']);
+    expect(atendimentoService.setAtendimentosExportDate).toHaveBeenCalledWith(
+      atendimentoRows,
+    );
+    expect(redis.hset).toHaveBeenCalledWith(
+      'zip:atendimentos-incluidos',
+      'relatorios_atendimentos_2026-07-03_153000.zip',
+      JSON.stringify(['200', '100']),
+    );
+  });
+
+  it('excludes ids whose PDF generation failed from the side effects', async () => {
+    const relatorio = { id: 'r1', atendimentoId: '100', produtorId: '55' };
+    const { service, atendimentoService, redis } = buildFileService({
+      relatorios: [relatorio],
+      produtores: [
+        { id_pessoa_demeter: '55', municipio: 'Lavras', regional_sre: 'SRE Sul' },
+      ],
+      demeterById: {
+        '200': {
+          id_at_atendimento: '200',
+          nomeRegional: 'SRE Sul',
+          nomeMunicipio: 'Lavras',
+        },
+      },
+    });
+    jest
+      .spyOn(service, 'createPDFStream')
+      .mockResolvedValue({ filename: 'pnae.pdf', filePath: '/tmp/pnae.pdf' });
+    jest
+      .spyOn(service as any, 'createDemeterPDFFile')
+      .mockRejectedValue(new Error('PDF quebrado'));
+    jest
+      .spyOn(ZipCreator.prototype, 'generateRegionZipParts')
+      .mockImplementation(async function (municipios: any[], createFile: any) {
+        for (const municipio of municipios) {
+          for (const item of municipio.items) {
+            // Same per-item skip-and-continue behavior as the real ZipCreator.
+            await createFile(item).catch(() => null);
+          }
+        }
+        return [`/tmp/${(this as any).region}.zip`];
+      });
+    jest
+      .spyOn(ZipCreator, 'generateFinalZip')
+      .mockResolvedValue('/tmp/relatorios_atendimentos_2026-07-04_090000.zip');
+
+    await service.createZipFile({ atendimentoIds: ['200', '100'] });
+
+    expect(atendimentoService.findMany).toHaveBeenCalledWith(['100']);
+    expect(redis.hset).toHaveBeenCalledWith(
+      'zip:atendimentos-incluidos',
+      'relatorios_atendimentos_2026-07-04_090000.zip',
+      JSON.stringify(['100']),
+    );
+  });
+
+  it('keeps the ZIP result when the post-ZIP side effects fail', async () => {
+    const { service, logger, redis } = buildFileService();
+    jest.spyOn(service, 'resolveZipItems').mockResolvedValue({
+      items: [
+        {
+          source: 'pnae',
+          atendimentoId: '100',
+          regional: 'SRE Sul',
+          municipio: 'Lavras',
+          relatorio: { id: 'r1' } as any,
+        },
+      ],
+      skippedIds: [],
+    });
+    jest
+      .spyOn(service as any, 'createZipFilesForAllRegions')
+      .mockResolvedValue({
+        filePaths: ['/tmp/SRE Sul.zip'],
+        includedAtendimentoIds: ['100'],
+      });
+    jest
+      .spyOn(ZipCreator, 'generateFinalZip')
+      .mockResolvedValue('/tmp/relatorios_atendimentos_2026-07-04_100000.zip');
+    (service as any).atendimentoService.findMany.mockRejectedValue(
+      new Error('gateway offline'),
+    );
+    redis.hset.mockRejectedValue(new Error('redis offline'));
+
+    const result = await service.createZipFile({ atendimentoIds: ['100'] });
+
+    expect(result).toBe('/tmp/relatorios_atendimentos_2026-07-04_100000.zip');
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('gateway offline'),
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('redis offline'),
+    );
   });
 
   it('fails the job when ids resolve but every PDF generation fails', async () => {
@@ -549,13 +659,31 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
     });
     jest
       .spyOn(service as any, 'createZipFilesForAllRegions')
-      .mockResolvedValue([]);
+      .mockResolvedValue({ filePaths: [], includedAtendimentoIds: [] });
 
     await expect(
       service.createZipFile({ atendimentoIds: ['2289131'] }),
     ).rejects.toThrow(
       'Falha ao gerar os PDFs dos relatórios selecionados. Verifique os logs para identificar o atendimento com erro.',
     );
+  });
+
+  it('returns the Redis hash keyed by ZIP filename, skipping malformed entries', async () => {
+    const { service, redis } = buildFileService();
+    redis.hgetall.mockResolvedValue({
+      'relatorios_atendimentos_2026-07-03_153000.zip': '["100","200"]',
+      'relatorios_atendimentos_2026-07-04_090000.zip': '[300]',
+      'broken.zip': 'not-json',
+      'not-array.zip': '{"a":1}',
+    });
+
+    const result = await service.getAtendimentosIncluidos();
+
+    expect(redis.hgetall).toHaveBeenCalledWith('zip:atendimentos-incluidos');
+    expect(result).toEqual({
+      'relatorios_atendimentos_2026-07-03_153000.zip': ['100', '200'],
+      'relatorios_atendimentos_2026-07-04_090000.zip': ['300'],
+    });
   });
 });
 
