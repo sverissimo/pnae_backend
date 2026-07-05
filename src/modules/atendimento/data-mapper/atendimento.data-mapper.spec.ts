@@ -62,6 +62,7 @@ describe('AtendimentoDataMapper.toComRelatorioDemeter', () => {
         nomeMunicipio: 'Viçosa',
         id_reg_empresa: 'G0040',
         nomeRegional: 'Regional Viçosa',
+        regionalSre: 'SRE Ponte Nova',
       },
     );
 
@@ -72,6 +73,7 @@ describe('AtendimentoDataMapper.toComRelatorioDemeter', () => {
     expect(item.nomeMunicipio).toBe('Viçosa');
     expect(item.id_reg_empresa).toBe('G0040');
     expect(item.nomeRegional).toBe('Regional Viçosa');
+    expect(item.regionalSre).toBe('SRE Ponte Nova');
   });
 
   it('maps empty arrays and localidade misses to nulls', () => {
@@ -83,6 +85,7 @@ describe('AtendimentoDataMapper.toComRelatorioDemeter', () => {
     expect(item.nomeMunicipio).toBeNull();
     expect(item.id_reg_empresa).toBeNull();
     expect(item.nomeRegional).toBeNull();
+    expect(item.regionalSre).toBeNull();
     expect(item.arquivos).toEqual([]);
   });
 
@@ -134,6 +137,7 @@ describe('AtendimentoDataMapper.toComRelatorioDemeterPage', () => {
             nomeMunicipio: 'Viçosa',
             id_reg_empresa: 'G0040',
             nomeRegional: 'Regional Viçosa',
+            regionalSre: 'SRE Ponte Nova',
           },
         ],
       ]),

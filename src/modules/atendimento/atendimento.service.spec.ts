@@ -186,6 +186,7 @@ describe('AtendimentoService.listAtendimentosComRelatorioDemeter', () => {
               nomeMunicipio: 'Viçosa',
               id_reg_empresa: 'G0040',
               nomeRegional: 'Regional Viçosa',
+              regionalSre: 'SRE Ponte Nova',
             },
           ],
         ]),
@@ -234,6 +235,7 @@ describe('AtendimentoService.listAtendimentosComRelatorioDemeter', () => {
           nomeMunicipio: 'Viçosa',
           id_reg_empresa: 'G0040',
           nomeRegional: 'Regional Viçosa',
+          regionalSre: 'SRE Ponte Nova',
           arquivos: [
             {
               idArquivo: '501',

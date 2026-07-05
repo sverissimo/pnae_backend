@@ -2,7 +2,8 @@ export const CACHE_KEYS = {
   produtor: 'produtor:v1',
   atendimento: 'atendimento:v1',
   regionaisEmater: 'perfil:regionaisEmater:v1',
-  municipiosEmater: 'perfil:municipiosEmater:v2',
+  // v3: payload gained regional_sre (SRE per município) from the gateway query.
+  municipiosEmater: 'perfil:municipiosEmater:v3',
   replacedAtendimentos: 'atendimento:replaced:v1',
   manualList: 'atendimento:manual-list:v1',
   manualListVersion: 'atendimento:manual-list:ver',

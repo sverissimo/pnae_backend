@@ -54,6 +54,7 @@ export class AtendimentoDataMapper {
       nomeMunicipio: localidade?.nomeMunicipio ?? null,
       id_reg_empresa: localidade?.id_reg_empresa ?? null,
       nomeRegional: localidade?.nomeRegional ?? null,
+      regionalSre: localidade?.regionalSre ?? null,
     };
   }
 

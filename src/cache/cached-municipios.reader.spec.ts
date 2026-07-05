@@ -8,6 +8,7 @@ describe('CachedMunicipiosReader', () => {
       municipio_id: 1,
       regional_id: 'G0040',
       nome_regional: 'Regional Viçosa',
+      regional_sre: 'SRE Ponte Nova',
     },
     {
       id_und_empresa: 'H9999',
@@ -15,6 +16,7 @@ describe('CachedMunicipiosReader', () => {
       municipio_id: null,
       regional_id: 'G0099',
       nome_regional: null,
+      regional_sre: null,
     },
   ];
 
@@ -55,11 +57,13 @@ describe('CachedMunicipiosReader', () => {
       nomeMunicipio: 'Viçosa',
       id_reg_empresa: 'G0040',
       nomeRegional: 'Regional Viçosa',
+      regionalSre: 'SRE Ponte Nova',
     });
     expect(map.get('H9999')).toEqual({
       nomeMunicipio: null,
       id_reg_empresa: 'G0099',
       nomeRegional: null,
+      regionalSre: null,
     });
     expect(restAPI.getMunicipiosEmater).toHaveBeenCalledTimes(1);
   });

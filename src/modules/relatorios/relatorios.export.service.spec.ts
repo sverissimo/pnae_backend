@@ -225,7 +225,8 @@ describe('RelatorioExportService.resolveZipItems', () => {
         demeterById: {
           '200': {
             id_at_atendimento: '200',
-            nomeRegional: 'SRE Norte',
+            nomeRegional: 'Regional Emater Norte',
+            regionalSre: 'SRE Norte',
             nomeMunicipio: 'Montes Claros',
           },
         },
@@ -266,7 +267,8 @@ describe('RelatorioExportService.resolveZipItems', () => {
       demeterById: {
         '200': {
           id_at_atendimento: '200',
-          nomeRegional: null,
+          nomeRegional: 'Regional Emater Norte', // must NOT be used as grouping fallback
+          regionalSre: null,
           nomeMunicipio: null,
         },
       },
@@ -303,7 +305,7 @@ describe('RelatorioExportService.resolveZipItems', () => {
       demeterById: {
         '200': {
           id_at_atendimento: '200',
-          nomeRegional: 'SRE Norte',
+          regionalSre: 'SRE Norte',
           nomeMunicipio: 'Montes Claros',
         },
       },
@@ -502,7 +504,8 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
       demeterById: {
         '200': {
           id_at_atendimento: '200',
-          nomeRegional: 'SRE Norte',
+          nomeRegional: 'Regional Emater Norte',
+          regionalSre: 'SRE Norte',
           nomeMunicipio: 'Montes Claros',
         },
       },
@@ -568,7 +571,7 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
       demeterById: {
         '200': {
           id_at_atendimento: '200',
-          nomeRegional: 'SRE Sul',
+          regionalSre: 'SRE Sul',
           nomeMunicipio: 'Lavras',
         },
       },

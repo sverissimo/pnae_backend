@@ -702,7 +702,9 @@ export class RelatorioExportService {
         items.push({
           source: 'demeter',
           atendimentoId,
-          regional: demeter.nomeRegional || REGIONAL_NAO_ENCONTRADA,
+          // regionalSre (not nomeRegional/emater) so PNAE and Demeter items with the same SRE
+          // land in the same nested region zip — PNAE's regional_sre is the same SRE name.
+          regional: demeter.regionalSre || REGIONAL_NAO_ENCONTRADA,
           municipio: demeter.nomeMunicipio || MUNICIPIO_NAO_ENCONTRADO,
           demeter,
         });

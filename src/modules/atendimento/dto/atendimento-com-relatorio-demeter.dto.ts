@@ -78,6 +78,7 @@ export type AtendimentoComRelatorioDemeterDTO = Omit<
   nomeMunicipio: string | null;
   id_reg_empresa: string | null;
   nomeRegional: string | null;
+  regionalSre: string | null;
 };
 
 export type AtendimentoComRelatorioDemeterPageDTO = {

@@ -9,6 +9,7 @@ export type UnidadeLocalidade = {
   nomeMunicipio: string | null;
   id_reg_empresa: string | null;
   nomeRegional: string | null;
+  regionalSre: string | null;
 };
 
 @Injectable()
@@ -40,6 +41,7 @@ export class CachedMunicipiosReader {
           nomeMunicipio: m.nome_municipio ?? null,
           id_reg_empresa: m.regional_id ? String(m.regional_id) : null,
           nomeRegional: m.nome_regional ?? null,
+          regionalSre: m.regional_sre ?? null,
         },
       ]);
 
