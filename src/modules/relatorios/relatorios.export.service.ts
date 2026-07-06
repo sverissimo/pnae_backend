@@ -31,6 +31,7 @@ import {
   JobStatusDTO,
   RegionalZipGroup,
   ZIP_ATENDIMENTOS_INCLUIDOS_KEY,
+  ZIP_ATENDIMENTOS_NAO_INCLUIDOS_KEY,
   ZIP_QUEUE_NAME,
   ZipFileMetadata,
   ZipRelatorioItem,
@@ -493,7 +494,7 @@ export class RelatorioExportService {
 
       return withStats
         .sort((a, b) => b.mtimeMs - a.mtimeMs)
-        .slice(0, 5)
+        .slice(0, 2)
         .map(({ name, mtimeMs }) => {
           const dateRangeMatch = name.match(
             /relatorios_(\d{4}-\d{2}-\d{2})_a_(\d{4}-\d{2}-\d{2})\.zip$/,
@@ -562,11 +563,12 @@ export class RelatorioExportService {
         finalZipName: `relatorios_atendimentos_${this.buildZipTimestamp()}.zip`,
       });
 
-      await cleanupOldZips(this.historyDir, 5);
+      await cleanupOldZips(this.historyDir, 2);
 
       await this.persistZipSideEffects(
         path.basename(finalZipPath),
         includedAtendimentoIds,
+        atendimentoIds,
       );
 
       return finalZipPath;
@@ -575,12 +577,14 @@ export class RelatorioExportService {
     }
   }
 
-  // Post-ZIP side effects (plan §6/§7): mark the actually-included atendimentos as exported
-  // and persist their ids keyed by the final ZIP filename. Failures are logged, not fatal —
-  // the ZIP is already on disk and downloadable.
+  // Post-ZIP side effects: mark the actually-included atendimentos as exported and persist,
+  // keyed by the final ZIP filename, both the included ids and the "não adicionados" diff
+  // (requested − included: every ineligible, errored, or unresolved id in one flat bucket).
+  // Failures are logged, not fatal — the ZIP is already on disk and downloadable.
   private async persistZipSideEffects(
     finalZipFilename: string,
     includedAtendimentoIds: string[],
+    requestedAtendimentoIds: string[],
   ): Promise<void> {
     try {
       const atendimentos = await this.atendimentoService.findMany(
@@ -595,11 +599,21 @@ export class RelatorioExportService {
       );
     }
 
+    const includedSet = new Set(includedAtendimentoIds);
+    const naoAdicionados = requestedAtendimentoIds.filter(
+      (id) => !includedSet.has(id),
+    );
+
     try {
       await this.redis.hset(
         ZIP_ATENDIMENTOS_INCLUIDOS_KEY,
         finalZipFilename,
         JSON.stringify(includedAtendimentoIds),
+      );
+      await this.redis.hset(
+        ZIP_ATENDIMENTOS_NAO_INCLUIDOS_KEY,
+        finalZipFilename,
+        JSON.stringify(naoAdicionados),
       );
     } catch (error: any) {
       this.logger.error(
@@ -610,8 +624,18 @@ export class RelatorioExportService {
     }
   }
 
-  public async getAtendimentosIncluidos(): Promise<Record<string, string[]>> {
-    const raw = await this.redis.hgetall(ZIP_ATENDIMENTOS_INCLUIDOS_KEY);
+  public getAtendimentosIncluidos(): Promise<Record<string, string[]>> {
+    return this.readAtendimentoIdsHash(ZIP_ATENDIMENTOS_INCLUIDOS_KEY);
+  }
+
+  public getAtendimentosNaoIncluidos(): Promise<Record<string, string[]>> {
+    return this.readAtendimentoIdsHash(ZIP_ATENDIMENTOS_NAO_INCLUIDOS_KEY);
+  }
+
+  private async readAtendimentoIdsHash(
+    key: string,
+  ): Promise<Record<string, string[]>> {
+    const raw = await this.redis.hgetall(key);
     const result: Record<string, string[]> = {};
 
     for (const [filename, json] of Object.entries(raw)) {
@@ -622,7 +646,7 @@ export class RelatorioExportService {
         }
       } catch {
         this.logger.warn(
-          `RelatorioExportService ~ getAtendimentosIncluidos - entrada malformada ignorada: ${filename}`,
+          `RelatorioExportService ~ readAtendimentoIdsHash (${key}) - entrada malformada ignorada: ${filename}`,
         );
       }
     }
@@ -632,10 +656,23 @@ export class RelatorioExportService {
 
   // Buckets the requested Demeter atendimento ids into PNAE-backed relatórios, Demeter-only
   // manual relatórios, and skipped ids (no relatório on either side), preserving paste order.
+  // ZIP-eligibility gate first: only active + SEE-approved atendimentos may be exported.
   public async resolveZipItems(atendimentoIds: string[]): Promise<{
     items: ZipRelatorioItem[];
     skippedIds: string[];
   }> {
+    // Every pasted id is an at_atendimento PK, so source ativo/data_see uniformly here (the
+    // PNAE RelatorioModel carries neither). Gate BEFORE resolution so ineligible/unknown ids
+    // never trigger a produtor fetch or Demeter hydration, and never enter includedAtendimentoIds.
+    const atendimentos = await this.atendimentoService.findMany(atendimentoIds);
+    const atendimentoMap = new Map(
+      atendimentos.map((a) => [String(a.id_at_atendimento), a]),
+    );
+    const eligibleIds = atendimentoIds.filter((id) => {
+      const row = atendimentoMap.get(id);
+      return !!row && row.ativo === true && !!row.data_see;
+    });
+
     const relatorios = await this.relatorioService.findAll({
       contratoId: CURRENT_PNAE_CONTRATO_ID,
     });
@@ -647,10 +684,8 @@ export class RelatorioExportService {
       }
     }
 
-    const pnaeIds = atendimentoIds.filter((id) =>
-      relatorioByAtendimentoId.has(id),
-    );
-    const missingIds = atendimentoIds.filter(
+    const pnaeIds = eligibleIds.filter((id) => relatorioByAtendimentoId.has(id));
+    const missingIds = eligibleIds.filter(
       (id) => !relatorioByAtendimentoId.has(id),
     );
 
@@ -683,7 +718,7 @@ export class RelatorioExportService {
     const items: ZipRelatorioItem[] = [];
     const skippedIds: string[] = [];
 
-    for (const atendimentoId of atendimentoIds) {
+    for (const atendimentoId of eligibleIds) {
       const relatorio = relatorioByAtendimentoId.get(atendimentoId);
       if (relatorio) {
         const produtor = produtorById.get(String(relatorio.produtorId));

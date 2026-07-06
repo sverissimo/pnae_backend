@@ -28,11 +28,16 @@ export interface ZipFileMetadata {
   downloadUrl: string;
 }
 
-export const MAX_ZIP_ATENDIMENTO_IDS = 1000;
+export const MAX_ZIP_ATENDIMENTO_IDS = 4000;
 
 // Redis hash: field = final ZIP filename, value = JSON array of the atendimento ids that
-// actually produced a PDF. No TTL — entries outlive the last-5-files disk cleanup.
+// actually produced a PDF. No TTL — entries outlive the last-2-files disk cleanup.
 export const ZIP_ATENDIMENTOS_INCLUIDOS_KEY = 'zip:atendimentos-incluidos';
+
+// Sibling hash of the included one: field = final ZIP filename, value = JSON array of the
+// requested ids that did NOT make the ZIP (ineligible, errored, or unresolved). Same no-TTL
+// persistence contract — outlives the disk rotation.
+export const ZIP_ATENDIMENTOS_NAO_INCLUIDOS_KEY = 'zip:atendimentos-nao-incluidos';
 
 // Producer (RelatorioExportService) and consumer (ZipWorkerService) must always agree on this
 // name. Dev and hmg share one Redis instance, so ZIP_QUEUE_NAME must be set per environment

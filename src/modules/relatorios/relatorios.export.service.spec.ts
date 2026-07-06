@@ -185,6 +185,7 @@ describe('RelatorioExportService.resolveZipItems', () => {
     relatorios = [] as any[],
     produtores = [] as any[],
     demeterById = {} as Record<string, any>,
+    atendimentoRowsById = {} as Record<string, any>,
   } = {}) => {
     const service = Object.create(
       RelatorioExportService.prototype,
@@ -200,6 +201,7 @@ describe('RelatorioExportService.resolveZipItems', () => {
       getAtendimentoComRelatorioDemeter: jest.fn(
         async (id: string) => demeterById[id] ?? null,
       ),
+      findMany: makeFindManyMock(atendimentoRowsById),
     };
 
     (service as any).relatorioService = relatorioService;
@@ -314,6 +316,89 @@ describe('RelatorioExportService.resolveZipItems', () => {
     await demeterOnly.service.resolveZipItems(['200']);
     expect(demeterOnly.produtorService.findManyById).not.toHaveBeenCalled();
   });
+
+  it('excludes an ineligible (ativo === false) id before any produtor/Demeter lookup', async () => {
+    const { service, produtorService, atendimentoService } =
+      buildResolverService({
+        relatorios: [{ id: 'r1', atendimentoId: '100', produtorId: '55' }],
+        produtores: [
+          { id_pessoa_demeter: '55', municipio: 'Lavras', regional_sre: 'SRE Sul' },
+        ],
+        atendimentoRowsById: {
+          '100': { id_at_atendimento: '100', ativo: false, data_see: '2026-07-01' },
+        },
+      });
+
+    const { items, skippedIds } = await service.resolveZipItems(['100']);
+
+    expect(items).toEqual([]);
+    expect(skippedIds).toEqual([]);
+    expect(produtorService.findManyById).not.toHaveBeenCalled();
+    expect(
+      atendimentoService.getAtendimentoComRelatorioDemeter,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('excludes an id with no data_see (not SEE-approved)', async () => {
+    const { service } = buildResolverService({
+      relatorios: [{ id: 'r1', atendimentoId: '100', produtorId: '55' }],
+      produtores: [
+        { id_pessoa_demeter: '55', municipio: 'Lavras', regional_sre: 'SRE Sul' },
+      ],
+      atendimentoRowsById: {
+        '100': { id_at_atendimento: '100', ativo: true, data_see: null },
+      },
+    });
+
+    const { items, skippedIds } = await service.resolveZipItems(['100']);
+
+    expect(items).toEqual([]);
+    expect(skippedIds).toEqual([]);
+  });
+
+  it('excludes an id with no atendimento row (missing from the map)', async () => {
+    const { service } = buildResolverService({
+      relatorios: [{ id: 'r1', atendimentoId: '100', produtorId: '55' }],
+      produtores: [
+        { id_pessoa_demeter: '55', municipio: 'Lavras', regional_sre: 'SRE Sul' },
+      ],
+      atendimentoRowsById: { '100': null }, // findMany returns no row for this id
+    });
+
+    const { items, skippedIds } = await service.resolveZipItems(['100']);
+
+    expect(items).toEqual([]);
+    expect(skippedIds).toEqual([]);
+  });
+
+  it('keeps only eligible ids and preserves paste order among them', async () => {
+    const relatorio = { id: 'r1', atendimentoId: '100', produtorId: '55' };
+    const { service } = buildResolverService({
+      relatorios: [relatorio],
+      produtores: [
+        { id_pessoa_demeter: '55', municipio: 'Lavras', regional_sre: 'SRE Sul' },
+      ],
+      demeterById: {
+        '200': {
+          id_at_atendimento: '200',
+          regionalSre: 'SRE Norte',
+          nomeMunicipio: 'Montes Claros',
+        },
+      },
+      atendimentoRowsById: {
+        '300': { id_at_atendimento: '300', ativo: false, data_see: '2026-07-01' },
+      },
+    });
+
+    const { items, skippedIds } = await service.resolveZipItems([
+      '200',
+      '300',
+      '100',
+    ]);
+
+    expect(items.map((i) => i.atendimentoId)).toEqual(['200', '100']);
+    expect(skippedIds).toEqual([]);
+  });
 });
 
 describe('RelatorioExportService.createZipJob', () => {
@@ -389,7 +474,7 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
     relatorios = [] as any[],
     produtores = [] as any[],
     demeterById = {} as Record<string, any>,
-    atendimentoRows = [] as any[],
+    atendimentoRowsById = {} as Record<string, any>,
   } = {}) => {
     const service = Object.create(
       RelatorioExportService.prototype,
@@ -400,7 +485,7 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
       getAtendimentoComRelatorioDemeter: jest.fn(
         async (id: string) => demeterById[id] ?? null,
       ),
-      findMany: jest.fn().mockResolvedValue(atendimentoRows),
+      findMany: makeFindManyMock(atendimentoRowsById),
       setAtendimentosExportDate: jest.fn().mockResolvedValue(undefined),
     };
     const redis = {
@@ -492,10 +577,6 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
 
   it('creates a final ZIP from mixed PNAE and Demeter items', async () => {
     const relatorio = { id: 'r1', atendimentoId: '100', produtorId: '55' };
-    const atendimentoRows = [
-      { id_at_atendimento: '200', dt_export_ok: null },
-      { id_at_atendimento: '100', dt_export_ok: null },
-    ];
     const { service, atendimentoService, redis } = buildFileService({
       relatorios: [relatorio],
       produtores: [
@@ -509,7 +590,6 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
           nomeMunicipio: 'Montes Claros',
         },
       },
-      atendimentoRows,
     });
     jest
       .spyOn(service, 'createPDFStream')
@@ -549,15 +629,22 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
     });
     expect(result).toBe('/tmp/relatorios_atendimentos_2026-07-03_153000.zip');
 
-    // Post-ZIP side effects: export-date marking + included-ids Redis hash (plan §6/§7).
+    // Post-ZIP side effects: export-date marking + included/não-incluídos Redis hashes.
     expect(atendimentoService.findMany).toHaveBeenCalledWith(['200', '100']);
-    expect(atendimentoService.setAtendimentosExportDate).toHaveBeenCalledWith(
-      atendimentoRows,
-    );
+    expect(atendimentoService.setAtendimentosExportDate).toHaveBeenCalledWith([
+      expect.objectContaining({ id_at_atendimento: '200' }),
+      expect.objectContaining({ id_at_atendimento: '100' }),
+    ]);
     expect(redis.hset).toHaveBeenCalledWith(
       'zip:atendimentos-incluidos',
       'relatorios_atendimentos_2026-07-03_153000.zip',
       JSON.stringify(['200', '100']),
+    );
+    // All requested ids made it in → "não adicionados" is empty but still recorded.
+    expect(redis.hset).toHaveBeenCalledWith(
+      'zip:atendimentos-nao-incluidos',
+      'relatorios_atendimentos_2026-07-03_153000.zip',
+      JSON.stringify([]),
     );
   });
 
@@ -599,12 +686,79 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
 
     await service.createZipFile({ atendimentoIds: ['200', '100'] });
 
+    // Only the id whose PDF succeeded is stamped/included; the failed id lands in não-incluídos.
     expect(atendimentoService.findMany).toHaveBeenCalledWith(['100']);
+    expect(atendimentoService.setAtendimentosExportDate).toHaveBeenCalledWith([
+      expect.objectContaining({ id_at_atendimento: '100' }),
+    ]);
     expect(redis.hset).toHaveBeenCalledWith(
       'zip:atendimentos-incluidos',
       'relatorios_atendimentos_2026-07-04_090000.zip',
       JSON.stringify(['100']),
     );
+    expect(redis.hset).toHaveBeenCalledWith(
+      'zip:atendimentos-nao-incluidos',
+      'relatorios_atendimentos_2026-07-04_090000.zip',
+      JSON.stringify(['200']),
+    );
+  });
+
+  it('records naoAdicionados = requested − included for a mixed ineligible/errored/unresolved batch', async () => {
+    const relatorio = { id: 'r1', atendimentoId: '100', produtorId: '55' };
+    const { service, atendimentoService, redis } = buildFileService({
+      relatorios: [relatorio],
+      produtores: [
+        { id_pessoa_demeter: '55', municipio: 'Lavras', regional_sre: 'SRE Sul' },
+      ],
+      demeterById: {
+        '200': {
+          id_at_atendimento: '200',
+          regionalSre: 'SRE Sul',
+          nomeMunicipio: 'Lavras',
+        },
+      },
+      atendimentoRowsById: {
+        // 300 is ineligible; 400 is eligible by default but has no relatório (unresolved).
+        '300': { id_at_atendimento: '300', ativo: false, data_see: '2026-07-01' },
+      },
+    });
+    jest
+      .spyOn(service, 'createPDFStream')
+      .mockResolvedValue({ filename: 'pnae.pdf', filePath: '/tmp/pnae.pdf' });
+    // 200's Demeter PDF errors; 100's PNAE PDF succeeds.
+    jest
+      .spyOn(service as any, 'createDemeterPDFFile')
+      .mockRejectedValue(new Error('PDF quebrado'));
+    jest
+      .spyOn(ZipCreator.prototype, 'generateRegionZipParts')
+      .mockImplementation(async function (municipios: any[], createFile: any) {
+        for (const municipio of municipios) {
+          for (const item of municipio.items) {
+            await createFile(item).catch(() => null);
+          }
+        }
+        return [`/tmp/${(this as any).region}.zip`];
+      });
+    jest
+      .spyOn(ZipCreator, 'generateFinalZip')
+      .mockResolvedValue('/tmp/relatorios_atendimentos_2026-07-05_120000.zip');
+
+    await service.createZipFile({
+      atendimentoIds: ['200', '300', '400', '100'],
+    });
+
+    expect(redis.hset).toHaveBeenCalledWith(
+      'zip:atendimentos-incluidos',
+      'relatorios_atendimentos_2026-07-05_120000.zip',
+      JSON.stringify(['100']),
+    );
+    expect(redis.hset).toHaveBeenCalledWith(
+      'zip:atendimentos-nao-incluidos',
+      'relatorios_atendimentos_2026-07-05_120000.zip',
+      JSON.stringify(['200', '300', '400']),
+    );
+    // Excluded ids are never stamped: only the included id reaches findMany/export marking.
+    expect(atendimentoService.findMany).toHaveBeenCalledWith(['100']);
   });
 
   it('keeps the ZIP result when the post-ZIP side effects fail', async () => {
@@ -688,7 +842,40 @@ describe('RelatorioExportService Phase 2 ZIP helpers', () => {
       'relatorios_atendimentos_2026-07-04_090000.zip': ['300'],
     });
   });
+
+  it('returns the não-incluídos hash keyed by ZIP filename, skipping malformed entries', async () => {
+    const { service, redis } = buildFileService();
+    redis.hgetall.mockResolvedValue({
+      'relatorios_atendimentos_2026-07-03_153000.zip': '["300","400"]',
+      'relatorios_atendimentos_2026-07-04_090000.zip': '[500]',
+      'broken.zip': 'not-json',
+      'not-array.zip': '{"a":1}',
+    });
+
+    const result = await service.getAtendimentosNaoIncluidos();
+
+    expect(redis.hgetall).toHaveBeenCalledWith('zip:atendimentos-nao-incluidos');
+    expect(result).toEqual({
+      'relatorios_atendimentos_2026-07-03_153000.zip': ['300', '400'],
+      'relatorios_atendimentos_2026-07-04_090000.zip': ['500'],
+    });
+  });
 });
+
+// ZIP eligibility gate reads ativo + data_see from atendimentoService.findMany. Default:
+// every requested id is an eligible atendimento. Override a specific id with a custom row
+// (e.g. ativo:false / data_see:null) or `null` to simulate a missing/unresolved atendimento.
+function makeFindManyMock(overrides: Record<string, any> = {}) {
+  return jest.fn(async (ids: string[]) =>
+    ids
+      .map((id) =>
+        id in overrides
+          ? overrides[id]
+          : { id_at_atendimento: id, ativo: true, data_see: '2026-07-01' },
+      )
+      .filter(Boolean),
+  );
+}
 
 function buildPerfil(id_contrato: number) {
   return {

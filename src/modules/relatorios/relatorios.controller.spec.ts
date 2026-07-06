@@ -285,8 +285,8 @@ describe('RelatorioController', () => {
       expect(exportService.createZipJob).not.toHaveBeenCalled();
     });
 
-    it('rejects more than 1000 unique ids with 400', async () => {
-      const ids = Array.from({ length: 1001 }, (_, i) => String(i + 1));
+    it('rejects more than 4000 unique ids with 400', async () => {
+      const ids = Array.from({ length: 4001 }, (_, i) => String(i + 1));
 
       await expect(
         controller.createZipJob({ userId: '10', atendimentoIds: ids }),
@@ -294,8 +294,8 @@ describe('RelatorioController', () => {
       expect(exportService.createZipJob).not.toHaveBeenCalled();
     });
 
-    it('accepts exactly 1000 unique ids', async () => {
-      const ids = Array.from({ length: 1000 }, (_, i) => String(i + 1));
+    it('accepts exactly 4000 unique ids', async () => {
+      const ids = Array.from({ length: 4000 }, (_, i) => String(i + 1));
 
       await controller.createZipJob({ userId: '10', atendimentoIds: ids });
 
@@ -370,6 +370,44 @@ describe('RelatorioController', () => {
       await expect(controller.getAtendimentosIncluidos()).rejects.toBeInstanceOf(
         InternalServerErrorException,
       );
+    });
+  });
+
+  describe('GET /zip/atendimentos-nao-incluidos', () => {
+    it('returns the não-incluídos atendimento ids keyed by ZIP filename', async () => {
+      const naoIncluidos = {
+        'relatorios_atendimentos_2026-07-03_153000.zip': ['300', '400'],
+      };
+      const exportService = {
+        getAtendimentosNaoIncluidos: jest.fn().mockResolvedValue(naoIncluidos),
+      };
+      const controller = new RelatorioController(
+        {} as any,
+        exportService as any,
+        { error: jest.fn() } as any,
+      );
+
+      await expect(controller.getAtendimentosNaoIncluidos()).resolves.toEqual(
+        naoIncluidos,
+      );
+    });
+
+    it('translates service failures to 500', async () => {
+      const { InternalServerErrorException } = require('@nestjs/common');
+      const exportService = {
+        getAtendimentosNaoIncluidos: jest
+          .fn()
+          .mockRejectedValue(new Error('redis offline')),
+      };
+      const controller = new RelatorioController(
+        {} as any,
+        exportService as any,
+        { error: jest.fn() } as any,
+      );
+
+      await expect(
+        controller.getAtendimentosNaoIncluidos(),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
     });
   });
 });

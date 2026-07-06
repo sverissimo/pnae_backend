@@ -416,6 +416,26 @@ export class RelatorioController {
     }
   }
 
+  // Web-only sibling of the included hash: the "não adicionados" ids per ZIP (ineligible,
+  // errored, or unresolved), keyed by final ZIP filename (Redis hash, no TTL).
+  @Get('/zip/atendimentos-nao-incluidos')
+  async getAtendimentosNaoIncluidos(): Promise<Record<string, string[]>> {
+    try {
+      return await this.relatorioExportService.getAtendimentosNaoIncluidos();
+    } catch (error: any) {
+      this.logger.error(
+        `RelatorioController ~ getAtendimentosNaoIncluidos - ${
+          error?.message ?? String(error)
+        }\n${error?.stack ?? ''}`,
+      );
+      throw new InternalServerErrorException(
+        `Erro ao obter atendimentos não incluídos: ${
+          error?.message ?? 'erro interno'
+        }`,
+      );
+    }
+  }
+
   // Dedupes preserving paste order; ids are Demeter at_atendimento PKs pasted from Excel.
   private parseAtendimentoIds(input: unknown): string[] {
     if (!Array.isArray(input) || input.length === 0) {

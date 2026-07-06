@@ -3,7 +3,7 @@ import * as path from 'path';
 
 export async function cleanupOldZips(
   dir: string,
-  keep: number = 5,
+  keep: number = 2,
 ): Promise<void> {
   try {
     const exists = await fsp
