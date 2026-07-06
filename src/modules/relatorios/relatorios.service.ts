@@ -148,20 +148,14 @@ export class RelatorioService {
 
   async getDashboardData(user?: Usuario): Promise<DashboardData> {
     const role = user?.getRole() ?? 'other';
+    const manualRegionalScope = this.getDashboardManualRegionalScope(user);
 
     const [fullRelatorios, regionais, manuaisDates] = await Promise.all([
       this.findAll({ contratoId: 2 }, { expand: true }) as Promise<
         RelatorioPresentationModel[]
       >,
       this.perfilService.getRegionaisEmater(),
-      // State-wide manual relatórios — a gateway hiccup must not blank the whole dashboard.
-      this.atendimentoService.getManuaisUltimos30Dias().catch((error) => {
-        this.logger.error(
-          `getDashboardData - manuais fetch failed: ${error?.message}`,
-          error?.stack,
-        );
-        return [] as string[];
-      }),
+      this.getDashboardManuaisDates(manualRegionalScope),
     ]);
 
     // Scoped set drives gauges + line chart; tops + by-regional use the full set.
@@ -190,6 +184,30 @@ export class RelatorioService {
     if (user.isAdmin() || user.isDeveloper()) return relatorios;
     if (!user.id_reg_empresa) return [];
     return relatorios.filter((r) => r.id_reg_empresa === user.id_reg_empresa);
+  }
+
+  private getDashboardManualRegionalScope(
+    user?: Usuario,
+  ): string | null | undefined {
+    if (!user) return null;
+    if (user.isAdmin() || user.isDeveloper()) return undefined;
+    return user.id_reg_empresa ?? null;
+  }
+
+  private getDashboardManuaisDates(
+    idRegEmpresa: string | null | undefined,
+  ): Promise<string[]> {
+    if (idRegEmpresa === null) return Promise.resolve([]);
+
+    return this.atendimentoService
+      .getManuaisUltimos30Dias(idRegEmpresa)
+      .catch((error) => {
+        this.logger.error(
+          `getDashboardData - manuais fetch failed: ${error?.message}`,
+          error?.stack,
+        );
+        return [] as string[];
+      });
   }
 
   private resolveRegionalLabel(

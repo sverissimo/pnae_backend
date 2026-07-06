@@ -154,8 +154,8 @@ export const atendimentoComRelatorioManualQuery = gql`
 `;
 
 export const atendimentosManuaisUltimos30DiasQuery = gql`
-  query AtendimentosManuaisUltimos30Dias {
-    atendimentosManuaisUltimos30Dias
+  query AtendimentosManuaisUltimos30Dias($id_reg_empresa: String) {
+    atendimentosManuaisUltimos30Dias(id_reg_empresa: $id_reg_empresa)
   }
 `;
 

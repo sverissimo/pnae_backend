@@ -49,10 +49,11 @@ export class AtendimentoGraphQLAPI extends GraphQLAPI {
     return atendimento;
   }
 
-  async getManuaisUltimos30Dias(): Promise<string[]> {
+  async getManuaisUltimos30Dias(id_reg_empresa?: string): Promise<string[]> {
     const { atendimentosManuaisUltimos30Dias } =
       await this.client.request<AtendimentosManuaisUltimos30DiasResponse>(
         atendimentosManuaisUltimos30DiasQuery,
+        { id_reg_empresa },
       );
     return atendimentosManuaisUltimos30Dias ?? [];
   }

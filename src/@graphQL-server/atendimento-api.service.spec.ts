@@ -1,5 +1,8 @@
 import { AtendimentoGraphQLAPI } from './atendimento-api.service';
-import { atendimentosComRelatorioManualQuery } from './queries/atendimento-queries';
+import {
+  atendimentosComRelatorioManualQuery,
+  atendimentosManuaisUltimos30DiasQuery,
+} from './queries/atendimento-queries';
 
 describe('AtendimentoGraphQLAPI.getAtendimentosComRelatorioDemeter', () => {
   const buildApi = () => {
@@ -47,6 +50,41 @@ describe('AtendimentoGraphQLAPI.getAtendimentosComRelatorioDemeter', () => {
       pageSize: 200,
       cursor: undefined,
       id_usuario: undefined,
+      id_reg_empresa: undefined,
+    });
+  });
+});
+
+describe('AtendimentoGraphQLAPI.getManuaisUltimos30Dias', () => {
+  const buildApi = () => {
+    const api = Object.create(
+      AtendimentoGraphQLAPI.prototype,
+    ) as AtendimentoGraphQLAPI;
+    const dates = ['2026-07-01'];
+    const request = jest
+      .fn()
+      .mockResolvedValue({ atendimentosManuaisUltimos30Dias: dates });
+    (api as any).client = { request };
+    return { api, request, dates };
+  };
+
+  it('forwards regional scope to the gateway when provided', async () => {
+    const { api, request, dates } = buildApi();
+
+    const result = await api.getManuaisUltimos30Dias('G0040');
+
+    expect(request).toHaveBeenCalledWith(atendimentosManuaisUltimos30DiasQuery, {
+      id_reg_empresa: 'G0040',
+    });
+    expect(result).toBe(dates);
+  });
+
+  it('sends an unscoped query for admin/developer callers', async () => {
+    const { api, request } = buildApi();
+
+    await api.getManuaisUltimos30Dias();
+
+    expect(request).toHaveBeenCalledWith(atendimentosManuaisUltimos30DiasQuery, {
       id_reg_empresa: undefined,
     });
   });

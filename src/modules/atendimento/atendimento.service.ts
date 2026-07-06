@@ -119,8 +119,8 @@ export class AtendimentoService {
   }
 
   // ISO start dates of active manual relatórios from the last 30 days (dashboard count + line).
-  getManuaisUltimos30Dias(): Promise<string[]> {
-    return this.graphQLAPI.getManuaisUltimos30Dias();
+  getManuaisUltimos30Dias(idRegEmpresa?: string): Promise<string[]> {
+    return this.graphQLAPI.getManuaisUltimos30Dias(idRegEmpresa);
   }
 
   async findOne(id: string) {

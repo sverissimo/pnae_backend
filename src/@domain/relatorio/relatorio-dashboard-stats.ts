@@ -45,8 +45,8 @@ export type DashboardLineChart = {
   approved: number[];
 };
 
-// Manual (hand-made) relatórios over the same 30-day window as the line chart. State-wide,
-// not user-scoped — mirrors the tops/by-regional charts. `byDay` aligns to lineChart.categories.
+// Manual (hand-made) relatórios over the same 30-day window as the line chart. The caller supplies
+// the correct role scope; `byDay` aligns to lineChart.categories.
 export type DashboardManuais = {
   total: number;
   byDay: number[];

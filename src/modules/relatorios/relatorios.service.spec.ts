@@ -43,6 +43,7 @@ describe('RelatorioService', () => {
       fixDatesIfNeeded: jest.fn(),
       updateTemasAndVisita: jest.fn(),
       getReplacedAtendimentos: jest.fn().mockResolvedValue([]),
+      getManuaisUltimos30Dias: jest.fn().mockResolvedValue([]),
     };
     fileService = { save: jest.fn(), update: jest.fn() };
     restAPI = { getReadOnlyRelatorios: jest.fn() };
@@ -75,6 +76,75 @@ describe('RelatorioService', () => {
     jest
       .spyOn(RelatorioService.prototype as any, 'syncAtendimentoTemasAndNumero')
       .mockResolvedValue(undefined);
+  });
+
+  describe('RelatorioService.getDashboardData (manual Demeter scope)', () => {
+    beforeEach(() => {
+      process.env.ALLOWED_USER_IDS = 'admin-1,dev-9';
+      jest.spyOn(service, 'findAll').mockResolvedValue([
+        {
+          id: 'rel-1',
+          id_reg_empresa: 'G0040',
+          nm_und_empresa: 'Unidade Regional de Viçosa',
+          createdAt: '2026-07-05',
+        },
+      ] as any);
+      (service as any).perfilService.getRegionaisEmater.mockResolvedValue([]);
+    });
+
+    it('keeps manual Demeter dates unscoped for admin users', async () => {
+      const admin = new Usuario({ id_usuario: 'admin-1', perfis: [] });
+
+      await service.getDashboardData(admin);
+
+      expect(
+        atendimentoService.getManuaisUltimos30Dias,
+      ).toHaveBeenCalledWith(undefined);
+    });
+
+    it('uses regional-only manual Demeter scope for coordenador regional users', async () => {
+      const coord = new Usuario({
+        id_usuario: 'coord-1',
+        id_reg_empresa: 'G0040',
+        perfis: [PerfilUsuario.ADMINISTRADOR2],
+      });
+
+      await service.getDashboardData(coord);
+
+      expect(
+        atendimentoService.getManuaisUltimos30Dias,
+      ).toHaveBeenCalledWith('G0040');
+    });
+
+    it('uses regional-only manual Demeter scope for extensionista users', async () => {
+      const staff = new Usuario({
+        id_usuario: 'staff-1',
+        id_reg_empresa: 'G0040',
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
+      });
+
+      await service.getDashboardData(staff);
+
+      expect(
+        atendimentoService.getManuaisUltimos30Dias,
+      ).toHaveBeenCalledWith('G0040');
+    });
+
+    it('does not fall back to unscoped manual Demeter data when a non-admin has no regional', async () => {
+      const staff = new Usuario({
+        id_usuario: 'staff-1',
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
+      });
+
+      const result = await service.getDashboardData(staff);
+
+      expect(atendimentoService.getManuaisUltimos30Dias).not.toHaveBeenCalled();
+      expect(result.manuais30Dias).toEqual({
+        total: 0,
+        byDay: expect.arrayContaining([]),
+      });
+      expect(result.manuais30Dias.byDay).toHaveLength(30);
+    });
   });
 
   describe('RelatorioService.create', () => {
