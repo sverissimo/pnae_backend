@@ -105,7 +105,7 @@ export class Perfil {
         ? producaoNaturaLabels.map(({ field, label }) => {
             const value =
               perfil[field] === null || perfil[field] === undefined
-                ? perfil.dados_producao_in_natura[field]
+                ? dados_producao_in_natura?.[field]
                 : perfil[field];
             return {
               label,
@@ -119,7 +119,7 @@ export class Perfil {
         ? producaoIndustrialLabels.map(({ field, label }) => {
             const value =
               perfil[field] === null || perfil[field] === undefined
-                ? perfil.dados_producao_agro_industria[field]
+                ? dados_producao_agro_industria?.[field]
                 : perfil[field];
             return {
               label,
@@ -198,24 +198,24 @@ export class Perfil {
 
   private atividadesArrayToValue(
     at_prf_see_propriedades: at_prf_see_propriedade[],
-  ) {
-    const atividade = at_prf_see_propriedades.reduce((acc, curr) => {
+  ): 'ATIVIDADE_PRIMARIA' | 'ATIVIDADE_SECUNDARIA' | 'AMBAS' | undefined {
+    const atividades = Array.isArray(at_prf_see_propriedades)
+      ? at_prf_see_propriedades.map((item) => item?.atividade).filter(Boolean)
+      : [];
+
+    if (atividades.length === 0) return undefined;
+
+    const atividade = atividades.reduce((acc, curr) => {
       if (acc === 'AMBAS') return acc;
-      if (
-        acc === 'ATIVIDADE_PRIMARIA' &&
-        curr.atividade === 'ATIVIDADE_SECUNDARIA'
-      )
+      if (acc === 'ATIVIDADE_PRIMARIA' && curr === 'ATIVIDADE_SECUNDARIA')
         return 'AMBAS';
-      if (
-        acc === 'ATIVIDADE_SECUNDARIA' &&
-        curr.atividade === 'ATIVIDADE_PRIMARIA'
-      )
+      if (acc === 'ATIVIDADE_SECUNDARIA' && curr === 'ATIVIDADE_PRIMARIA')
         return 'AMBAS';
 
-      return curr.atividade;
-    }, at_prf_see_propriedades[0].atividade);
+      return curr;
+    }, atividades[0]);
 
-    return atividade as 'ATIVIDADE_PRIMARIA' | 'ATIVIDADE_SECUNDARIA' | 'AMBAS';
+    return atividade;
   }
 
   // Workaround para a duplicidade de colunas referentes às faixas de valores criada no banco de dados do Demeter

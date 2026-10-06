@@ -124,3 +124,27 @@ describe('inputToOutputDTO method', () => {
     expect(produtos3[0].producao_aproximada_ultimo_ano_total).toBe('6500');
   });
 });
+
+describe('toPDFModel activity normalization', () => {
+  const buildPerfil = (at_prf_see_propriedade: unknown) =>
+    ({
+      tipo_perfil: 'ENTRADA',
+      nome_propriedade: 'Sítio',
+      at_prf_see_propriedade,
+    }) as any;
+
+  it.each([
+    ['undefined relation', undefined],
+    ['empty relation', []],
+    ['all-null activities', [{ atividade: null }]],
+  ])('handles %s without throwing', (_case, atividades) => {
+    const result = new Perfil().toPDFModel(buildPerfil(atividades));
+    const atividade = result.perfilData.find(
+      (item) => item.label === 'Atividade Desenvolvida',
+    );
+
+    expect(atividade?.value).toBeUndefined();
+    expect(result).not.toHaveProperty('producaoNatura');
+    expect(result).not.toHaveProperty('producaoIndustrial');
+  });
+});

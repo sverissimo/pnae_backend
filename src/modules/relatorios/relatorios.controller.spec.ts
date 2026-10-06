@@ -9,7 +9,11 @@ jest.mock('graphql-request', () => ({
 
 import { RelatorioController } from './relatorios.controller';
 import { PassThrough } from 'stream';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
 
 describe('RelatorioController', () => {
   describe('mobile/static-token regression — req.user undefined', () => {
@@ -240,6 +244,97 @@ describe('RelatorioController', () => {
       expect(
         relatorioExportService.createDemeterRelatorioPdf,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /pdf/:id', () => {
+    it('preserves a friendly HttpException from PDF input validation', async () => {
+      const error = new UnprocessableEntityException(
+        'O produtor não possui perfil de entrada para o contrato do relatório.',
+      );
+      const relatorioExportService = {
+        createPDFInput: jest.fn().mockRejectedValue(error),
+      };
+      const logger = { error: jest.fn() };
+      const controller = new RelatorioController(
+        {} as any,
+        relatorioExportService as any,
+        logger as any,
+      );
+      const res = new PassThrough() as any;
+      res.setHeader = jest.fn();
+
+      await expect(controller.generatePdf('rel-1', res)).rejects.toBe(error);
+
+      expect(logger.error).toHaveBeenCalled();
+      expect(res.setHeader).not.toHaveBeenCalled();
+    });
+
+    it('does not expose an unexpected PDF error message', async () => {
+      const relatorioExportService = {
+        createPDFInput: jest
+          .fn()
+          .mockRejectedValue(
+            new Error("Cannot read properties of undefined (reading 'reduce')"),
+          ),
+      };
+      const logger = { error: jest.fn() };
+      const controller = new RelatorioController(
+        {} as any,
+        relatorioExportService as any,
+        logger as any,
+      );
+      const res = new PassThrough() as any;
+      res.setHeader = jest.fn();
+
+      await expect(controller.generatePdf('rel-1', res)).rejects.toEqual(
+        expect.objectContaining({
+          status: 500,
+          message:
+            'Não foi possível gerar o PDF devido a um erro interno. Tente novamente mais tarde.',
+        }),
+      );
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Cannot read properties of undefined'),
+        expect.any(String),
+      );
+      expect(res.setHeader).not.toHaveBeenCalled();
+    });
+
+    it('does not set PDF headers when rendering itself fails', async () => {
+      const relatorioExportService = {
+        createPDFInput: jest.fn().mockResolvedValue({
+          relatorio: {
+            numeroRelatorio: 3,
+            produtor: { nomeProdutor: 'Produtor' },
+          },
+          perfilPDFModel: {},
+          nome_propriedade: 'Sítio',
+        }),
+      };
+      const logger = { error: jest.fn() };
+      const controller = new RelatorioController(
+        {} as any,
+        relatorioExportService as any,
+        logger as any,
+      );
+      const res = new PassThrough() as any;
+      res.setHeader = jest.fn();
+      const generatePdf = jest
+        .spyOn(PdfGenerator, 'generatePdf')
+        .mockRejectedValue(new Error('wkhtmltopdf failed'));
+
+      await expect(controller.generatePdf('rel-1', res)).rejects.toEqual(
+        expect.objectContaining({
+          status: 500,
+          message:
+            'Não foi possível gerar o PDF devido a um erro interno. Tente novamente mais tarde.',
+        }),
+      );
+
+      expect(res.setHeader).not.toHaveBeenCalled();
+      generatePdf.mockRestore();
     });
   });
 

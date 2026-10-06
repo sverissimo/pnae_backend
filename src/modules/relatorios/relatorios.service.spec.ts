@@ -162,6 +162,7 @@ describe('RelatorioService', () => {
       expect(prisma.relatorio.create).toHaveBeenCalledWith({
         data: { dto: true },
       });
+      expect(atendimentoService.logicRemove).not.toHaveBeenCalled();
 
       expect(
         (service as any).atendimentoService.fixDatesIfNeeded,

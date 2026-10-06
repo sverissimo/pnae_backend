@@ -258,13 +258,6 @@ export class RelatorioController {
       } = await this.relatorioExportService.createPDFInput(id);
 
       const { numeroRelatorio, produtor } = relatorio;
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader(
-        'Content-Disposition',
-        `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.pdf`,
-      );
-
       const pdfStream = await PdfGenerator.generatePdf({
         relatorio,
         perfilPDFModel,
@@ -273,6 +266,11 @@ export class RelatorioController {
         dados_producao_in_natura,
       });
 
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `inline; filename=relatorio_${produtor.nomeProdutor}_${numeroRelatorio}.pdf`,
+      );
       pdfStream.pipe(res);
       // ...done!
     } catch (e) {
@@ -282,11 +280,9 @@ export class RelatorioController {
           error.message,
         error.stack,
       );
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
-        error?.message || 'Erro ao gerar PDF',
+        'Não foi possível gerar o PDF devido a um erro interno. Tente novamente mais tarde.',
       );
     }
   }

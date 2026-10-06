@@ -18,6 +18,10 @@ if [ "$ENV" = "prod" ]; then
 fi
 
 echo
+echo "### Syncing package-lock.json (full install)..."
+npm install
+
+echo
 echo "### Stopping and removing containers for environment ------ $ENV"
 docker compose -f docker-compose.$ENV.yaml down
 # docker compose -f docker-compose.$ENV.yaml down pnae_backend_$ENV

@@ -26,12 +26,12 @@ carries `tecnicoId`/`produtorId` explicitly.
 
 | Method | Path | Mobile call site | Notes |
 |---|---|---|---|
-| POST | `/relatorios` | `RelatorioAPIRepository.create` | multipart/form-data (fields + `foto`/`assinatura` files). Response ignored (logged). |
+| POST | `/relatorios` | `RelatorioAPIRepository.create` | multipart/form-data (fields + `foto`/`assinatura` files). Response ignored (logged). Creation deliberately has no live Demeter contract/profile precheck: the frozen client creates the remote atendimento before this request and saves the relatório locally only after success, so a false rejection during an upstream outage would lose work and cause retry churn. |
 | GET | `/relatorios?produtorId=<id>` | `RelatorioAPIRepository.findByProdutorId` → service `findMany` | **Persisted to local SQLite** via `createMany` on empty-cache fetch. See SQLite gotcha below. |
 | GET | `/relatorios/all` | `RelatorioAPIRepository.findAll` | Appears **unused** by mobile at runtime (only local `findAll` is used). Primarily the web dashboard endpoint. |
 | PATCH | `/relatorios/:id` | `RelatorioAPIRepository.update` | multipart/form-data. Response parsed as text. Local update uses local data, not the server response. |
 | DELETE | `/relatorios/:id` | `RelatorioAPIRepository.delete` | Plain `fetch`, not the `API` wrapper. |
-| GET | `/relatorios/pdf/:id` | `useManageRelatorios`, `@domain/atendimento/entity/Atendimento.ts` | PDF stream. |
+| GET | `/relatorios/pdf/:id` | `useManageRelatorios`, `@domain/atendimento/entity/Atendimento.ts` | PDF stream. A missing contract-matched `ENTRADA` profile or missing linked technician returns a friendly plain-text **422**. Missing, empty, or all-null activity data renders with "Atividade Desenvolvida" blank and no production sections. Unexpected failures return a generic plain-text **500** while their details remain in backend logs. |
 | POST | `/atendimento` | `AtendimentoAPIRepository.create` | Returns the new `atendimentoId` as a string. Carries `temas_atendimento` + `numeroVisita`. |
 | POST | `/sync/relatorios/checkForUpdates` | `SystemAPI.checkForUpdates` (`@sync/relatorio`) | Sync diff. Response is **stripped** to `MOBILE_RELATORIO_FIELDS` by the backend. |
 | POST | `/sync/usuario/checkForUpdates` | `@sync/usuario` | |

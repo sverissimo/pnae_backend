@@ -9,9 +9,11 @@ import IORedis from 'ioredis';
 import { Readable } from 'stream';
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import pLimit from 'p-limit';
 import { RelatorioModel } from 'src/@domain/relatorio/relatorio-model';
@@ -100,6 +102,11 @@ export class RelatorioExportService {
         usuarios: UsuarioModel[];
       };
       const usuario = usuarios.find((u) => u.id_usuario == relatorio.tecnicoId);
+      if (!usuario) {
+        throw new UnprocessableEntityException(
+          `Não foi possível gerar o PDF: o técnico ${tecnicoId} vinculado ao relatório não foi encontrado.`,
+        );
+      }
       let outrosExtensionistas: UsuarioModel[] | undefined;
 
       if (outroExtensionista) {
@@ -130,11 +137,17 @@ export class RelatorioExportService {
         );
       }
 
+      const contratoId = Number(relatorioContratoId);
       const perfil = perfis.find(
         (p: PerfilModel) =>
-          p.id_contrato === (relatorioContratoId || 1) &&
-          p.tipo_perfil === 'ENTRADA',
-      ) as PerfilModel;
+          Number(p.id_contrato) === contratoId && p.tipo_perfil === 'ENTRADA',
+      ) as PerfilModel | undefined;
+
+      if (!perfil) {
+        throw new UnprocessableEntityException(
+          `Não foi possível gerar o PDF: o relatório está vinculado ao contrato ${contratoId}, mas o produtor não possui perfil de entrada para esse contrato.`,
+        );
+      }
 
       const perfilDTO = new Perfil(perfil).toDTO();
       const { dados_producao_in_natura, dados_producao_agro_industria } =
@@ -174,8 +187,16 @@ export class RelatorioExportService {
         perfilPDFModel,
       };
     } catch (error) {
-      console.log(error);
-      throw new InternalServerErrorException(error.message);
+      if (error instanceof HttpException) throw error;
+      const normalizedError =
+        error instanceof Error ? error : new Error(String(error));
+      this.logger.error(
+        `RelatorioExportService ~ createPDFInput - ${normalizedError.message}`,
+        normalizedError.stack,
+      );
+      throw new InternalServerErrorException(
+        'Não foi possível gerar o PDF devido a um erro interno. Tente novamente mais tarde.',
+      );
     }
   }
 

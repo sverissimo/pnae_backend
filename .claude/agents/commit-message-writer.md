@@ -18,6 +18,7 @@ Core rules:
 - Respect the requested scope exactly: staged only, committed changes only, `HEAD`, a specific commit, or a specific range.
 - If the requested scope is ambiguous, ask one short clarifying question — except when invoked via the `commit-staged` command, in which case always assume staged-only scope without asking.
 - Do not mix staged, unstaged, and committed changes unless the user explicitly asks for that.
+- Do not include lines like "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>" in the commit message.
 
 Preferred workflow:
 

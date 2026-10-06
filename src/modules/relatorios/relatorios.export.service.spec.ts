@@ -14,11 +14,173 @@ import { Readable } from 'stream';
 import * as fsp from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
-import { BadRequestException } from '@nestjs/common';
+import * as ejs from 'ejs';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
 import { assembleDemeterPdf } from 'src/@pdf-gen/demeter-pdf-assembler';
 import { RelatorioExportService } from './relatorios.export.service';
 import { ZipCreator } from 'src/@zip-gen/ZipCreator';
+
+describe('RelatorioExportService.createPDFInput', () => {
+  const buildService = (perfis: any[]) => {
+    const service = Object.create(
+      RelatorioExportService.prototype,
+    ) as RelatorioExportService;
+
+    (service as any).relatorioService = {
+      findOne: jest.fn().mockResolvedValue({
+        id: 'rel-1',
+        produtorId: '42',
+        tecnicoId: '7',
+        contratoId: 2,
+      }),
+    };
+    (service as any).usuarioApi = {
+      getUsuarios: jest.fn().mockResolvedValue({
+        usuarios: [
+          {
+            id_usuario: '7',
+            nome_usuario: 'Técnico',
+            matricula_usuario: '123',
+          },
+        ],
+      }),
+    };
+    (service as any).produtorApi = {
+      getProdutorById: jest.fn().mockResolvedValue({
+        nm_pessoa: 'Produtor',
+        propriedades: [
+          {
+            nome_propriedade: 'Sítio',
+            municipio: { nm_municipio: 'Lavras' },
+          },
+        ],
+        perfis,
+      }),
+    };
+    (service as any).logger = { error: jest.fn() };
+
+    return service;
+  };
+
+  it('creates PDF input when the relatório has a matching entrada profile', async () => {
+    const service = buildService([buildPerfil(2)]);
+
+    await expect(service.createPDFInput('rel-1')).resolves.toMatchObject({
+      relatorio: {
+        id: 'rel-1',
+        nomeTecnico: 'Técnico',
+        municipio: 'Lavras',
+      },
+      nome_propriedade: 'Sítio',
+      perfilPDFModel: expect.any(Object),
+    });
+  });
+
+  it('returns a friendly 422 when no entrada profile matches the relatório contract', async () => {
+    const service = buildService([buildPerfil(1)]);
+
+    await expect(service.createPDFInput('rel-1')).rejects.toEqual(
+      expect.objectContaining({
+        status: 422,
+        message:
+          'Não foi possível gerar o PDF: o relatório está vinculado ao contrato 2, mas o produtor não possui perfil de entrada para esse contrato.',
+      }),
+    );
+  });
+
+  it.each([
+    ['undefined activity relation', undefined],
+    ['empty activity relation', []],
+    ['all-null activity rows', [{ atividade: null }, { atividade: null }]],
+  ])('renders blank activity for %s', async (_case, atividades) => {
+    const perfil = {
+      ...buildPerfil(2),
+      at_prf_see_propriedade: atividades,
+    };
+    const service = buildService([perfil]);
+
+    const input = await service.createPDFInput('rel-1');
+    const atividade = input.perfilPDFModel.perfilData.find(
+      (item) => item.label === 'Atividade Desenvolvida',
+    );
+
+    expect(atividade?.value).toBeUndefined();
+    expect(input.perfilPDFModel).not.toHaveProperty('producaoNatura');
+    expect(input.perfilPDFModel).not.toHaveProperty('producaoIndustrial');
+
+    const html = await ejs.renderFile(
+      path.join(__dirname, '../../@pdf-gen/templates/perfil.ejs'),
+      {
+        produtor: input.relatorio.produtor,
+        perfil: input.perfilPDFModel,
+        gruposProdutosNatura:
+          input.dados_producao_in_natura.at_prf_see_grupos_produtos,
+        gruposProdutosIndustriais:
+          input.dados_producao_agro_industria.at_prf_see_grupos_produtos,
+      },
+    );
+
+    expect(html).toMatch(
+      /Atividade Desenvolvida<\/td>\s*<td class="td-content"><\/td>/,
+    );
+    expect(html).not.toContain('Dados de produção in Natura');
+    expect(html).not.toContain('Dados de produção Industrial');
+  });
+
+  it('keeps rendering when production relations are missing', async () => {
+    const perfil = {
+      ...buildPerfil(2),
+      dados_producao_in_natura: undefined,
+      dados_producao_agro_industria: undefined,
+    };
+    const service = buildService([perfil]);
+
+    await expect(service.createPDFInput('rel-1')).resolves.toMatchObject({
+      perfilPDFModel: expect.any(Object),
+    });
+  });
+
+  it('returns a friendly 422 when the relatório technician is missing', async () => {
+    const service = buildService([buildPerfil(2)]);
+    (service as any).usuarioApi.getUsuarios.mockResolvedValue({ usuarios: [] });
+
+    await expect(service.createPDFInput('rel-1')).rejects.toEqual(
+      expect.objectContaining({
+        status: 422,
+        message:
+          'Não foi possível gerar o PDF: o técnico 7 vinculado ao relatório não foi encontrado.',
+      }),
+    );
+  });
+
+  it('does not expose an unexpected upstream error message', async () => {
+    const service = buildService([buildPerfil(2)]);
+    (service as any).produtorApi.getProdutorById.mockRejectedValue(
+      new Error("Cannot read properties of null (reading 'id_pessoa_demeter')"),
+    );
+
+    await expect(service.createPDFInput('rel-1')).rejects.toEqual(
+      expect.objectContaining({
+        status: 500,
+        message:
+          'Não foi possível gerar o PDF devido a um erro interno. Tente novamente mais tarde.',
+      }),
+    );
+    expect((service as any).logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('id_pessoa_demeter'),
+      expect.any(String),
+    );
+  });
+
+  it('preserves an existing HttpException instead of converting it to 500', async () => {
+    const service = buildService([]);
+
+    await expect(service.createPDFInput('rel-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+});
 
 describe('RelatorioExportService.createDemeterRelatorioPdf', () => {
   const coverBytes = Buffer.from('%PDF cover');
