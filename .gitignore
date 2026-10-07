@@ -58,3 +58,6 @@ prisma/data
 .vscode/settings.json
 src/modules/relatorios/dataSample.json
 .claude/settings.json
+
+# Agent loop worktrees and reports (scripts/agents_loop at the PNAE root)
+.agent-runs/
