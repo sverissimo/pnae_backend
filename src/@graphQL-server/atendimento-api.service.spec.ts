@@ -1,7 +1,7 @@
 import { AtendimentoGraphQLAPI } from './atendimento-api.service';
 import {
   atendimentosComRelatorioManualQuery,
-  atendimentosManuaisUltimos30DiasQuery,
+  atendimentosManuaisUltimos60DiasQuery,
 } from './queries/atendimento-queries';
 
 describe('AtendimentoGraphQLAPI.getAtendimentosComRelatorioDemeter', () => {
@@ -55,7 +55,7 @@ describe('AtendimentoGraphQLAPI.getAtendimentosComRelatorioDemeter', () => {
   });
 });
 
-describe('AtendimentoGraphQLAPI.getManuaisUltimos30Dias', () => {
+describe('AtendimentoGraphQLAPI.getManuaisUltimos60Dias', () => {
   const buildApi = () => {
     const api = Object.create(
       AtendimentoGraphQLAPI.prototype,
@@ -63,7 +63,7 @@ describe('AtendimentoGraphQLAPI.getManuaisUltimos30Dias', () => {
     const dates = ['2026-07-01'];
     const request = jest
       .fn()
-      .mockResolvedValue({ atendimentosManuaisUltimos30Dias: dates });
+      .mockResolvedValue({ atendimentosManuaisUltimos60Dias: dates });
     (api as any).client = { request };
     return { api, request, dates };
   };
@@ -71,9 +71,9 @@ describe('AtendimentoGraphQLAPI.getManuaisUltimos30Dias', () => {
   it('forwards regional scope to the gateway when provided', async () => {
     const { api, request, dates } = buildApi();
 
-    const result = await api.getManuaisUltimos30Dias('G0040');
+    const result = await api.getManuaisUltimos60Dias('G0040');
 
-    expect(request).toHaveBeenCalledWith(atendimentosManuaisUltimos30DiasQuery, {
+    expect(request).toHaveBeenCalledWith(atendimentosManuaisUltimos60DiasQuery, {
       id_reg_empresa: 'G0040',
     });
     expect(result).toBe(dates);
@@ -82,9 +82,9 @@ describe('AtendimentoGraphQLAPI.getManuaisUltimos30Dias', () => {
   it('sends an unscoped query for admin/developer callers', async () => {
     const { api, request } = buildApi();
 
-    await api.getManuaisUltimos30Dias();
+    await api.getManuaisUltimos60Dias();
 
-    expect(request).toHaveBeenCalledWith(atendimentosManuaisUltimos30DiasQuery, {
+    expect(request).toHaveBeenCalledWith(atendimentosManuaisUltimos60DiasQuery, {
       id_reg_empresa: undefined,
     });
   });

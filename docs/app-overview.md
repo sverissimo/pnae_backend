@@ -30,7 +30,7 @@ Layers, expressed as top-level folders under [src/](../src/):
 
 ## Dashboard scoping
 
-  The dashboard endpoint (`getDashboardData`) deliberately diverges from this for the per-user portion: gauges + 30-day line chart are *region-only* even for staff (`r.id_reg_empresa === user.id_reg_empresa`), so an extensionista sees their regional's macro view rather than only their own work. Tops and by-regional charts always use the full set — `topTecnicos` and `relatoriosByRegional` are intentionally never region-scoped so extensionistas and regionais can "compete" with each other across the whole state; never add per-user filtering to these two.
+  The dashboard endpoint (`getDashboardData`) deliberately diverges from this for the per-user portion: gauges + 60-calendar-day line chart excluding weekends are *region-only* even for staff (`r.id_reg_empresa === user.id_reg_empresa`), so an extensionista sees their regional's macro view rather than only their own work. Tops and by-regional charts always use the full set — `topTecnicos` and `relatoriosByRegional` are intentionally never region-scoped so extensionistas and regionais can "compete" with each other across the whole state; never add per-user filtering to these two.
 
 Reporting access (`req.reportingAccess`, set by `AuthMiddleware` for the dashboard-only reporting token) resolves role, relatório filtering, and manual dates together to the full admin scope, taking precedence over any `req.user`. Its response equals an admin user's for the same data. Details: [web-only-endpoints.md](web-only-endpoints.md#dashboard).
 

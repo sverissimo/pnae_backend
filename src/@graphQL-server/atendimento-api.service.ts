@@ -6,7 +6,7 @@ import {
   atendimentoComRelatorioManualQuery,
   atendimentoQuery,
   atendimentosComRelatorioManualQuery,
-  atendimentosManuaisUltimos30DiasQuery,
+  atendimentosManuaisUltimos60DiasQuery,
   atendimentosQuery,
   setAtendimentosExportDateMutation,
   updateAtendimentoMutation,
@@ -27,8 +27,8 @@ type AtendimentosComRelatorioDemeterResponse = {
 type AtendimentoComRelatorioDemeterResponse = {
   atendimentoComRelatorioManual: AtendimentoComRelatorioDemeterItemDTO | null;
 };
-type AtendimentosManuaisUltimos30DiasResponse = {
-  atendimentosManuaisUltimos30Dias: string[];
+type AtendimentosManuaisUltimos60DiasResponse = {
+  atendimentosManuaisUltimos60Dias: string[];
 };
 
 @Injectable()
@@ -49,13 +49,13 @@ export class AtendimentoGraphQLAPI extends GraphQLAPI {
     return atendimento;
   }
 
-  async getManuaisUltimos30Dias(id_reg_empresa?: string): Promise<string[]> {
-    const { atendimentosManuaisUltimos30Dias } =
-      await this.client.request<AtendimentosManuaisUltimos30DiasResponse>(
-        atendimentosManuaisUltimos30DiasQuery,
+  async getManuaisUltimos60Dias(id_reg_empresa?: string): Promise<string[]> {
+    const { atendimentosManuaisUltimos60Dias } =
+      await this.client.request<AtendimentosManuaisUltimos60DiasResponse>(
+        atendimentosManuaisUltimos60DiasQuery,
         { id_reg_empresa },
       );
-    return atendimentosManuaisUltimos30Dias ?? [];
+    return atendimentosManuaisUltimos60Dias ?? [];
   }
 
   async getAtendimentosComRelatorioDemeter({

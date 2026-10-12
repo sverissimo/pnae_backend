@@ -25,7 +25,7 @@ const NON_REGIONAIS = [
   'Projeto Jaíba',
 ];
 
-const LINE_CHART_DAYS = 30;
+const LINE_CHART_DAYS = 60;
 
 export type DashboardSummary = {
   totalRelatorios: number;
@@ -45,8 +45,7 @@ export type DashboardLineChart = {
   approved: number[];
 };
 
-// Manual (hand-made) relatórios over the same 30-day window as the line chart. The caller supplies
-// the correct role scope; `byDay` aligns to lineChart.categories.
+// The caller supplies the role scope; `byDay` aligns to lineChart.categories.
 export type DashboardManuais = {
   total: number;
   byDay: number[];
@@ -62,6 +61,7 @@ export type DashboardData = {
     aprovados: number;
   }[];
   lineChart: DashboardLineChart;
+  // Keep the legacy response key for deployed reporting consumers.
   manuais30Dias: DashboardManuais;
   scope: {
     role: UsuarioRole;
@@ -196,48 +196,53 @@ export function buildRelatoriosByRegional(
     .sort((a, b) => b.aprovados - a.aprovados || b.total - a.total);
 }
 
-// Buckets raw date strings into a LINE_CHART_DAYS-long array ending today (index 29 = today).
-function bucketByDay(rawDates: (string | null | undefined)[]): number[] {
-  const counts = new Array(LINE_CHART_DAYS).fill(0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+function lineChartDays(): Date[] {
+  const days: Date[] = [];
+  const day = new Date();
+  day.setHours(0, 0, 0, 0);
+
+  for (let offset = 0; offset < LINE_CHART_DAYS; offset += 1) {
+    if (day.getDay() !== 0 && day.getDay() !== 6) {
+      days.push(new Date(day));
+    }
+    day.setDate(day.getDate() - 1);
+  }
+
+  return days.reverse();
+}
+
+function bucketByDay(
+  rawDates: (string | null | undefined)[],
+  days: Date[],
+): number[] {
+  const counts = new Array<number>(days.length).fill(0);
+  const indexes = new Map(days.map((day, index) => [day.getTime(), index]));
 
   for (const raw of rawDates) {
     if (!raw) continue;
     const d = new Date(raw);
     if (isNaN(d.getTime())) continue;
     d.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor(
-      (today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24),
-    );
-    if (diffDays >= 0 && diffDays < LINE_CHART_DAYS) {
-      counts[LINE_CHART_DAYS - 1 - diffDays] += 1;
+    const index = indexes.get(d.getTime());
+    if (index !== undefined) {
+      counts[index] += 1;
     }
   }
   return counts;
 }
 
-function countByDay(
-  relatorios: DashboardRelatorioInput[],
-  prop: keyof DashboardRelatorioInput,
-): number[] {
-  return bucketByDay(
-    relatorios.map((r) => r[prop] as string | null | undefined),
-  );
-}
-
-// Total + per-day counts of manual relatórios over the 30-day window. `total` is the sum of the
-// bucketed days (strictly the last 30 days), so the badge and the line series always agree.
-export function buildManuais30Dias(
+export function buildManuaisDashboard(
   dates: (string | null | undefined)[],
+  days = lineChartDays(),
 ): DashboardManuais {
-  const byDay = bucketByDay(dates);
+  const byDay = bucketByDay(dates, days);
   return { total: byDay.reduce((sum, n) => sum + n, 0), byDay };
 }
 
 export function buildLineChart(
   relatorios: DashboardRelatorioInput[],
   isAdminView: boolean,
+  days = lineChartDays(),
 ): DashboardLineChart {
   const seriesField: 'data_sei' | 'data_see' = isAdminView
     ? 'data_see'
@@ -246,18 +251,18 @@ export function buildLineChart(
     ? 'Aprovados pela SEE'
     : 'Aprovados pelo DETEC';
 
-  const categories: string[] = Array.from({ length: LINE_CHART_DAYS }, (_, i) =>
-    new Date(
-      Date.now() - (LINE_CHART_DAYS - 1 - i) * 24 * 60 * 60 * 1000,
-    ).toLocaleDateString('pt-BR'),
-  );
-
   return {
     seriesField,
     seriesName,
-    categories,
-    created: countByDay(relatorios, 'createdAt'),
-    approved: countByDay(relatorios, seriesField),
+    categories: days.map((day) => day.toLocaleDateString('pt-BR')),
+    created: bucketByDay(
+      relatorios.map((r) => r.createdAt),
+      days,
+    ),
+    approved: bucketByDay(
+      relatorios.map((r) => r[seriesField]),
+      days,
+    ),
   };
 }
 
@@ -285,14 +290,15 @@ export function buildDashboardData(input: {
   } = input;
 
   const isAdminView = role === 'admin';
+  const days = lineChartDays();
 
   return {
     summary: buildSummary(scopedRelatorios),
     topSREs: isAdminView ? buildTopSREs(fullRelatorios, topSREsLimit) : null,
     topTecnicos: buildTopTecnicos(fullRelatorios, topTecnicosLimit),
     relatoriosByRegional: buildRelatoriosByRegional(fullRelatorios, regionais),
-    lineChart: buildLineChart(scopedRelatorios, isAdminView),
-    manuais30Dias: buildManuais30Dias(manuaisDates),
+    lineChart: buildLineChart(scopedRelatorios, isAdminView, days),
+    manuais30Dias: buildManuaisDashboard(manuaisDates, days),
     scope: { role, regionalLabel },
   };
 }

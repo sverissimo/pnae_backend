@@ -210,7 +210,7 @@ export class RelatorioService {
     if (idRegEmpresa === null) return Promise.resolve([]);
 
     return this.atendimentoService
-      .getManuaisUltimos30Dias(idRegEmpresa)
+      .getManuaisUltimos60Dias(idRegEmpresa)
       .catch((error) => {
         this.logger.error(
           `getDashboardData - manuais fetch failed: ${error?.message}`,

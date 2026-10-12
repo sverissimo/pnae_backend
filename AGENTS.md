@@ -8,6 +8,8 @@ Read ../AGENTS.md first.
 
 > Hard rules (full text in `../AGENTS.md`): no build, no container changes, no database access, no state-changing Git, no sensitive/env values in non-ignored or tracked files.
 
+**Never execute [../scripts/build.sh](../scripts/build.sh) or the build/deploy scripts it delegates to.** User-run only; usage is in [../docs/builds.md](../docs/builds.md). Static `bash -n` and ShellCheck inspection is allowed.
+
 Dual-storage field details: [docs/app-overview.md](docs/app-overview.md#dual-storage-fields); historical background: [temas-atendimento-and-numero-visita.md](docs/plans/archive/temas-atendimento-and-numero-visita.md).
 
 ## Architectural intent

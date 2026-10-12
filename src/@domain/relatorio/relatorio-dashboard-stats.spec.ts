@@ -1,5 +1,7 @@
 import {
   buildDashboardData,
+  buildLineChart,
+  buildManuaisDashboard,
   buildRelatoriosByRegional,
   buildSummary,
   buildTopSREs,
@@ -27,6 +29,69 @@ const baseRelatorio: DashboardRelatorioInput = {
 };
 
 describe('relatorio-dashboard-stats', () => {
+  describe('dashboard date window', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date(2026, 9, 12, 12));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it.each([
+      [12, 42, '14/08/2026', '12/10/2026'],
+      [11, 42, '13/08/2026', '09/10/2026'],
+      [16, 44, '18/08/2026', '16/10/2026'],
+    ])(
+      'omits weekends from the last 60 calendar days ending October %s',
+      (day, length, first, last) => {
+        jest.setSystemTime(new Date(2026, 9, day, 12));
+        const chart = buildLineChart([], true);
+
+        expect(chart.categories).toHaveLength(length);
+        expect(chart.categories[0]).toBe(first);
+        expect(chart.categories[chart.categories.length - 1]).toBe(last);
+        expect(chart.created).toEqual(new Array(length).fill(0));
+        expect(chart.approved).toEqual(new Array(length).fill(0));
+        for (const category of chart.categories) {
+          const [d, month, year] = category.split('/').map(Number);
+          expect([0, 6]).not.toContain(new Date(year, month - 1, d).getDay());
+        }
+      },
+    );
+
+    it('aligns creation, role-specific approval and manual counts, excluding weekends and out-of-window dates', () => {
+      const first = new Date(2026, 7, 14, 23, 59).toISOString();
+      const last = new Date(2026, 9, 12, 0, 1).toISOString();
+      const excluded = [
+        new Date(2026, 7, 13, 12).toISOString(),
+        new Date(2026, 7, 15, 12).toISOString(),
+        new Date(2026, 9, 11, 12).toISOString(),
+        new Date(2026, 9, 13, 12).toISOString(),
+        'invalid-date',
+        null,
+        undefined,
+      ];
+      const relatorios = [first, last, last, ...excluded].map((date) => ({
+        createdAt: date,
+        data_see: date,
+        data_sei: first,
+      }));
+      const admin = buildLineChart(relatorios, true);
+      const regional = buildLineChart(relatorios, false);
+      const manuais = buildManuaisDashboard([first, last, last, ...excluded]);
+      const expected = [1, ...new Array<number>(40).fill(0), 2];
+
+      expect(admin.created).toEqual(expected);
+      expect(admin.approved).toEqual(expected);
+      expect(admin.seriesField).toBe('data_see');
+      expect(regional.approved).toEqual([10, ...new Array<number>(41).fill(0)]);
+      expect(regional.seriesField).toBe('data_sei');
+      expect(manuais).toEqual({ total: 3, byDay: expected });
+    });
+  });
+
   describe('buildSummary', () => {
     it('counts each status field and today separately', () => {
       const summary = buildSummary([

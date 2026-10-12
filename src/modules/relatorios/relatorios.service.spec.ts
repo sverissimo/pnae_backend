@@ -43,7 +43,7 @@ describe('RelatorioService', () => {
       fixDatesIfNeeded: jest.fn(),
       updateTemasAndVisita: jest.fn(),
       getReplacedAtendimentos: jest.fn().mockResolvedValue([]),
-      getManuaisUltimos30Dias: jest.fn().mockResolvedValue([]),
+      getManuaisUltimos60Dias: jest.fn().mockResolvedValue([]),
     };
     fileService = { save: jest.fn(), update: jest.fn() };
     restAPI = { getReadOnlyRelatorios: jest.fn() };
@@ -81,9 +81,9 @@ describe('RelatorioService', () => {
   describe('RelatorioService.getDashboardData (reporting and existing scopes)', () => {
     let originalAllowedUserIds: string | undefined;
     const today = new Date(2026, 9, 12, 12).toISOString();
-    const yesterday = new Date(2026, 9, 11, 12).toISOString();
-    const twoDaysAgo = new Date(2026, 9, 10, 12).toISOString();
-    const outsideWindow = new Date(2026, 8, 12, 12).toISOString();
+    const previousWeekday = new Date(2026, 9, 9, 12).toISOString();
+    const twoWeekdaysAgo = new Date(2026, 9, 8, 12).toISOString();
+    const outsideWindow = new Date(2026, 7, 13, 12).toISOString();
     const regionalLabel = 'Unidade Regional de Viçosa';
     const relatorios = [
       {
@@ -95,8 +95,8 @@ describe('RelatorioService', () => {
         usuario: 'Técnico B',
         createdAt: today,
         sn_validado: 1,
-        data_validacao: yesterday,
-        data_sei: yesterday,
+        data_validacao: previousWeekday,
+        data_sei: previousWeekday,
         data_see: today,
         dt_export_ok: today,
       },
@@ -118,10 +118,10 @@ describe('RelatorioService', () => {
         nm_und_empresa: 'Unidade Regional de Lavras',
         regional_sre: 'SRE Norte',
         usuario: 'Técnico C',
-        createdAt: yesterday,
+        createdAt: previousWeekday,
         sn_validado: 0,
         sn_pendencia: 0,
-        data_validacao: yesterday,
+        data_validacao: previousWeekday,
         data_sei: today,
       },
       {
@@ -131,13 +131,13 @@ describe('RelatorioService', () => {
         nm_und_empresa: 'Unidade Regional de Ponte Nova',
         regional_sre: 'SRE Sul',
         usuario: 'Técnico A',
-        createdAt: twoDaysAgo,
+        createdAt: twoWeekdaysAgo,
         sn_validado: 1,
-        data_see: yesterday,
+        data_see: previousWeekday,
       },
     ];
     const seriesEndingWith = (...counts: number[]) => [
-      ...new Array<number>(30 - counts.length).fill(0),
+      ...new Array<number>(42 - counts.length).fill(0),
       ...counts,
     ];
     const adminDashboard = {
@@ -168,9 +168,11 @@ describe('RelatorioService', () => {
       lineChart: {
         seriesField: 'data_see',
         seriesName: 'Aprovados pela SEE',
-        categories: Array.from({ length: 30 }, (_, i) =>
-          new Date(2026, 8, 13 + i, 12).toLocaleDateString('pt-BR'),
-        ),
+        categories: Array.from({ length: 60 }, (_, i) =>
+          new Date(2026, 7, 14 + i, 12),
+        )
+          .filter((day) => day.getDay() !== 0 && day.getDay() !== 6)
+          .map((day) => day.toLocaleDateString('pt-BR')),
         created: seriesEndingWith(1, 1, 2),
         approved: seriesEndingWith(1, 1),
       },
@@ -209,11 +211,11 @@ describe('RelatorioService', () => {
       (service as any).perfilService.getRegionaisEmater.mockResolvedValue([
         { nm_und_empresa: 'Unidade Regional de Caratinga' },
       ]);
-      atendimentoService.getManuaisUltimos30Dias.mockImplementation(
+      atendimentoService.getManuaisUltimos60Dias.mockImplementation(
         async (regionScope?: string) =>
           regionScope === undefined
-            ? [today, today, yesterday, outsideWindow]
-            : [today, yesterday],
+            ? [today, today, previousWeekday, outsideWindow]
+            : [today, previousWeekday],
       );
     });
 
@@ -240,7 +242,7 @@ describe('RelatorioService', () => {
           { expand: true },
         );
         expect(
-          atendimentoService.getManuaisUltimos30Dias,
+          atendimentoService.getManuaisUltimos60Dias,
         ).toHaveBeenCalledWith(undefined);
       },
     );
@@ -248,7 +250,7 @@ describe('RelatorioService', () => {
     it('makes reporting and admin dashboards deep-equal, including manual dates and SEE series', async () => {
       const admin = new Usuario({ id_usuario: 'admin-1', perfis: [] });
       const adminResult = await service.getDashboardData(admin);
-      atendimentoService.getManuaisUltimos30Dias.mockClear();
+      atendimentoService.getManuaisUltimos60Dias.mockClear();
 
       const reportingResult = await service.getDashboardData(undefined, true);
 
@@ -259,9 +261,9 @@ describe('RelatorioService', () => {
       expect(reportingResult.topSREs).not.toBeNull();
       expect(reportingResult.lineChart.seriesField).toBe('data_see');
       expect(
-        atendimentoService.getManuaisUltimos30Dias,
+        atendimentoService.getManuaisUltimos60Dias,
       ).toHaveBeenCalledWith(undefined);
-      expect(atendimentoService.getManuaisUltimos30Dias).toHaveBeenCalledTimes(
+      expect(atendimentoService.getManuaisUltimos60Dias).toHaveBeenCalledTimes(
         1,
       );
     });
@@ -278,7 +280,7 @@ describe('RelatorioService', () => {
       );
 
       expect(
-        atendimentoService.getManuaisUltimos30Dias,
+        atendimentoService.getManuaisUltimos60Dias,
       ).toHaveBeenCalledWith(undefined);
     });
 
@@ -290,7 +292,7 @@ describe('RelatorioService', () => {
         noUserDashboard,
       );
 
-      expect(atendimentoService.getManuaisUltimos30Dias).not.toHaveBeenCalled();
+      expect(atendimentoService.getManuaisUltimos60Dias).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -337,7 +339,7 @@ describe('RelatorioService', () => {
         scope: { role, regionalLabel },
       });
       expect(
-        atendimentoService.getManuaisUltimos30Dias,
+        atendimentoService.getManuaisUltimos60Dias,
       ).toHaveBeenCalledWith('G0040');
     });
 
@@ -360,7 +362,7 @@ describe('RelatorioService', () => {
         ...noUserDashboard,
         scope: { role, regionalLabel: null },
       });
-      expect(atendimentoService.getManuaisUltimos30Dias).not.toHaveBeenCalled();
+      expect(atendimentoService.getManuaisUltimos60Dias).not.toHaveBeenCalled();
     });
 
     it('keeps the existing regional view for an other-role user with a regional', async () => {
@@ -380,13 +382,13 @@ describe('RelatorioService', () => {
       expect(result.relatoriosByRegional).toEqual(
         adminDashboard.relatoriosByRegional,
       );
-      expect(atendimentoService.getManuaisUltimos30Dias).toHaveBeenCalledWith(
+      expect(atendimentoService.getManuaisUltimos60Dias).toHaveBeenCalledWith(
         'G0040',
       );
     });
 
     it('keeps the dashboard when the manual-date dependency fails', async () => {
-      atendimentoService.getManuaisUltimos30Dias.mockRejectedValue(
+      atendimentoService.getManuaisUltimos60Dias.mockRejectedValue(
         new Error('manual dates unavailable'),
       );
 
