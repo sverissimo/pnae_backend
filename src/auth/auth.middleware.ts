@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request, NextFunction } from 'express';
 import { JwtService } from '@nestjs/jwt';
+import { createHash, timingSafeEqual } from 'crypto';
 import { AuthenticatedRequest } from './types/authenticated-request';
 
 @Injectable()
@@ -60,7 +61,23 @@ export class AuthMiddleware implements NestMiddleware {
       return next();
     }
 
-    // 2) Web: verify JWT cryptographically
+    // 2) Reporting: after CLIENT_TOKEN so a colliding value keeps mobile behavior.
+    const reportingToken = process.env.REPORTING_BEARER_TOKEN;
+    if (
+      tokenSource === 'header' &&
+      req.method === 'GET' &&
+      req.baseUrl === '/relatorios/dashboard' &&
+      reportingToken &&
+      timingSafeEqual(
+        createHash('sha256').update(token).digest(),
+        createHash('sha256').update(reportingToken).digest(),
+      )
+    ) {
+      req.reportingAccess = true;
+      return next();
+    }
+
+    // 3) Web: verify JWT cryptographically
     try {
       const decoded = await this.jwt.verifyAsync(token, {
         secret: process.env.JWT_SECRET,

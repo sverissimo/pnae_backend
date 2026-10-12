@@ -78,72 +78,328 @@ describe('RelatorioService', () => {
       .mockResolvedValue(undefined);
   });
 
-  describe('RelatorioService.getDashboardData (manual Demeter scope)', () => {
+  describe('RelatorioService.getDashboardData (reporting and existing scopes)', () => {
+    let originalAllowedUserIds: string | undefined;
+    const today = new Date(2026, 9, 12, 12).toISOString();
+    const yesterday = new Date(2026, 9, 11, 12).toISOString();
+    const twoDaysAgo = new Date(2026, 9, 10, 12).toISOString();
+    const outsideWindow = new Date(2026, 8, 12, 12).toISOString();
+    const regionalLabel = 'Unidade Regional de Viçosa';
+    const relatorios = [
+      {
+        id: 'rel-1',
+        tecnicoId: 'other',
+        id_reg_empresa: 'G0040',
+        nm_und_empresa: regionalLabel,
+        regional_sre: 'SRE Sul',
+        usuario: 'Técnico B',
+        createdAt: today,
+        sn_validado: 1,
+        data_validacao: yesterday,
+        data_sei: yesterday,
+        data_see: today,
+        dt_export_ok: today,
+      },
+      {
+        id: 'rel-2',
+        tecnicoId: 'staff-1',
+        id_reg_empresa: 'G0040',
+        nm_und_empresa: regionalLabel,
+        regional_sre: 'SRE Sul',
+        usuario: 'Técnico A',
+        createdAt: today,
+        sn_validado: 0,
+        sn_pendencia: 1,
+      },
+      {
+        id: 'rel-3',
+        tecnicoId: 'coord-1',
+        id_reg_empresa: 'G0002',
+        nm_und_empresa: 'Unidade Regional de Lavras',
+        regional_sre: 'SRE Norte',
+        usuario: 'Técnico C',
+        createdAt: yesterday,
+        sn_validado: 0,
+        sn_pendencia: 0,
+        data_validacao: yesterday,
+        data_sei: today,
+      },
+      {
+        id: 'rel-4',
+        tecnicoId: 'staff-1',
+        id_reg_empresa: 'G0003',
+        nm_und_empresa: 'Unidade Regional de Ponte Nova',
+        regional_sre: 'SRE Sul',
+        usuario: 'Técnico A',
+        createdAt: twoDaysAgo,
+        sn_validado: 1,
+        data_see: yesterday,
+      },
+    ];
+    const seriesEndingWith = (...counts: number[]) => [
+      ...new Array<number>(30 - counts.length).fill(0),
+      ...counts,
+    ];
+    const adminDashboard = {
+      summary: {
+        totalRelatorios: 4,
+        approvedRegional: 3,
+        approvedDetec: 2,
+        approvedSEE: 2,
+        exportedSEI: 1,
+        relatoriosCreatedToday: 2,
+        semAprovacaoRegional: 1,
+      },
+      topSREs: [
+        { sre: 'SRE Sul', visitas: 3 },
+        { sre: 'SRE Norte', visitas: 1 },
+      ],
+      topTecnicos: [
+        { tecnico: 'Técnico A', total: 2, aprovados: 1 },
+        { tecnico: 'Técnico B', total: 1, aprovados: 1 },
+        { tecnico: 'Técnico C', total: 1, aprovados: 1 },
+      ],
+      relatoriosByRegional: [
+        { regional: 'Viçosa', total: 2, aprovados: 1 },
+        { regional: 'Lavras', total: 1, aprovados: 1 },
+        { regional: 'Ponte Nova', total: 1, aprovados: 1 },
+        { regional: 'Caratinga', total: 0, aprovados: 0 },
+      ],
+      lineChart: {
+        seriesField: 'data_see',
+        seriesName: 'Aprovados pela SEE',
+        categories: Array.from({ length: 30 }, (_, i) =>
+          new Date(2026, 8, 13 + i, 12).toLocaleDateString('pt-BR'),
+        ),
+        created: seriesEndingWith(1, 1, 2),
+        approved: seriesEndingWith(1, 1),
+      },
+      manuais30Dias: { total: 3, byDay: seriesEndingWith(1, 2) },
+      scope: { role: 'admin', regionalLabel },
+    };
+    const noUserDashboard = {
+      ...adminDashboard,
+      summary: {
+        totalRelatorios: 0,
+        approvedRegional: 0,
+        approvedDetec: 0,
+        approvedSEE: 0,
+        exportedSEI: 0,
+        relatoriosCreatedToday: 0,
+        semAprovacaoRegional: 0,
+      },
+      topSREs: null,
+      lineChart: {
+        ...adminDashboard.lineChart,
+        seriesField: 'data_sei',
+        seriesName: 'Aprovados pelo DETEC',
+        created: seriesEndingWith(),
+        approved: seriesEndingWith(),
+      },
+      manuais30Dias: { total: 0, byDay: seriesEndingWith() },
+      scope: { role: 'other', regionalLabel: null },
+    };
+
     beforeEach(() => {
+      originalAllowedUserIds = process.env.ALLOWED_USER_IDS;
       process.env.ALLOWED_USER_IDS = 'admin-1,dev-9';
-      jest.spyOn(service, 'findAll').mockResolvedValue([
-        {
-          id: 'rel-1',
-          id_reg_empresa: 'G0040',
-          nm_und_empresa: 'Unidade Regional de Viçosa',
-          createdAt: '2026-07-05',
-        },
-      ] as any);
-      (service as any).perfilService.getRegionaisEmater.mockResolvedValue([]);
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date(today));
+      jest.spyOn(service, 'findAll').mockResolvedValue(relatorios as any);
+      (service as any).perfilService.getRegionaisEmater.mockResolvedValue([
+        { nm_und_empresa: 'Unidade Regional de Caratinga' },
+      ]);
+      atendimentoService.getManuaisUltimos30Dias.mockImplementation(
+        async (regionScope?: string) =>
+          regionScope === undefined
+            ? [today, today, yesterday, outsideWindow]
+            : [today, yesterday],
+      );
     });
 
-    it('keeps manual Demeter dates unscoped for admin users', async () => {
-      const admin = new Usuario({ id_usuario: 'admin-1', perfis: [] });
+    afterEach(() => {
+      jest.useRealTimers();
+      if (originalAllowedUserIds === undefined) {
+        delete process.env.ALLOWED_USER_IDS;
+      } else {
+        process.env.ALLOWED_USER_IDS = originalAllowedUserIds;
+      }
+    });
 
-      await service.getDashboardData(admin);
+    it.each(['admin-1', 'dev-9'])(
+      'keeps the complete unscoped admin dashboard for %s',
+      async (id_usuario) => {
+        const admin = new Usuario({ id_usuario, perfis: [] });
+
+        await expect(service.getDashboardData(admin)).resolves.toEqual(
+          adminDashboard,
+        );
+
+        expect(service.findAll).toHaveBeenCalledWith(
+          { contratoId: 2 },
+          { expand: true },
+        );
+        expect(
+          atendimentoService.getManuaisUltimos30Dias,
+        ).toHaveBeenCalledWith(undefined);
+      },
+    );
+
+    it('makes reporting and admin dashboards deep-equal, including manual dates and SEE series', async () => {
+      const admin = new Usuario({ id_usuario: 'admin-1', perfis: [] });
+      const adminResult = await service.getDashboardData(admin);
+      atendimentoService.getManuaisUltimos30Dias.mockClear();
+
+      const reportingResult = await service.getDashboardData(undefined, true);
+
+      expect(reportingResult).toEqual(adminResult);
+      expect(reportingResult).toEqual(adminDashboard);
+      expect(reportingResult.summary.totalRelatorios).toBeGreaterThan(0);
+      expect(reportingResult.manuais30Dias.total).toBeGreaterThan(0);
+      expect(reportingResult.topSREs).not.toBeNull();
+      expect(reportingResult.lineChart.seriesField).toBe('data_see');
+      expect(
+        atendimentoService.getManuaisUltimos30Dias,
+      ).toHaveBeenCalledWith(undefined);
+      expect(atendimentoService.getManuaisUltimos30Dias).toHaveBeenCalledTimes(
+        1,
+      );
+    });
+
+    it('gives reporting access precedence over an existing staff user', async () => {
+      const staff = new Usuario({
+        id_usuario: 'staff-1',
+        id_reg_empresa: 'G0040',
+        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
+      });
+
+      await expect(service.getDashboardData(staff, true)).resolves.toEqual(
+        adminDashboard,
+      );
 
       expect(
         atendimentoService.getManuaisUltimos30Dias,
       ).toHaveBeenCalledWith(undefined);
     });
 
-    it('uses regional-only manual Demeter scope for coordenador regional users', async () => {
-      const coord = new Usuario({
-        id_usuario: 'coord-1',
-        id_reg_empresa: 'G0040',
-        perfis: [PerfilUsuario.ADMINISTRADOR2],
-      });
-
-      await service.getDashboardData(coord);
-
-      expect(
-        atendimentoService.getManuaisUltimos30Dias,
-      ).toHaveBeenCalledWith('G0040');
-    });
-
-    it('uses regional-only manual Demeter scope for extensionista users', async () => {
-      const staff = new Usuario({
-        id_usuario: 'staff-1',
-        id_reg_empresa: 'G0040',
-        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
-      });
-
-      await service.getDashboardData(staff);
-
-      expect(
-        atendimentoService.getManuaisUltimos30Dias,
-      ).toHaveBeenCalledWith('G0040');
-    });
-
-    it('does not fall back to unscoped manual Demeter data when a non-admin has no regional', async () => {
-      const staff = new Usuario({
-        id_usuario: 'staff-1',
-        perfis: [PerfilUsuario.MOD_ATIV_TECNICO],
-      });
-
-      const result = await service.getDashboardData(staff);
+    it('keeps the complete no-user dashboard with no manual fetch', async () => {
+      await expect(service.getDashboardData()).resolves.toEqual(
+        noUserDashboard,
+      );
+      await expect(service.getDashboardData(undefined, false)).resolves.toEqual(
+        noUserDashboard,
+      );
 
       expect(atendimentoService.getManuaisUltimos30Dias).not.toHaveBeenCalled();
-      expect(result.manuais30Dias).toEqual({
-        total: 0,
-        byDay: expect.arrayContaining([]),
+    });
+
+    it.each([
+      {
+        role: 'coordenadorRegional',
+        id_usuario: 'coord-1',
+        perfil: PerfilUsuario.ADMINISTRADOR2,
+      },
+      {
+        role: 'staff',
+        id_usuario: 'staff-1',
+        perfil: PerfilUsuario.MOD_ATIV_TECNICO,
+      },
+    ])('keeps the complete regional-only dashboard for $role', async ({
+      role,
+      id_usuario,
+      perfil,
+    }) => {
+      const user = new Usuario({
+        id_usuario,
+        id_reg_empresa: 'G0040',
+        perfis: [perfil],
       });
-      expect(result.manuais30Dias.byDay).toHaveLength(30);
+
+      const result = await service.getDashboardData(user);
+
+      expect(result).toEqual({
+        ...noUserDashboard,
+        summary: {
+          totalRelatorios: 2,
+          approvedRegional: 1,
+          approvedDetec: 1,
+          approvedSEE: 1,
+          exportedSEI: 1,
+          relatoriosCreatedToday: 2,
+          semAprovacaoRegional: 1,
+        },
+        lineChart: {
+          ...noUserDashboard.lineChart,
+          created: seriesEndingWith(2),
+          approved: seriesEndingWith(1, 0),
+        },
+        manuais30Dias: { total: 2, byDay: seriesEndingWith(1, 1) },
+        scope: { role, regionalLabel },
+      });
+      expect(
+        atendimentoService.getManuaisUltimos30Dias,
+      ).toHaveBeenCalledWith('G0040');
+    });
+
+    it.each([
+      { role: 'coordenadorRegional', perfil: PerfilUsuario.ADMINISTRADOR2 },
+      { role: 'staff', perfil: PerfilUsuario.MOD_ATIV_TECNICO },
+      { role: 'other', perfil: undefined },
+    ])('keeps zeros and skips manual dates for $role without a regional', async ({
+      role,
+      perfil,
+    }) => {
+      const user = new Usuario({
+        id_usuario: 'non-admin',
+        perfis: perfil ? [perfil] : [],
+      });
+
+      const result = await service.getDashboardData(user);
+
+      expect(result).toEqual({
+        ...noUserDashboard,
+        scope: { role, regionalLabel: null },
+      });
+      expect(atendimentoService.getManuaisUltimos30Dias).not.toHaveBeenCalled();
+    });
+
+    it('keeps the existing regional view for an other-role user with a regional', async () => {
+      const user = new Usuario({
+        id_usuario: 'other-1',
+        id_reg_empresa: 'G0040',
+        perfis: [],
+      });
+
+      const result = await service.getDashboardData(user);
+
+      expect(result.scope).toEqual({ role: 'other', regionalLabel });
+      expect(result.summary.totalRelatorios).toBe(2);
+      expect(result.lineChart.created).toEqual(seriesEndingWith(2));
+      expect(result.topSREs).toBeNull();
+      expect(result.topTecnicos).toEqual(adminDashboard.topTecnicos);
+      expect(result.relatoriosByRegional).toEqual(
+        adminDashboard.relatoriosByRegional,
+      );
+      expect(atendimentoService.getManuaisUltimos30Dias).toHaveBeenCalledWith(
+        'G0040',
+      );
+    });
+
+    it('keeps the dashboard when the manual-date dependency fails', async () => {
+      atendimentoService.getManuaisUltimos30Dias.mockRejectedValue(
+        new Error('manual dates unavailable'),
+      );
+
+      const result = await service.getDashboardData(undefined, true);
+
+      expect(result).toEqual({
+        ...adminDashboard,
+        manuais30Dias: noUserDashboard.manuais30Dias,
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        'getDashboardData - manuais fetch failed: manual dates unavailable',
+        expect.any(String),
+      );
     });
   });
 

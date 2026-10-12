@@ -38,7 +38,7 @@ Dual-storage field details: [docs/app-overview.md](docs/app-overview.md#dual-sto
 ## Request lifecycle
 
 - Bootstrap in [main.ts](src/main.ts): JSON/urlencoded body limits at 5mb, cookie parser, CORS with credentials, `BigIntInterceptor` (Prisma `BigInt` → string), `PlainTextExceptionFilter` (error normalization for older mobile clients), shutdown hooks.
-- Two middlewares wired on `*` in [app.module.ts](src/app.module.ts): `AuthMiddleware` (JWT verify, with mobile static-token bypass via `CLIENT_TOKEN`) then `UserContextMiddleware` (hydrates `req.user`).
+- Two middlewares wired on `*` in [app.module.ts](src/app.module.ts): `AuthMiddleware` (JWT verify, with mobile static-token bypass via `CLIENT_TOKEN` and a dashboard-only reporting token) then `UserContextMiddleware` (hydrates `req.user`).
 - Two global interceptors via `APP_INTERCEPTOR`: `WinstonLoggerService` (structured logs) and `UserHydrationInterceptor` (resolves the `Usuario` domain entity from the token claims).
 - Auth bypass list lives in [auth/auth.middleware.ts](src/auth/auth.middleware.ts) (currently `/relatorios/pdf`, `/relatorios/zip`, `/cmc`, `/login`, plus CORS preflight). Treat that list as load-bearing — adding a new public endpoint means updating it explicitly.
 
@@ -48,6 +48,7 @@ Both clients land on the same middleware chain; the difference is how they carry
 
 - **Mobile** sends `Authorization: Bearer <CLIENT_TOKEN>` on every request. `CLIENT_TOKEN` is the static shared secret from env. `AuthMiddleware` short-circuits and calls `next()` without attaching anything to `req.user`. Mobile-targeted endpoints therefore must not rely on `req.user` for identity — the mobile payload carries `tecnicoId`/`produtorId` explicitly.
 - **Web** sends an httpOnly cookie `auth_token` containing a signed JWT (issued at `POST /usuario/login`). `AuthMiddleware` reads either header or cookie, verifies the JWT cryptographically against `JWT_SECRET`, and writes the decoded claims to `req.user`. Then `UserContextMiddleware` runs and (re)decodes the same cookie into `req.user` — redundant for the verified path but kept as a safety net. Finally, the global `UserHydrationInterceptor` upgrades `req.user` from a plain claims object to a `Usuario` domain entity, so controllers/services can call `req.user.isAdmin()`, `req.user.isCoordenadorRegional()`, etc.
+- **Reporting** (the Gestão Estratégica portal, server-to-server) sends `Authorization: Bearer <REPORTING_BEARER_TOKEN>`. `AuthMiddleware` accepts it only from the header on `GET /relatorios/dashboard`, after the `CLIENT_TOKEN` check so a colliding value keeps mobile behavior. It sets only `req.reportingAccess` and never a synthetic `req.user`; the dashboard resolves the marker to the admin view. A missing or empty variable disables it. Details: [docs/web-only-endpoints.md](docs/web-only-endpoints.md#dashboard).
 - **Every request** goes through this chain (with the explicit bypass list above for unauthenticated routes). A controller method that has reached its handler has already been authenticated — there is no scenario where an unauthorized request makes it past the middleware. This is why services trust `req.user` and do not need their own guard checks.
 - **Authorization (who-can-see-what) lives in services and on the `Usuario` domain entity**, not middleware. It is split into two checks, both expressed as `Usuario` methods (see [@domain/usuario/usuario.entity.ts](src/@domain/usuario/usuario.entity.ts)):
   - **Capability** (role, instance-independent) — *may this user perform this kind of action at all?* Via `user.isAdmin()` / `user.isCoordenadorRegional()` (e.g. validate/pendência → coordenador **or** admin; plain reads → no capability gate).
@@ -77,7 +78,7 @@ The mobile app ([../pnae_mobile/](../pnae_mobile/)) is **frozen and shipped** on
 
 New endpoints added from now on that are classic HTTP controller endpoints consumed by the web interface (not crons, internal utils, or system jobs) should be listed here so it is clear mobile does not call them and they aren't bound by the compatibility rule. Future entries must use one line with method and path, purpose, a short auth note, and a link; details go in [docs/web-only-endpoints.md](docs/web-only-endpoints.md).
 
-- GET /relatorios/dashboard — Aggregated dashboard statistics; authenticated; role-aware via `req.user`; [details](docs/web-only-endpoints.md#dashboard).
+- GET /relatorios/dashboard — Aggregated dashboard statistics; authenticated; role-aware via `req.user`, or the admin view via the reporting token; [details](docs/web-only-endpoints.md#dashboard).
 - PATCH /atendimento/:atendimentoId/aprovar — Approve atendimento; coordenador-regional or admin; capability + visibility; [details](docs/web-only-endpoints.md#approve-atendimento).
 - PATCH /atendimento/:atendimentoId/pendencia — Mark atendimento pending; coordenador-regional or admin; capability + visibility; [details](docs/web-only-endpoints.md#mark-atendimento-pending).
 - PATCH /atendimento/:atendimentoId/aprovar-sei — Approve DETEC/SEI; admin-only; capability + visibility; [details](docs/web-only-endpoints.md#approve-sei).

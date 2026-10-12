@@ -80,7 +80,10 @@ export class RelatorioController {
   @Get('/dashboard')
   async getDashboard(@Req() req: Request) {
     try {
-      return await this.relatorioService.getDashboardData(req.user);
+      return await this.relatorioService.getDashboardData(
+        req.user,
+        req.reportingAccess === true,
+      );
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
       this.logger.error(

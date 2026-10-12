@@ -6,7 +6,25 @@ Links to `plans/archive/` are historical implementation background; current guid
 
 ## Dashboard
 
-- GET /relatorios/dashboard — aggregated stats for the web dashboard page (summary gauges, top SREs/tecnicos, by-regional, 30-day line chart). Role-aware via `req.user` only — no query params. Uses dashboard-only regional scoping for the per-user PNAE portion (gauges + 30-day line chart) while always using the full hydrated set for the global tops and by-regional chart. Also returns `manuais30Dias` (`{ total, byDay[30] }`) — count + per-day series of active manual relatórios over the same 30-day window, sourced from the gateway GraphQL `atendimentosManuaisUltimos30Dias` query via `AtendimentoService.getManuaisUltimos30Dias`; admin/developer callers are unscoped, while coordenador-regional and extensionista callers pass only `id_reg_empresa` (regional scope, never user scope). A missing regional for a non-admin degrades to zeros instead of falling back to state-wide, and a gateway failure also degrades to zeros rather than blanking the dashboard. Day-bucketing happens in `buildManuais30Dias` (domain) so `byDay` stays aligned to `lineChart.categories`.
+- GET /relatorios/dashboard — aggregated stats for the web dashboard page (summary gauges, top SREs/tecnicos, by-regional, 30-day line chart). Role-aware via `req.user`, with reporting access described below; query parameters are ignored. Uses dashboard-only regional scoping for the per-user PNAE portion (gauges + 30-day line chart) while always using the full hydrated set for the global tops and by-regional chart. Also returns `manuais30Dias` (`{ total, byDay[30] }`) — count + per-day series of active manual relatórios over the same 30-day window, sourced from the gateway GraphQL `atendimentosManuaisUltimos30Dias` query via `AtendimentoService.getManuaisUltimos30Dias`; admin/developer callers are unscoped, while coordenador-regional and extensionista callers pass only `id_reg_empresa` (regional scope, never user scope). A missing regional for a non-admin degrades to zeros instead of falling back to state-wide, and a gateway failure also degrades to zeros rather than blanking the dashboard. Day-bucketing happens in `buildManuais30Dias` (domain) so `byDay` stays aligned to `lineChart.categories`.
+
+Reporting callers may send `Authorization: Bearer <reporting-token>` using the
+static `REPORTING_BEARER_TOKEN` configured for that environment. Missing or
+empty configuration disables reporting access. Authentication accepts this
+credential only from the header on `GET /relatorios/dashboard`, matching the
+mounted `req.baseUrl` exactly and case-sensitively. A trailing slash and query
+string are accepted; other methods, suffixes, mixed-case paths, and an
+`auth_token` cookie containing this credential fall through to JWT verification
+and return 401 for an invalid JWT. Existing public bypasses remain public.
+
+`AuthMiddleware` sets only `req.reportingAccess`, without creating a user.
+The dashboard resolves this marker to the full admin scope, taking precedence
+over any user and matching an admin's response for the same data and clock:
+all relatórios and manual dates, non-null `topSREs`, the SEE line series, and
+`scope.role: "admin"`. Existing web JWT scopes are preserved. `CLIENT_TOKEN`
+is checked first and keeps the no-user dashboard, including when it equals the
+reporting credential. Use a distinct reporting token per environment and never
+reuse a mobile or other source's credential.
 
 ## Approve atendimento
 

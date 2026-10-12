@@ -16,6 +16,53 @@ import {
 import { PdfGenerator } from 'src/@pdf-gen/pdf-gen';
 
 describe('RelatorioController', () => {
+  describe('GET /dashboard reporting marker', () => {
+    it.each([true, undefined])(
+      'passes reportingAccess=%s explicitly to the dashboard service',
+      async (reportingAccess) => {
+        const dashboard = { scope: { role: 'admin' } };
+        const service = {
+          getDashboardData: jest.fn().mockResolvedValue(dashboard),
+        };
+        const user: any = { getRole: () => 'staff' };
+        const controller = new RelatorioController(
+          service as any,
+          {} as any,
+          { error: jest.fn() } as any,
+        );
+
+        const result = await controller.getDashboard({
+          user,
+          ...(reportingAccess === true ? { reportingAccess } : {}),
+        } as any);
+
+        expect(service.getDashboardData).toHaveBeenCalledTimes(1);
+        expect(service.getDashboardData).toHaveBeenCalledWith(
+          user,
+          reportingAccess === true,
+        );
+        expect(result).toBe(dashboard);
+      },
+    );
+
+    it('passes an absent user and ignores marker-like query, body, and headers', async () => {
+      const service = { getDashboardData: jest.fn().mockResolvedValue({}) };
+      const controller = new RelatorioController(
+        service as any,
+        {} as any,
+        { error: jest.fn() } as any,
+      );
+
+      await controller.getDashboard({
+        query: { reportingAccess: 'true' },
+        body: { reportingAccess: true },
+        headers: { reportingAccess: 'true' },
+      } as any);
+
+      expect(service.getDashboardData).toHaveBeenCalledWith(undefined, false);
+    });
+  });
+
   describe('mobile/static-token regression — req.user undefined', () => {
     // Mobile authenticates via the static CLIENT_TOKEN and arrives at
     // controllers with `req.user === undefined`. These tests pin that the

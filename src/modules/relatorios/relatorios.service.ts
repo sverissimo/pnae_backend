@@ -29,6 +29,7 @@ import { RelatorioPresentationModel } from './dto/relatorio.presentation-model';
 import {
   buildDashboardData,
   DashboardData,
+  DashboardRole,
 } from 'src/@domain/relatorio/relatorio-dashboard-stats';
 import { PerfilService } from '../perfil/perfil.service';
 import { CachedReplacedAtendimentosReader } from '../atendimento/cache/cached-replaced-atendimentos.reader';
@@ -146,20 +147,25 @@ export class RelatorioService {
     return relatoriosResolvedAtendimentos || relatoriosWithReadOnly;
   }
 
-  async getDashboardData(user?: Usuario): Promise<DashboardData> {
-    const role = user?.getRole() ?? 'other';
-    const manualRegionalScope = this.getDashboardManualRegionalScope(user);
+  async getDashboardData(
+    user?: Usuario,
+    reportingAccess = false,
+  ): Promise<DashboardData> {
+    const { role, regionScope } = this.resolveDashboardScope(
+      user,
+      reportingAccess,
+    );
 
     const [fullRelatorios, regionais, manuaisDates] = await Promise.all([
       this.findAll({ contratoId: 2 }, { expand: true }) as Promise<
         RelatorioPresentationModel[]
       >,
       this.perfilService.getRegionaisEmater(),
-      this.getDashboardManuaisDates(manualRegionalScope),
+      this.getDashboardManuaisDates(regionScope),
     ]);
 
     // Scoped set drives gauges + line chart; tops + by-regional use the full set.
-    const scoped = this.scopeRelatoriosForUser(fullRelatorios, user);
+    const scoped = this.scopeDashboardRelatorios(fullRelatorios, regionScope);
     const regionalLabel = this.resolveRegionalLabel(scoped);
 
     return buildDashboardData({
@@ -174,24 +180,28 @@ export class RelatorioService {
     });
   }
 
-  // Dashboard-only scoping: gauges/line chart reflect the user's *regional*,
-  // not just their own relatorios. See AGENTS.md "Authentication flow (mobile vs web)".
-  private scopeRelatoriosForUser(
+  // Gauges/line chart use regional scope except for admin/reporting access (full scope).
+  // See docs/app-overview.md "Dashboard scoping".
+  private scopeDashboardRelatorios(
     relatorios: RelatorioPresentationModel[],
-    user?: Usuario,
+    regionScope: string | null | undefined,
   ): RelatorioPresentationModel[] {
-    if (!user) return [];
-    if (user.isAdmin() || user.isDeveloper()) return relatorios;
-    if (!user.id_reg_empresa) return [];
-    return relatorios.filter((r) => r.id_reg_empresa === user.id_reg_empresa);
+    if (regionScope === undefined) return relatorios;
+    if (!regionScope) return [];
+    return relatorios.filter((r) => r.id_reg_empresa === regionScope);
   }
 
-  private getDashboardManualRegionalScope(
-    user?: Usuario,
-  ): string | null | undefined {
-    if (!user) return null;
-    if (user.isAdmin() || user.isDeveloper()) return undefined;
-    return user.id_reg_empresa ?? null;
+  private resolveDashboardScope(
+    user: Usuario | undefined,
+    reportingAccess: boolean,
+  ): { role: DashboardRole; regionScope: string | null | undefined } {
+    if (reportingAccess) return { role: 'admin', regionScope: undefined };
+    const role = user?.getRole() ?? 'other';
+    if (!user) return { role, regionScope: null };
+    if (user.isAdmin() || user.isDeveloper()) {
+      return { role, regionScope: undefined };
+    }
+    return { role, regionScope: user.id_reg_empresa ?? null };
   }
 
   private getDashboardManuaisDates(
